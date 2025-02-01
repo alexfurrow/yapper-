@@ -17,7 +17,7 @@ def create_page():
     try:
         # Process content through OpenAI
         processed_content = process_text(data['content'])
-        
+        print(processed_content)
         new_page = Page(
             content=data['content'],
             processed=processed_content

@@ -1,26 +1,31 @@
-import openai
+from openai import OpenAI
 from flask import current_app
+import json, os
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
+
+# Initialize the client with the API key from .env
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def process_text(content):
-    api_key = current_app.config.get('OPENAI_API_KEY')
-    if not api_key:
-        print("OpenAI API key not found in configuration")
-        return None
-        
-    openai.api_key = api_key
-    
     try:
-        print(f"Sending request to OpenAI with content: {content[:50]}...")  # Debug print
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
+        # Debug print to see what key is being used
+        print("Using API key:", os.environ.get('OPENAI_API_KEY')[:10] + "...")
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format = {"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are a creative story writer."},
                 {"role": "user", "content": f"Write a story based on this information: {content}"}
-            ]
+            ],
+            max_tokens = 4000,
+            temperature = 1
         )
-        processed_text = response.choices[0].message.content
-        print(f"Received response from OpenAI: {processed_text[:50]}...")  # Debug print
-        return processed_text
+        reply = response.choices[0].message.content
+        return(reply)
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")
-        return None 
+        return None
