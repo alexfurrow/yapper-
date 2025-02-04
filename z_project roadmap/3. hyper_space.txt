@@ -1,0 +1,5 @@
+1. Direct neural signal. e.g. directly interpret the user's neural signals. prompt others to think about another person, interpret those signals for feeding into model. etc.
+2. Intution - basically build a subconscious layer for our interactions
+3. News
+4. mentalist - put ideas into the user's mind?????????? (saquon orange m&m mentalist video)
+5. what's the magic? insights that the user wouldn't otherwise know about

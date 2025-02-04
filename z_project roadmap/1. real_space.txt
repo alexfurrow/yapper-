@@ -1,0 +1,277 @@
+- upload file (text or voice)
+- text entry
+- voice entry
+- create front end landing page for the verification confirmation email ("your email is confirmed! you can exit this page") and reset password front end page.
+- create an email for the app to send the emails from (like verification emails) - services like SendGrid, Amazon SES, Mailgun would be production services.
+- check composer and bug finder
+- need to figure out orientation how it feeds into the prompt class and associated functions
+- need to figure out the system and user thing, like where to put the prompt stuff in classes, like "the following criteria" - does it go in system? or does it live in user?
+
+0. Names: Poet. Yes we considered bard. Loremaster. Ampleforth. TOlkien. Mother Goose. [https://en.wikipedia.org/wiki/Category:Fictional_storytellers]
+1. to start backend, create a bash terminal, navigate to backend then run app.py
+2. then to get the front end, create a bash, navigate to front end, run npm start
+3. instantiate stuff, so like the prompts, user, etc.
+    prompt instance, or static instance?
+    user instance?
+- Help with the prompting
+- Help with the prioritization of systems
+
+
+
+
+The idea:
+you are well connected and experienced with product management, ux/ui design, software architecture for scalable software solutions, and ceos of successful startups. how would you design the following system:
+
+give me a detailed roadmap for a software app.
+the app is meant to help people tell their personal stories
+1. back end using flask
+2. front end using react
+3. takes in text journal entries
+4. transforms their data into a cohesive stories that amount to the lore of that person.
+
+It needs traditional user system, where each person has an id and password, where their data is stored with that user id. it needs the ability to record voice. it also needs the ability to transcribe that voice data into text. 
+
+data creation: 
+on the bottom data later is the raw entries by the people using the app. 
+
+basic cleaning:
+the second layer is a smoothened summary of the users data, so that its easier for future processing by llms. 
+
+data layers that will lead to products:
+the third layer would be to summarize across different entries, giving individuals the opportunity to understand the story of their lives across days, weeks, and months. here products can be spin out to the individual user. for instance, one series of prompts could be used to take in the raw data and build sophisticated narratives for the user. This could be a family heirloom (a personal history), something to share with friends (like the annual spotify wrapped). the emphasis will be on the character in a first or third person pov going through their life. from the mundane details of that person's life, challenges that are at the core of narratives (anxiety, challenges) can be extracted and turned into a sophisticated, elevated, and artful illustration. it is, in some ways, a portrait of the person, a vanity. a second product from this layer could be various agents that can engage the user when they wish to have insights into their lives, their personalities, their patterns of thinking. it can be the basis for making incremental change in their lives that leads to greater health and wellness.  What other ideas do you have for products for this particular layer?
+
+in the fourth layer, data in the second and third layer from different users can be combined to synthesize stories that are happening in a group, community, identity, etc. Privacy is of concern, and revealing the private thoughts from one person to another would be strictly forbidden in this fourth layer. additionally, in this fourth layer, it would also be appropriate to create a product that was neutral in tone, as in the style of journalistic content. This layer would output products related to those groups. this would be more like a jouranlist, a historian, a lore master, and archivist. from here we could have suggestions for what those communities could focus on next, given the details of what's going on in everyone's lives.
+
+a 5th layer could be built upon the 4th layer, giving a history for states, nations or the globe. an additional product could, similarly to past layers, be something that suggests things to do next, or at the very least gives insights into what's going on.
+
+the data in each of these layers can be fed back into the products in lower levels, to help contextualize that person's life. For instance, the global narrative from the 5th layer or the narrative of their community in the 4th layer could be fed into the story of the lives of the person in the 3rd layer. the ai can identify how these things are affecting the person and tell it through a narrative.
+
+For instance, take the book 1984 by George Orwell. The main character is influenced by macro events like the war between Oceania, Eurasia, and Eastasia. it plays a critical role into the protagonists experience and presents challenges for  him to grow through, including the role of constant surveilance by technology and the inherent suspicion between people that that brings between characters. The story, however, does not talk about the wars themselves: the battles, the logistics, the influential generals and their tactics, etc. instead it offers a backdrop/setting for the man who is navigating the effects this type of dystopian society has had on him. 
+
+for some, a story told about themselves from a different perspective or style could provide them insights, alone. it can inspire them to see outside the matrix they live in and perhaps be inspired to make changes that are for the betterment of their wellbeing, health, and their society's.
+
+what i need help with is the blueprint or software architecture that can build this type of system. 
+
+
+
+AI response:
+[React Frontend] 
+   |
+   v
+[Flask API Gateway] 
+   |           \
+   |            v
+[Auth Service]  [User Data Service (CRUD for entries)]
+   |             \
+   |              v
+[Voice Service & Transcription]  <-- Possibly integrated with Cloud speech API
+   |              
+   +-------------> [Storage Layer (S3/Bucket for audio, DB for text)] 
+   |
+   v
+[AI Summarization & Processing Service(s)] --> Summaries, Aggregations
+   |              
+   v
+[Personal Narrative Service] --> (Layer 3 outputs, user-level)
+   |
+   v
+[Community / Group Narrative Service] --> (Layer 4 outputs)
+   |
+   v
+[Global Narrative Service] --> (Layer 5 outputs)
+
+7. Future Opportunities & Product Expansion
+
+    AI-Driven Coaching / Therapy Adjacent (Not a replacement for professional help)
+        Provide advanced “therapy simulation” or “life coach” suggestions (with disclaimers), building on a user’s personal data history.
+
+    Social Sharing
+        Users might choose to share certain summaries or “chapters” with friends or family.
+        Could incorporate feedback loops or collaborative journaling experiences.
+
+    Integration with Wearables
+        Correlate user’s psychological states with physical data (heart rate, sleep patterns). Over time, produce more holistic personal insights.
+
+    Enterprise Use
+        A version for corporate teams or organizations to track morale, reflections, or project retrospectives. Summaries can inform management about the “health” of the team.
+
+    Educational Market
+        Students reflecting on progress, teachers analyzing anonymized student writing patterns, etc.
+
+
+
+   1.24.2025
+   So I have the basic skeleton of a auth service. I probably need to add in something for forgetting a password.
+   
+   Additional Security Considerations:
+      Implement rate limiting for login attempts
+      Add CORS protection
+      Set secure cookie flags
+      Implement password reset functionality
+      Add email verification
+      Use HTTPS in production
+      Implement refresh tokens
+      Would you like me to elaborate on any of these aspects or show how to implement any additional security features?
+
+   RE: routes.py
+      These additions provide:
+         Password reset functionality
+         User profile management
+         Session management (logout)
+         Token refresh mechanism
+         Email verification
+         Protected routes using JWT
+      Remember to:
+         Add appropriate error handling
+         Implement rate limiting for sensitive routes
+         Add validation for user inputs
+         Set up email service for password reset and verification in production
+         Add logging for security events
+         Consider adding 2FA routes if needed
+         Would you like me to elaborate on any of these features or show how to implement additional security measures?
+
+
+
+1.25.2025
+Added
+1. Changed Database Structure:
+   PostgreSQL database with two tables:
+      users table (user_id, username, email, password_hash)
+      user_profiles table (profile_id, user_id, first_name, last_name, age, gender, race, city)
+   Established proper relationships between tables
+2. Added API Endpoints:
+   # Create a new user
+   POST /api/auth/users
+   
+   # Get all users
+   GET /api/auth/users
+   
+   # Login
+   POST /api/auth/login
+   
+   # Logout
+   POST /api/auth/logout
+3. Added Security Features:
+   Password hashing
+   Login/logout functionality
+   Session management
+4. Testing:
+   Created test users via PowerShell commands
+   Verified data persistence in PostgreSQL
+   Tested API endpoints
+
+1.26.2025
+So first to recap yesterday. There's decorators which are mostly used for logins and some other stuff that I don't remember. Decorators wrap around the function...
+and help do things like timeouts.
+Logins, logouts, sessions, registration, password resets are all thinsg that require api calls from the front end to the backend, whether its the db or simply the app itself.
+There are some boilerplate security features such as rate limiting the number at attmpts you can have per hour, as well as how fast you can try to login. 
+Moreover, more fancy things are like jwt tokens, which are used to track across diferent instances of the app on other devices. Additionally, they help with scale because they prevent the problem of querying a database for every request, and sessions take up database space. 
+with the jwt token, it stores it in the client, so it doesn't query the database. it is stateless, meaning it doesn't store sessions, and it works across multiple servers and multiple devices.
+
+it's primarily for authentication, authorization, and identity. so confirming the user is who they say they are, includes information on waht they can do, and that identity is valid. it's a lot like a drivers license that's issued for each user every time they open the app, and the app is a bouncer that cheekcs the id, makes sure that its not fake, looks at the picture to ensure that it is the person who says they are, and then sees what theyre allowed to do like if they are over 21 then they are allowed to drink alcohol.
+additionally jwt tokens are split into two types, one is an access token which lasts for like 15-60 minutes, basically based on how long the user is on the app (probalby), and it gets refreshed by the refresh token. btw the tokens are created both in the first session of the user. and then if you click "remember me" then the refresh token is created. it allows the user to not have to login again. but it expires every X days (30, 60, etc) and after that point the user has to login again.
+
+anyway, development. I got the verification email to work, however, i will need to create an email address for the app to send the emails from.
+
+- i refactored the folder and file structure and the imports so that it models best practices, basically. 
+- i've spent so long in the backend that it's time to go back and refactor the front end. i want the front end to access the back end, where it takes in the text entered by the user and then stores it in the db. then i want it to next, take that raw text and query it against the prompt in services. then i want it to store that in the same user db.
+
+
+
+
+1.28.2025
+OKay so i spent this night refactoring the routes so they are split up. totally called for given how many i have and how complex it could get. ji also cleaned up the app.py file and moved some of the config to a config.py file.
+
+........and so the next step is definitely to actually get a basic version of this to work. so i'm going to check all the components and see if i can understand them before moving on.
+
+between 1.28 and 2.3, I started over to get the thing working better after having learned all the stuff from round one. i got it to work, and to read and write from db, etc. and connected it to the front end. so success!
+
+2.3.2025
+Okay so I wanted to early prompting. I want to spend some time away from the idea. so 
+- clarity: what is that i want the AI to do.
+   - parse it for basic facts.
+   - prompt the user to get more facts, guide them for what's missing. 
+   - i think part of it is to look for insights across time. 
+      - psychoanalytic
+      - personality breakdown, personality frameworks?
+      - changes in thinking
+      - encouragement
+      - interpretation?
+   - collect inventory on the user about what kinds of stories they would like. for instance the median 50 yo white woman is probably in need of somethign really basic - "live laugh love" and will be thrilled with it, while someone who's more of an anthony bourdain would need something quite eccentric.
+   - also set up the but-therefore
+   
+   
+   0. Identify Setting, plot, and character
+      Setting:
+         Work with the entry as it is. The setting can be quite simple, such as a room in the house, the apartment they live in, etc. 
+ 
+
+   0.5 Stakes. Stakes refers to the potential for loss that the main character faces. The highest stakes that can be had are life and death. The scope of the stakes, can be as singular as the life or death of the main character, but it can be of a larger scope, 
+         The stakes for every entry is life or death because this is the story of their life. However, the dangers they face, barring direct health issues such as cancer, are not 
+
+        
+
+   1. The but-therefore framework
+      The but-therefore framework is a framework for storytelling that brings out the primary challenge that is the facilitation of growth for the character. Translating the person's text into a story can be done within this framework. The character has a GOAL, and they reach for that GOAL they encounter some challenge or difficulty.
+      A simple example: When Frodo and Gandalf discovered that the ring was The One Ring, Frodo had the GOAL of getting rid of the problem by never speaking of the ring again. BUT Gandalf tells Frodo that there is one other person who knows of the ring's whereabouts, the creature Gollum. And the dark lord is in posession of this knowledge.
+      This raises the stakes of the dangers the main character is in and thereby leads to the promise of a payoff - Frodo eventually destroying the one ring.
+      
+
+      For these entries, these are largely the unremarkable details of people's lives, their thoughts, their feelings, and events of their day to day.
+      Your goal is to infer the GOAL that the person has from their entry.
+         - Example goals:
+            1. Wanting to lose weight
+            2. Wanting to 
+            3. Wnating to find love
+
+      Tie these to the main narrative themes found in literature:
+         1. Man in conflict with himself
+         2. Man in conflict with nature
+         3. Man in conflict with society
+         4. Man in conflict with man
+         Other themes include: friendship, 
+
+      Templates of stories include:
+         faith vs doubt, 
+
+
+         fate vs free will
+
+
+         youth vs experience
+            youth represents innocence, naivety, untested ideals, and the comfort of simplicity. Experience represents knowledge gained through hardship, maturity, responsibility, and sometimes, disillusionment.
+         freedom vs responsibility
+
+         idealism vs pragmatism
+            wanting to reach for the stars but coming into contact with reality.
+         
+         meaninglessness vs purpose
+            finding purpose in a chaotic and unrelenting world
+
+         dependence vs independence:
+            a person growing out of dependence from a relationship, such as an adolescent from their parents. a person from an addiction.
+
+         human potential vs hard limits of reality, 
+            reaching for better, but being knocked down by opposing forces.
+
+      Include a moral component to the story, we want the characters to be encouraged by timeless virtues.
+         1. Courage
+         2. Patience
+         3. Compassion
+         4. Honesty
+         5. Charity
+         6. Temperance
+         7. Fortitude
+         8. Prudence
+         9. Faith
+         10. Hope
+         11. Love
+         Examples
+
+
+   - leave room for prose
+      record dialogue between characters.
+         make up dialogue based on the entries between two people.
+
+   - leave room for the soul - expression. Something like capturing the essence of their language, mannerisms, ums and ahs, etc. 
+      Extract
