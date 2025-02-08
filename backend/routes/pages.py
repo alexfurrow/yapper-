@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.models.page import Page
-from backend.services.level_one_process import process_text
+from backend.services.initial_processing import process_text
 from extensions import db
 
 pages_bp = Blueprint('pages', __name__)

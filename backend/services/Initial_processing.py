@@ -16,12 +16,10 @@ def process_text(content):
     try:        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            response_format = {"type": "json_object"},
+            # response_format = {"type": "json_object"},
             messages=[
                 {"role": "system", "content": 
-                 
-                 
-                 """You are an advanced language model designed to process and refine user input for clarity, conciseness, and structured understanding. Your goal is to restate the given text while maintaining its original meaning but making it easier to analyze, categorize, and act upon.
+                 """You are an advanced language model designed to process and refine user input for clarity, conciseness, and structured understanding. Your goal is to restate the given text while maintaining its original meaning but making it easier to analyze, categorize, and act upon. Place the text content into a paragraph structure, and include multiple paragraphs if necessary. 
 
                     <Follow these guidelines:>
 
@@ -35,13 +33,13 @@ def process_text(content):
                     <Examples:>
 
                         Input: Hey, I was wondering if you could help me figure out why my code isn't running? It's just freezing up and not giving me any errors…
-                        Restated Output: The user's code is freezing without displaying errors. They need help diagnosing the issue.
+                        processed_text: The user's code is freezing without displaying errors. They need help diagnosing the issue.
 
                         Input: I need to know what the weather's like in New York tomorrow, but I'm not sure how to check it myself.
-                        Restated Output: User requests the weather forecast for New York tomorrow.
+                        processed_text: User requests the weather forecast for New York tomorrow.
 
                         Input: Why is my internet so slow all of a sudden? It was fine earlier but now everything's lagging.
-                        Restated Output: User is experiencing sudden internet slowdowns and seeks troubleshooting assistance.
+                        processed_text: User is experiencing sudden internet slowdowns and seeks troubleshooting assistance.
                     """
                     },
                 {"role": "user", "content": f"Process and refine the following user input for clarity, conciseness, and structured understanding: {content}."}
@@ -50,9 +48,12 @@ def process_text(content):
             temperature = 1
 
         )
-        json_response = json.loads(response.choices[0].message.content)
-        story_text = json_response.get('story', '')
-        return story_text
+        processed_text = response.choices[0].message.content
+        # json_response = json.loads(response.choices[0].message.content)
+        # print('********************** \n THIS IS THE JSON RESPONSE: \n \n',json_response)
+        # processed_text = json_response.get('processed_text', '')
+        return processed_text
+
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")
         return None 
