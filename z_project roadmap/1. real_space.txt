@@ -253,8 +253,11 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
 
          human potential vs hard limits of reality, 
             reaching for better, but being knocked down by opposing forces.
+         
+         fear vs love
 
-      Include a moral component to the story, we want the characters to be encouraged by timeless virtues.
+      Develop a character profile
+         we want the character profiles to assessed by the following virtues:
          1. Courage
          2. Patience
          3. Compassion
@@ -266,12 +269,43 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
          9. Faith
          10. Hope
          11. Love
+
+         And by the following vices:
+         1. Greed
+         2. Lust
+         3. Wrath
+         4. Envy
+         5. Cowardice
+         6. Pride
+         7. Sloth
+         
          Examples
+            Aragorn
+         But include complexity - a character is not all good. Aragorn is a courageous warrior and leader of men in battle, he is educated and wise, but he simply does not have experience in navigating and shaping the political landscape of a high court or as a ruler of a land (including issues as tax and monetary policy, housing, immigration, environmental management, etc.), and in the process of brokering a allyship with Rohan, he is largely impotent, expressing his opinion emphatically, but being saved ultimately by Gandalf, who subverts power from Denethor and lights the beacons of Minas Tirith. As the rightful heir and presumptive future king of Gondor, his request was treated by Theodan as mere suggestion of one of the lieutenants of the Rohan army, as if Aragorn would not be in a place to repay the Rohanese loyalaty after the war. 
+         Theodan could be operating with little foresight - and he himself could be limited in his character's intelligence, wisom, or other decision making. For instance, he could be limited by fear, cowardice, ignorance, bitterness, or other common 
+         Similarly,
+
+   Fog of war:
+      There are unknowns that the characters are not privy to.  
+      There are unknown unknowns. For instance, the author may not have thought of every factor. 
 
 
+   fallible characters 
+      some plot points can be explained by the character's competing motives [Theodan not thinking about the fact that Aragorn is the king of Gondor because he is more motivated by protecting his own people. More explicitly, Theodan does not decide to go because of bitterness, for instance he says, "where was Gondor when the westfold fell"
+      this is the same principle as evil being more attributable to incompetence than it is to malice.
+      Another idea that falls into this category is the banality of evil - those who cause us harm are much less likely to be doing something interesting, principled, or motivated, but instead are simply following orders or trying to operate within the system they find themselves in.
+      Ignorance, incompetence, inability, insecurity, lack of foresight/the fog of war, etc. each qualities that would each hinder a character's ability to do good to each other. 
+         Example:
+            A father that loves his son but is dealing with insecurity
+      that is behind the character's having humanity, 
+
+   Death of the author
    - leave room for prose
       record dialogue between characters.
          make up dialogue based on the entries between two people.
 
    - leave room for the soul - expression. Something like capturing the essence of their language, mannerisms, ums and ahs, etc. 
       Extract
+   
+   memerator
+      - make memeable content
