@@ -6,7 +6,7 @@ class Page(db.Model):
     
     entry_id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    processed = db.Column(db.Text)  # New column for OpenAI response
+    processed = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

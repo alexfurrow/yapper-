@@ -10,8 +10,6 @@ load_dotenv(override=True)
 # Initialize the client with the API key from .env
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-
-
 def process_text(content):
     try:        
         response = client.chat.completions.create(
@@ -49,9 +47,6 @@ def process_text(content):
 
         )
         processed_text = response.choices[0].message.content
-        # json_response = json.loads(response.choices[0].message.content)
-        # print('********************** \n THIS IS THE JSON RESPONSE: \n \n',json_response)
-        # processed_text = json_response.get('processed_text', '')
         return processed_text
 
     except Exception as e:

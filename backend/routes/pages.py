@@ -22,7 +22,7 @@ def create_page():
             content=data['content'],
             processed=processed_content
         )
-        
+
         db.session.add(new_page)
         db.session.commit()
         print("Page created successfully")  # Debug print

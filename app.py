@@ -4,7 +4,7 @@ from extensions import db, migrate, cors
 from backend.routes.main import main_bp
 from backend.routes.auth import auth_bp
 from backend.routes.pages import pages_bp
-
+from backend.routes.personality import personality_bp
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -26,6 +26,7 @@ def create_app(config_class=Config):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(pages_bp, url_prefix='/api')
+    app.register_blueprint(personality_bp, url_prefix='/api')
 
     return app
 

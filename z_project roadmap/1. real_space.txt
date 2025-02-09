@@ -269,6 +269,9 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
          9. Faith
          10. Hope
          11. Love
+         12. Kindness
+         13. Humility
+         14. Gentleness
 
          And by the following vices:
          1. Greed
@@ -309,3 +312,15 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    
    memerator
       - make memeable content
+
+
+02/08/2025
+   ...okay i ran into my first big change in my conception. 
+   the progress has been good - i am steadily implementing components, but it is taking me a long time because i am not familiar with the technical details, and choosing between frameworks like "do i store this complex data as a nested json or do i store it as a flat file" feels like i'm blindly choosing and therefore setting myself up for doom. 
+
+   but the acutal product is resolving.
+
+   telling a story is almost always retroactive. you know the ending. Journaling and living are lived without knowing what's coming. so the idea of telling a story will necessarily require looking strictly backwards and consequently, ignoring the fact that we're still alive, still changing, still moving, and that the story's ending, which have always been something conclusive, is not actually set in stone.
+   so we could reframe what a story is, ie create a living story. or somethign akin to that. it would be an advancement in narrative theory. 
+   alternatively, we could structure our product to simply be something that's retrospective. i think this is the easier fruit to pick, it's simple, it's solved, it's jsut a matter of execution.
+   secondarily there's the idea of a living story. and i love that idea as a north star, somethign to aim at, even if impossible. it's my moon, it's my mars. for that we'd have to invent a new medium/method
