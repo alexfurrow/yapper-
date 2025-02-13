@@ -42,3 +42,5 @@ AI's ideas for where to go, 01.26.2025
     System logs
 
 11. Fine tuning a model for this purpose
+12. Front page idea: txtile made of smalll text. script that generates text in a matrix like style but it doesn't scroll down, it just has a letter in a grid, and the letters flip with some regularity like every 0.25 seconds. They also cahnge color, but remain consistent such that remain cohesive with a pattern across landing page. it would look like a tapestry.
+

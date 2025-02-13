@@ -4,10 +4,11 @@ from datetime import datetime
 class Personality(db.Model):
     __tablename__ = 'personality_assessments'
     
-    # Primary Key Fields
-    entry_id = db.Column(db.Integer, primary_key=True)
+    # Primary Key Fields\
+    # id = db.Column(db.Integer, primary_key=True)
+    entry_id = db.Column(db.Integer, primary_key=True)#db.ForeignKey('pages.id'), nullable=False)
     # user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Jungian Model
     jungian_introversion_extraversion_rating = db.Column(db.String(50))
@@ -80,14 +81,15 @@ class Personality(db.Model):
     interpersonal_empathy_type_rationale = db.Column(db.Text)
     interpersonal_social_hierarchy_rating = db.Column(db.String(50))
     interpersonal_social_hierarchy_rationale = db.Column(db.Text)
-    interpersonal_dark_traits_rating = db.Column(db.String(50))
-    interpersonal_dark_traits_rationale = db.Column(db.Text)
+    interpersonal_dark_rating = db.Column(db.String(50))
+    interpersonal_dark_rationale = db.Column(db.Text)
     interpersonal_prosocial_traits_rating = db.Column(db.String(50))
     interpersonal_prosocial_traits_rationale = db.Column(db.Text)
 
     def to_dict(self):
         return {
-            'user_id': self.user_id,
+            'entry_id': self.entry_id,
+            # 'user_id': self.user_id,
             'created_at': self.created_at.isoformat(),
             'jungian_model': {
                 'introversion_extraversion': {
@@ -219,8 +221,8 @@ class Personality(db.Model):
                     'rationale': self.interpersonal_social_hierarchy_rationale
                 },
                 'dark_traits': {
-                    'rating': self.interpersonal_dark_traits_rating,
-                    'rationale': self.interpersonal_dark_traits_rationale
+                    'rating': self.interpersonal_dark_rating,
+                    'rationale': self.interpersonal_dark_rationale
                 },
                 'prosocial_traits': {
                     'rating': self.interpersonal_prosocial_traits_rating,

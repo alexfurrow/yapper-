@@ -13,18 +13,6 @@ load_dotenv(override=True)
 # Initialize the client with the API key from .env
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-def get_processed_content(entry_id):
-    """Get processed content from pages table by entry_id"""
-    try:
-        page = Page.query.get(entry_id)
-        if page is None:
-            print(f"No page found with entry_id: {entry_id}")
-            return None
-        return page.processed
-    except Exception as e:
-        print(f"Database error: {str(e)}")
-        return None
-
 def personality_definer(content):
     try:        
         response = client.chat.completions.create(
@@ -458,114 +446,101 @@ def personality_definer(content):
         return None 
 
 
-def analyze_personality(entry_id):
+def write_personality_to_db(entry_id, processed_content):
     """Main function to get content and analyze personality"""
-    try:
-        # Get processed content from pages table
-        processed_content = get_processed_content(entry_id)
-        if not processed_content:
-            return None
 
-        # Analyze personality from processed content
-        personality_analysis = personality_definer(processed_content)
-        if not personality_analysis:
-            return None
-
-        # Create new personality assessment
-        personality = Personality(
-            entry_id=entry_id,
-            
-            # Jungian Model
-            jungian_introversion_extraversion_rating=personality_analysis['Jungian_Model']['Introversion_Extraversion']['rating'],
-            jungian_introversion_extraversion_rationale=personality_analysis['Jungian_Model']['Introversion_Extraversion']['rationale'],
-            jungian_sensing_intuition_rating=personality_analysis['Jungian_Model']['Sensing_Intuition']['rating'],
-            jungian_sensing_intuition_rationale=personality_analysis['Jungian_Model']['Sensing_Intuition']['rationale'],
-            jungian_thinking_feeling_rating=personality_analysis['Jungian_Model']['Thinking_Feeling']['rating'],
-            jungian_thinking_feeling_rationale=personality_analysis['Jungian_Model']['Thinking_Feeling']['rationale'],
-            jungian_judging_perceiving_rating=personality_analysis['Jungian_Model']['Judging_Perceiving']['rating'],
-            jungian_judging_perceiving_rationale=personality_analysis['Jungian_Model']['Judging_Perceiving']['rationale'],
-
-            # Big Five Model
-            big_five_openness_rating=personality_analysis['Big_Five_Model']['Openness_to_Experience']['rating'],
-            big_five_openness_rationale=personality_analysis['Big_Five_Model']['Openness_to_Experience']['rationale'],
-            big_five_conscientiousness_rating=personality_analysis['Big_Five_Model']['Conscientiousness']['rating'],
-            big_five_conscientiousness_rationale=personality_analysis['Big_Five_Model']['Conscientiousness']['rationale'],
-            big_five_agreeableness_rating=personality_analysis['Big_Five_Model']['Agreeableness']['rating'],
-            big_five_agreeableness_rationale=personality_analysis['Big_Five_Model']['Agreeableness']['rationale'],
-            big_five_neuroticism_rating=personality_analysis['Big_Five_Model']['Neuroticism']['rating'],
-            big_five_neuroticism_rationale=personality_analysis['Big_Five_Model']['Neuroticism']['rationale'],
-
-            # Clinical Model
-            clinical_anxiety_rating=personality_analysis['Clinical_Model']['Anxiety']['rating'],
-            clinical_anxiety_rationale=personality_analysis['Clinical_Model']['Anxiety']['rationale'],
-            clinical_depression_rating=personality_analysis['Clinical_Model']['Depression']['rating'],
-            clinical_depression_rationale=personality_analysis['Clinical_Model']['Depression']['rationale'],
-            clinical_impulsivity_rating=personality_analysis['Clinical_Model']['Impulsivity']['rating'],
-            clinical_impulsivity_rationale=personality_analysis['Clinical_Model']['Impulsivity']['rationale'],
-            clinical_emotional_regulation_rating=personality_analysis['Clinical_Model']['Emotional_Regulation']['rating'],
-            clinical_emotional_regulation_rationale=personality_analysis['Clinical_Model']['Emotional_Regulation']['rationale'],
-
-            # Dark Triad Model
-            dark_triad_psychopathy_rating=personality_analysis['Dark_Triad_Model']['Psychopathy']['rating'],
-            dark_triad_psychopathy_rationale=personality_analysis['Dark_Triad_Model']['Psychopathy']['rationale'],
-            dark_triad_machiavellianism_rating=personality_analysis['Dark_Triad_Model']['Machiavellianism']['rating'],
-            dark_triad_machiavellianism_rationale=personality_analysis['Dark_Triad_Model']['Machiavellianism']['rationale'],
-            dark_triad_narcissism_rating=personality_analysis['Dark_Triad_Model']['Narcissism']['rating'],
-            dark_triad_narcissism_rationale=personality_analysis['Dark_Triad_Model']['Narcissism']['rationale'],
-
-            # Future Psychological Model
-            advanced_digital_dependency_rating=personality_analysis['Future_Psychological_Model']['Digital_Dependency']['rating'],
-            advanced_digital_dependency_rationale=personality_analysis['Future_Psychological_Model']['Digital_Dependency']['rationale'],
-            advanced_cognitive_rigidity_rating=personality_analysis['Future_Psychological_Model']['Cognitive_Rigidity']['rating'],
-            advanced_cognitive_rigidity_rationale=personality_analysis['Future_Psychological_Model']['Cognitive_Rigidity']['rationale'],
-            advanced_social_anxiety_rating=personality_analysis['Future_Psychological_Model']['Social_Anxiety']['rating'],
-            advanced_social_anxiety_rationale=personality_analysis['Future_Psychological_Model']['Social_Anxiety']['rationale'],
-            advanced_environmental_sensitivity_rating=personality_analysis['Future_Psychological_Model']['Environmental_Sensitivity']['rating'],
-            advanced_environmental_sensitivity_rationale=personality_analysis['Future_Psychological_Model']['Environmental_Sensitivity']['rationale'],
-
-            # Positive Psychology Model
-            positive_resilience_rating=personality_analysis['Positive_Psychology_Model']['Resilience']['rating'],
-            positive_resilience_rationale=personality_analysis['Positive_Psychology_Model']['Resilience']['rationale'],
-            positive_self_efficacy_rating=personality_analysis['Positive_Psychology_Model']['Self_Efficacy']['rating'],
-            positive_self_efficacy_rationale=personality_analysis['Positive_Psychology_Model']['Self_Efficacy']['rationale'],
-            positive_coping_skills_rating=personality_analysis['Positive_Psychology_Model']['Coping_Skills']['rating'],
-            positive_coping_skills_rationale=personality_analysis['Positive_Psychology_Model']['Coping_Skills']['rationale'],
-            positive_growth_mindset_rating=personality_analysis['Positive_Psychology_Model']['Growth_Mindset']['rating'],
-            positive_growth_mindset_rationale=personality_analysis['Positive_Psychology_Model']['Growth_Mindset']['rationale'],
-            positive_emotional_intelligence_rating=personality_analysis['Positive_Psychology_Model']['Emotional_Intelligence']['rating'],
-            positive_emotional_intelligence_rationale=personality_analysis['Positive_Psychology_Model']['Emotional_Intelligence']['rationale'],
-            positive_optimism_rating=personality_analysis['Positive_Psychology_Model']['Optimism']['rating'],
-            positive_optimism_rationale=personality_analysis['Positive_Psychology_Model']['Optimism']['rationale'],
-
-            # Interpersonal Model
-            interpersonal_attachment_style_rating=personality_analysis['Interpersonal_Model']['Attachment_Style']['rating'],
-            interpersonal_attachment_style_rationale=personality_analysis['Interpersonal_Model']['Attachment_Style']['rationale'],
-            interpersonal_social_interaction_rating=personality_analysis['Interpersonal_Model']['Social_Interaction']['rating'],
-            interpersonal_social_interaction_rationale=personality_analysis['Interpersonal_Model']['Social_Interaction']['rationale'],
-            interpersonal_empathy_type_rating=personality_analysis['Interpersonal_Model']['Empathy_Type']['rating'],
-            interpersonal_empathy_type_rationale=personality_analysis['Interpersonal_Model']['Empathy_Type']['rationale'],
-            interpersonal_social_hierarchy_rating=personality_analysis['Interpersonal_Model']['Social_Hierarchy']['rating'],
-            interpersonal_social_hierarchy_rationale=personality_analysis['Interpersonal_Model']['Social_Hierarchy']['rationale'],
-            interpersonal_dark_traits_rating=personality_analysis['Interpersonal_Model']['Dark_Traits']['rating'],
-            interpersonal_dark_traits_rationale=personality_analysis['Interpersonal_Model']['Dark_Traits']['rationale'],
-            interpersonal_prosocial_traits_rating=personality_analysis['Interpersonal_Model']['Prosocial_Traits']['rating'],
-            interpersonal_prosocial_traits_rationale=personality_analysis['Interpersonal_Model']['Prosocial_Traits']['rationale']
-        )
-
-        # Save to database
-        db.session.add(personality)
-        db.session.commit()
-
-        return personality.to_dict()
-
-    except Exception as e:
-        print(f"Error in analyze_personality: {str(e)}")
-        db.session.rollback()
+    # Analyze personality from processed content
+    personality_analysis = personality_definer(processed_content)
+    if not personality_analysis:
         return None
 
-from backend.services.initial_processing import process_text
-processed_content = process_text()
-x = personality_definer(processed_content)
+    # Create new personality assessment
+    personality = Personality(
+        entry_id=entry_id,
+        
+        # Jungian Model
+        jungian_introversion_extraversion_rating=personality_analysis['Jungian_Model']['Introversion_Extraversion']['rating'],
+        jungian_introversion_extraversion_rationale=personality_analysis['Jungian_Model']['Introversion_Extraversion']['rationale'],
+        jungian_sensing_intuition_rating=personality_analysis['Jungian_Model']['Sensing_Intuition']['rating'],
+        jungian_sensing_intuition_rationale=personality_analysis['Jungian_Model']['Sensing_Intuition']['rationale'],
+        jungian_thinking_feeling_rating=personality_analysis['Jungian_Model']['Thinking_Feeling']['rating'],
+        jungian_thinking_feeling_rationale=personality_analysis['Jungian_Model']['Thinking_Feeling']['rationale'],
+        jungian_judging_perceiving_rating=personality_analysis['Jungian_Model']['Judging_Perceiving']['rating'],
+        jungian_judging_perceiving_rationale=personality_analysis['Jungian_Model']['Judging_Perceiving']['rationale'],
+
+        # Big Five Model
+        big_five_openness_rating=personality_analysis['Big_Five_Model']['Openness_to_Experience']['rating'],
+        big_five_openness_rationale=personality_analysis['Big_Five_Model']['Openness_to_Experience']['rationale'],
+        big_five_conscientiousness_rating=personality_analysis['Big_Five_Model']['Conscientiousness']['rating'],
+        big_five_conscientiousness_rationale=personality_analysis['Big_Five_Model']['Conscientiousness']['rationale'],
+        big_five_agreeableness_rating=personality_analysis['Big_Five_Model']['Agreeableness']['rating'],
+        big_five_agreeableness_rationale=personality_analysis['Big_Five_Model']['Agreeableness']['rationale'],
+        big_five_neuroticism_rating=personality_analysis['Big_Five_Model']['Neuroticism']['rating'],
+        big_five_neuroticism_rationale=personality_analysis['Big_Five_Model']['Neuroticism']['rationale'],
+
+        # Clinical Model
+        clinical_anxiety_rating=personality_analysis['Clinical_Model']['Anxiety']['rating'],
+        clinical_anxiety_rationale=personality_analysis['Clinical_Model']['Anxiety']['rationale'],
+        clinical_depression_rating=personality_analysis['Clinical_Model']['Depression']['rating'],
+        clinical_depression_rationale=personality_analysis['Clinical_Model']['Depression']['rationale'],
+        clinical_impulsivity_rating=personality_analysis['Clinical_Model']['Impulsivity']['rating'],
+        clinical_impulsivity_rationale=personality_analysis['Clinical_Model']['Impulsivity']['rationale'],
+        clinical_emotional_regulation_rating=personality_analysis['Clinical_Model']['Emotional_Regulation']['rating'],
+        clinical_emotional_regulation_rationale=personality_analysis['Clinical_Model']['Emotional_Regulation']['rationale'],
+
+        # Dark Triad Model
+        dark_triad_psychopathy_rating=personality_analysis['Dark_Triad_Model']['Psychopathy']['rating'],
+        dark_triad_psychopathy_rationale=personality_analysis['Dark_Triad_Model']['Psychopathy']['rationale'],
+        dark_triad_machiavellianism_rating=personality_analysis['Dark_Triad_Model']['Machiavellianism']['rating'],
+        dark_triad_machiavellianism_rationale=personality_analysis['Dark_Triad_Model']['Machiavellianism']['rationale'],
+        dark_triad_narcissism_rating=personality_analysis['Dark_Triad_Model']['Narcissism']['rating'],
+        dark_triad_narcissism_rationale=personality_analysis['Dark_Triad_Model']['Narcissism']['rationale'],
+
+        # Future Psychological Model
+        advanced_digital_dependency_rating=personality_analysis['Future_Psychological_Model']['Digital_Dependency']['rating'],
+        advanced_digital_dependency_rationale=personality_analysis['Future_Psychological_Model']['Digital_Dependency']['rationale'],
+        advanced_cognitive_rigidity_rating=personality_analysis['Future_Psychological_Model']['Cognitive_Rigidity']['rating'],
+        advanced_cognitive_rigidity_rationale=personality_analysis['Future_Psychological_Model']['Cognitive_Rigidity']['rationale'],
+        advanced_social_anxiety_rating=personality_analysis['Future_Psychological_Model']['Social_Anxiety']['rating'],
+        advanced_social_anxiety_rationale=personality_analysis['Future_Psychological_Model']['Social_Anxiety']['rationale'],
+        advanced_environmental_sensitivity_rating=personality_analysis['Future_Psychological_Model']['Environmental_Sensitivity']['rating'],
+        advanced_environmental_sensitivity_rationale=personality_analysis['Future_Psychological_Model']['Environmental_Sensitivity']['rationale'],
+
+        # Positive Psychology Model
+        positive_resilience_rating=personality_analysis['Positive_Psychology_Model']['Resilience']['rating'],
+        positive_resilience_rationale=personality_analysis['Positive_Psychology_Model']['Resilience']['rationale'],
+        positive_self_efficacy_rating=personality_analysis['Positive_Psychology_Model']['Self_Efficacy']['rating'],
+        positive_self_efficacy_rationale=personality_analysis['Positive_Psychology_Model']['Self_Efficacy']['rationale'],
+        positive_coping_skills_rating=personality_analysis['Positive_Psychology_Model']['Coping_Skills']['rating'],
+        positive_coping_skills_rationale=personality_analysis['Positive_Psychology_Model']['Coping_Skills']['rationale'],
+        positive_growth_mindset_rating=personality_analysis['Positive_Psychology_Model']['Growth_Mindset']['rating'],
+        positive_growth_mindset_rationale=personality_analysis['Positive_Psychology_Model']['Growth_Mindset']['rationale'],
+        positive_emotional_intelligence_rating=personality_analysis['Positive_Psychology_Model']['Emotional_Intelligence']['rating'],
+        positive_emotional_intelligence_rationale=personality_analysis['Positive_Psychology_Model']['Emotional_Intelligence']['rationale'],
+        positive_optimism_rating=personality_analysis['Positive_Psychology_Model']['Optimism']['rating'],
+        positive_optimism_rationale=personality_analysis['Positive_Psychology_Model']['Optimism']['rationale'],
+
+        # Interpersonal Model
+        interpersonal_attachment_style_rating=personality_analysis['Interpersonal_Model']['Attachment_Style']['rating'],
+        interpersonal_attachment_style_rationale=personality_analysis['Interpersonal_Model']['Attachment_Style']['rationale'],
+        interpersonal_social_interaction_rating=personality_analysis['Interpersonal_Model']['Social_Interaction']['rating'],
+        interpersonal_social_interaction_rationale=personality_analysis['Interpersonal_Model']['Social_Interaction']['rationale'],
+        interpersonal_empathy_type_rating=personality_analysis['Interpersonal_Model']['Empathy_Type']['rating'],
+        interpersonal_empathy_type_rationale=personality_analysis['Interpersonal_Model']['Empathy_Type']['rationale'],
+        interpersonal_social_hierarchy_rating=personality_analysis['Interpersonal_Model']['Social_Hierarchy']['rating'],
+        interpersonal_social_hierarchy_rationale=personality_analysis['Interpersonal_Model']['Social_Hierarchy']['rationale'],
+        interpersonal_dark_rating=personality_analysis['Interpersonal_Model']['Dark_Interpersonal']['rating'],
+        interpersonal_dark_rationale=personality_analysis['Interpersonal_Model']['Dark_Interpersonal']['rationale'],
+        interpersonal_prosocial_traits_rating=personality_analysis['Interpersonal_Model']['Prosocial_Traits']['rating'],
+        interpersonal_prosocial_traits_rationale=personality_analysis['Interpersonal_Model']['Prosocial_Traits']['rationale']
+    )
+
+    # Save to database
+    db.session.add(personality)
+    db.session.commit()
+
+    return personality.to_dict()
+
 #really, we're also looking forward, right? like how does this person fit into the general fabric? how they relate to others - a personality dimension in for how they relate to others? 
 #also we probably dont need all this stuff, it's like a personality profile is only so good for determining a character. But let's see how it goes.
 #we want to extract the characteristics, like courage, kindness, etc.

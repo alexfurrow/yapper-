@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from backend.models.page import Page
 from backend.services.initial_processing import process_text
+from backend.services.Character.Personality_Profile import personality_definer, write_personality_to_db
+from backend.models.personality import Personality
 from extensions import db
 
 pages_bp = Blueprint('pages', __name__)
@@ -25,10 +27,16 @@ def create_page():
 
         db.session.add(new_page)
         db.session.commit()
-        print("Page created successfully")  # Debug print
-        return jsonify(new_page.to_dict()), 201
+        response_data = new_page.to_dict()
+        
+        personality = write_personality_to_db(new_page.entry_id,processed_content)        
+        response_data['personality'] = personality
+
+        return jsonify(response_data), 201
+
     except Exception as e:
         print("Error:", str(e))  # Debug print
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @pages_bp.route('/pages', methods=['GET'])
