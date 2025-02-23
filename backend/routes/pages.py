@@ -7,7 +7,7 @@ from backend.models.Page_Table import Page_Table
 from backend.services.initial_processing import process_text
 
 #Personality
-from backend.services.personality_profile import personality_prompt, create_personality_and_write_to_db
+from backend.services.prototypes.personality_profile import personality_prompt, create_personality_and_write_to_db
 from backend.models.Personality_Table import Personality_Table
 
 #Story Components
@@ -46,6 +46,7 @@ def create_page():
         response_data['personality'] = personality
 
         story = write_story_and_write_to_db(new_page.entry_id,processed_content)
+        story = write_story_and_write_to_db(new_page.entry_id,data['content'])
         response_data['story'] = story
 
         return jsonify(response_data), 201

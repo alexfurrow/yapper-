@@ -7,23 +7,32 @@ function PageForm() {
   const [message, setMessage] = useState('');
   const [story, setStory] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);  // New state for loading
   const [audioBlob, setAudioBlob] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!content.trim()) {
+      setMessage('Content cannot be empty');
+      return;
+    }
+    
+    setIsLoading(true);  // Start loading
     try {
       const response = await axios.post('http://localhost:5000/api/pages', {
         content: content
       });
-      setMessage('Page created successfully!');
+      setMessage('Entry saved successfully!');
       if (response.data.story && response.data.story.story) {
         setStory(response.data.story.story);
       }
       setContent('');
     } catch (error) {
-      setMessage('Error creating page: ' + error.message);
+      setMessage('Error saving entry: ' + error.message);
+    } finally {
+      setIsLoading(false);  // Stop loading regardless of outcome
     }
   };
 
@@ -63,6 +72,7 @@ function PageForm() {
 
   const uploadAudio = async (blob) => {
     try {
+      setIsLoading(true);  // Start loading
       const formData = new FormData();
       formData.append('audio', blob, 'recording.wav');
 
@@ -74,10 +84,22 @@ function PageForm() {
 
       if (response.data.transcription) {
         setContent(response.data.transcription);
+        // Don't call handleSubmit directly, as it creates a new loading state
+        // Instead, make the API call here
+        const pageResponse = await axios.post('http://localhost:5000/api/pages', {
+          content: response.data.transcription
+        });
+        
+        if (pageResponse.data.story && pageResponse.data.story.story) {
+          setStory(pageResponse.data.story.story);
+        }
+        setMessage('Entry saved successfully!');
       }
     } catch (error) {
-      console.error('Error uploading audio:', error);
-      setMessage('Error uploading audio');
+      console.error('Error:', error);
+      setMessage('Error processing audio: ' + error.message);
+    } finally {
+      setIsLoading(false);  // Stop loading regardless of outcome
     }
   };
 
@@ -98,11 +120,12 @@ function PageForm() {
             />
           </div>
           <div className="button-group">
-            <button type="submit">Save Entry</button>
+            <button type="submit" disabled={isLoading}>Save Entry</button>
             <button 
               type="button" 
               onClick={isRecording ? stopRecording : startRecording}
               className={isRecording ? 'recording' : ''}
+              disabled={isLoading}
             >
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
@@ -111,7 +134,12 @@ function PageForm() {
       </div>
       
       <div className="story-section">
-        {story ? (
+        {isLoading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Narrative is being constructed...</p>
+          </div>
+        ) : story ? (
           <>
             <h2>Your Narrative</h2>
             <div className="story-text">
