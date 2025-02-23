@@ -43,4 +43,7 @@ AI's ideas for where to go, 01.26.2025
 
 11. Fine tuning a model for this purpose
 12. Front page idea: txtile made of smalll text. script that generates text in a matrix like style but it doesn't scroll down, it just has a letter in a grid, and the letters flip with some regularity like every 0.25 seconds. They also cahnge color, but remain consistent such that remain cohesive with a pattern across landing page. it would look like a tapestry.
-
+13. Quote section - 1. create inspiring quotes based off of knowledge of all inspirign quotes. take in the user's past journal entries as context. goal: "exactly what I needed to hear"... 2. prompt the user for inspiring quotes that they like, that way it can take those in as context, too. Or perhaps create quotes from those quotes, that kinda thing?
+14. Graph network for characters: https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/ , https://blog.miz.space/, https://blog.miz.space/research/2019/06/05/wikipedia-graph-dataset-neo4j-mongodb-time-series-networks/
+15. add "users voice extraction" feature that captures their language, cadence, and other components (research) to the processed data table. Or simple add to the prompt to write it in the users voice given the unedited data. 
+16. add voice recording and transcription

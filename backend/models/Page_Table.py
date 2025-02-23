@@ -1,7 +1,7 @@
 from extensions import db
 from datetime import datetime
 
-class Page(db.Model):
+class Page_Table(db.Model):
     __tablename__ = 'pages'
     
     entry_id = db.Column(db.Integer, primary_key=True)

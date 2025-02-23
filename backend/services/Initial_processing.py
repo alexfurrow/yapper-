@@ -47,7 +47,7 @@ def process_text(content):
 
         )
         processed_text = response.choices[0].message.content
-        return processed_text
+        return processed_text  
 
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")

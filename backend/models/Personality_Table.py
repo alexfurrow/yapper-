@@ -1,7 +1,7 @@
 from extensions import db
 from datetime import datetime
 
-class Personality(db.Model):
+class Personality_Table(db.Model):
     __tablename__ = 'personality_assessments'
     
     # Primary Key Fields\

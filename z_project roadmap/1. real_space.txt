@@ -324,3 +324,16 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    so we could reframe what a story is, ie create a living story. or somethign akin to that. it would be an advancement in narrative theory. 
    alternatively, we could structure our product to simply be something that's retrospective. i think this is the easier fruit to pick, it's simple, it's solved, it's jsut a matter of execution.
    secondarily there's the idea of a living story. and i love that idea as a north star, somethign to aim at, even if impossible. it's my moon, it's my mars. for that we'd have to invent a new medium/method
+
+
+02/10/2025
+   Okay so I got the reading and writing of the personality stuff to work. my first internal read/write, where the app calls data, transforms it, and then writes it back to memory.
+
+02/15/2025
+   Version 0.0 vision: read in user data, write story, front end display, purpose so that I can recruit users. And learn from them.
+   Version 1.0 vision: the real insights. so far, unknown what exactly it is, but some kind of compelling experience that connects people's stories based off their data. a compelling single feature that is heretofore unheard of.
+
+2/22/2025
+   One thing I want to do is add a recycler so that a story that is generated can be reused and added to any new generation.
+   But in general, using a rag appraoch to incorporate all the information in the person's profile makes more sense. Yeah.
+   OKay so nvm aobut that. 

@@ -1,9 +1,22 @@
 from flask import Blueprint, request, jsonify
-from backend.models.page import Page
-from backend.services.initial_processing import process_text
-from backend.services.Character.Personality_Profile import personality_definer, write_personality_to_db
-from backend.models.personality import Personality
 from extensions import db
+
+from backend.models.Page_Table import Page_Table
+
+#Initial Processing
+from backend.services.initial_processing import process_text
+
+#Personality
+from backend.services.personality_profile import personality_prompt, create_personality_and_write_to_db
+from backend.models.Personality_Table import Personality_Table
+
+#Story Components
+# from backend.services import plot_set_char_prompt, create_story_components_and_write_to_db
+# from backend.models.Plot_Set_Char_Table import Plot_Set_Char_Table
+
+#Story
+from backend.services.write_story import write_story_and_write_to_db
+from backend.models.Story_Table import Story_Table
 
 pages_bp = Blueprint('pages', __name__)
 
@@ -20,7 +33,7 @@ def create_page():
         # Process content through OpenAI
         processed_content = process_text(data['content'])
         print(processed_content)
-        new_page = Page(
+        new_page = Page_Table(
             content=data['content'],
             processed=processed_content
         )
@@ -29,8 +42,11 @@ def create_page():
         db.session.commit()
         response_data = new_page.to_dict()
         
-        personality = write_personality_to_db(new_page.entry_id,processed_content)        
+        personality = create_personality_and_write_to_db(new_page.entry_id,processed_content)        
         response_data['personality'] = personality
+
+        story = write_story_and_write_to_db(new_page.entry_id,processed_content)
+        response_data['story'] = story
 
         return jsonify(response_data), 201
 
@@ -41,10 +57,10 @@ def create_page():
 
 @pages_bp.route('/pages', methods=['GET'])
 def get_pages():
-    pages = Page.query.order_by(Page.created_at.desc()).all()
+    pages = Page_Table.query.order_by(Page_Table.created_at.desc()).all()
     return jsonify([page.to_dict() for page in pages])
 
 @pages_bp.route('/pages/<int:entry_id>', methods=['GET'])
 def get_page(entry_id):
-    page = Page.query.get_or_404(entry_id)
+    page = Page_Table.query.get_or_404(entry_id)
     return jsonify(page.to_dict()) 

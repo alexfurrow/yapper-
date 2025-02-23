@@ -4,8 +4,8 @@ import json, os
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 from extensions import db
-from backend.models.page import Page
-from backend.models.personality import Personality
+from backend.models.Page_Table import Page_Table
+from backend.models.Personality_Table import Personality_Table
 
 # Force reload the .env file
 load_dotenv(override=True)
@@ -13,7 +13,7 @@ load_dotenv(override=True)
 # Initialize the client with the API key from .env
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-def personality_definer(content):
+def personality_prompt(content):
     try:        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -21,7 +21,6 @@ def personality_definer(content):
             messages=[
                 {"role": "system", "content":                  
                  """
-
                     You are an expert psychoanalyst with years of experience in Jungian Psychological Types & MBTI (Myers-Briggs Type Indicator) analysis. 
                     Your analysis will help shape the fabric of society and is very valuable to a worldwide synthesis.
                     Analyze the given text and generate a comprehensive personality assessment based solely on linguistic patterns, tone, word choice, sentence structure, and semantic content. 
@@ -286,10 +285,11 @@ def personality_definer(content):
 
                         I woke up before my alarm today. 5:45 AM. The streetlights outside were still casting that cold, bluish glow through the blinds. February mornings always have this quietness to them—like the city is wrapped in some kinad of waiting state, just before the day fully boots up. I lay there for a few minutes, debating whether I really wanted to get up and go for a run or just stay warm in bed for a little longer. But I knew if I let myself linger too long, I\\\'d 
                         
-                    {
-                        "personality": {
-                            "Jungian_Model": {
-                                "Introversion_Extraversion": {
+                    Output:
+                        {
+                            "personality": {
+                                "Jungian_Model": {
+                                    "Introversion_Extraversion": {
                                     "rating": "2 - Moderate Introvert",
                                     "rationale": "The writing suggests introspection, solitude, and independent thinking, with a focus on internal experiences rather than external social interactions."
                                 },
@@ -439,23 +439,23 @@ def personality_definer(content):
             temperature = 1
         )
         json_response = json.loads(response.choices[0].message.content)
-        story_text = json_response.get('personality', '')
-        return story_text
+        personality_fields = json_response.get('personality', '')
+        return personality_fields
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")
         return None 
 
 
-def write_personality_to_db(entry_id, processed_content):
+def create_personality_and_write_to_db(entry_id, content):
     """Main function to get content and analyze personality"""
 
     # Analyze personality from processed content
-    personality_analysis = personality_definer(processed_content)
+    personality_analysis = personality_prompt(content)
     if not personality_analysis:
         return None
 
     # Create new personality assessment
-    personality = Personality(
+    personality = Personality_Table(
         entry_id=entry_id,
         
         # Jungian Model
