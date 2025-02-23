@@ -337,3 +337,14 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    One thing I want to do is add a recycler so that a story that is generated can be reused and added to any new generation.
    But in general, using a rag appraoch to incorporate all the information in the person's profile makes more sense. Yeah.
    OKay so nvm aobut that. 
+
+   Okay so now that I'm done with development for today, I got the story output to work and display on the front end. It looks good and I am excited about how its going. I realized that adding lots of functionality really creates a lot of overhead right? So a complicated system of parsing story, personality, etc. I think are going to be pretty much extra things, experimental things or just fun things. But the real core of what I need this app to do is somethign different.
+   THat thing, I think, is to generate social insights, right? so the first thing is to build out the vertical and then the horizontal. The veritcal involves a single user, ie me, uploading their journal entries and then implementing a rag system to process all past data, sort of like how the graph rag article I found does.
+   Then I can do horizontal, which is like, implementing a rag system that looks across all users and generates insights based off that.
+
+   Then I want to build a demo around these things. 
+
+   SO first vertical:
+      voice entry, text entry
+
+   I've added voice entry, but i had to set it to fp16=False, which means I'm using a lot more memory. fp16 is not compatible with my cpu or something. that was what the error said at least. So I'm just going to  use this for now and when i eventually migrate this to an online server it will be, u know, something i can revert. i've left a comment
