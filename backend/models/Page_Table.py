@@ -1,5 +1,7 @@
 from extensions import db
 from datetime import datetime
+import json
+from sqlalchemy.dialects.postgresql import ARRAY, FLOAT
 
 class Page_Table(db.Model):
     __tablename__ = 'pages'
@@ -7,6 +9,7 @@ class Page_Table(db.Model):
     entry_id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     processed = db.Column(db.Text)
+    vectors = db.Column(ARRAY(FLOAT))  # Store embeddings as array of floats
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

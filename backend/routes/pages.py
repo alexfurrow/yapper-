@@ -7,7 +7,7 @@ from backend.models.Page_Table import Page_Table
 from backend.services.initial_processing import process_text
 
 #Personality
-from backend.services.prototypes.personality_profile import personality_prompt, create_personality_and_write_to_db
+from backend.services.personality_profile import personality_prompt, create_personality_and_write_to_db
 from backend.models.Personality_Table import Personality_Table
 
 #Story Components
@@ -46,7 +46,7 @@ def create_page():
         response_data['personality'] = personality
 
         story = write_story_and_write_to_db(new_page.entry_id,processed_content)
-        story = write_story_and_write_to_db(new_page.entry_id,data['content'])
+        # story = write_story_and_write_to_db(new_page.entry_id,data['content'])
         response_data['story'] = story
 
         return jsonify(response_data), 201
@@ -64,4 +64,44 @@ def get_pages():
 @pages_bp.route('/pages/<int:entry_id>', methods=['GET'])
 def get_page(entry_id):
     page = Page_Table.query.get_or_404(entry_id)
-    return jsonify(page.to_dict()) 
+    return jsonify(page.to_dict())
+
+@pages_bp.route('/pages/search', methods=['POST'])
+def search_similar_pages():
+    data = request.get_json()
+    
+    if not data or 'query' not in data:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    try:
+        from backend.services.embedding_service import find_similar_pages
+        
+        limit = data.get('limit', 5)
+        similar_pages = find_similar_pages(data['query'], limit)
+        
+        return jsonify({
+            'results': similar_pages
+        }), 200
+    except Exception as e:
+        print(f"Error searching pages: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@pages_bp.route('/pages/semantic-search', methods=['POST'])
+def semantic_search():
+    data = request.get_json()
+    
+    if not data or 'query' not in data:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    try:
+        from backend.services.embedding import search_by_text
+        
+        limit = data.get('limit', 5)
+        similar_pages = search_by_text(data['query'], limit)
+        
+        return jsonify({
+            'results': similar_pages
+        }), 200
+    except Exception as e:
+        print(f"Error searching pages: {str(e)}")
+        return jsonify({'error': str(e)}), 500 

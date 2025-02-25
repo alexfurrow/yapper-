@@ -348,3 +348,21 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
       voice entry, text entry
 
    I've added voice entry, but i had to set it to fp16=False, which means I'm using a lot more memory. fp16 is not compatible with my cpu or something. that was what the error said at least. So I'm just going to  use this for now and when i eventually migrate this to an online server it will be, u know, something i can revert. i've left a comment
+
+02/23/2025
+   Self refleciton is key - that's the thing. something that gives you insight into yourself
+   connecting others through a story could be something like creating a story that plays off themes that are in the person's journal entries. key struggles as relayed through a story can help the person and help the community they are a aprt of
+   either way, entering my journal entries into the db and implementing a rag system is the next step.
+
+2/24/2025
+   Going RAG ROute. need to set a limit on how long a jouranl entry can be. Or ideally, just split them up into two cells if they reach over a 300-500 word chunk. 
+   Let's go with 400 token chunk for each chunk. Add the splitting to the processing service.
+
+   Well, i will revisit that. for now i will just vectorize each entry, it is convenient and each entry is relatively short.
+   although now that i think about it, if someone talks for an hour (which i have, even close to 2), then that's as many as 16800 words. so a single entry can get large.
+   i'll have to put this in as an optimization i think, and in the mean time keep each entry to like 2-3 minutes.
+
+   successful in adding the vectorization.
+   setting up chron job to run every week.
+   command to run it manually
+   #flask vectorize-pages 
