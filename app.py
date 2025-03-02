@@ -5,6 +5,7 @@ from backend.routes.main import main_bp
 from backend.routes.auth import auth_bp
 from backend.routes.pages import pages_bp
 from backend.routes.audio import audio_bp
+from backend.routes.chat import chat_bp
 # from backend.routes.personality import personality_bp
 from backend.commands import vectorize_pages_command
 from flask_apscheduler import APScheduler
@@ -39,6 +40,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(pages_bp, url_prefix='/api')
     app.register_blueprint(audio_bp, url_prefix='/api')
+    app.register_blueprint(chat_bp, url_prefix='/api')
     # app.register_blueprint(personality_bp, url_prefix='/api')
 
     # Register commands

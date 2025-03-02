@@ -366,3 +366,7 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    setting up chron job to run every week.
    command to run it manually
    #flask vectorize-pages 
+
+3/02/2025
+   trouble install hnswlib. involves installing visual studio like windows 10 sdk, mvsc v142 2019 C++ x64/x86 build tools, and C++ build tools core... all from visual studio build tools 2022
+   added stuff to my path variable in system variables, but i just dont know what' missing. 
