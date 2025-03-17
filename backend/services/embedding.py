@@ -5,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from extensions import db
 from backend.models.Page_Table import Page_Table
-from backend.services.hnsw_index import build_and_save_index, search_similar
 
 # Force reload the .env file
 load_dotenv(override=True)
@@ -49,10 +48,6 @@ def vectorize_all_pages():
         # Commit all changes
         db.session.commit()
         print("Vectorization complete")
-        
-        # Rebuild index after vectorization
-        rebuild_index()
-        
         return True
     except Exception as e:
         print(f"Error vectorizing pages: {str(e)}")
@@ -88,29 +83,4 @@ def find_similar_pages(query_text, limit=5):
         return [page.to_dict() for page, _ in similarities[:limit]]
     except Exception as e:
         print(f"Error finding similar pages: {str(e)}")
-        return []
-
-def rebuild_index():
-    """Rebuild the HNSW index"""
-    return build_and_save_index()
-
-def search_by_text(query_text, limit=5):
-    """Search for pages similar to query text"""
-    # Generate embedding for query text
-    query_embedding = generate_embedding(query_text)
-    if not query_embedding:
-        return []
-    
-    # Search using HNSW index
-    similar_ids = search_similar(query_embedding, k=limit)
-    
-    # Get page details
-    results = []
-    for item in similar_ids:
-        page = Page_Table.query.get(item['entry_id'])
-        if page:
-            page_dict = page.to_dict()
-            page_dict['similarity'] = 1.0 - item['distance']  # Convert distance to similarity score
-            results.append(page_dict)
-    
-    return results 
+        return [] 

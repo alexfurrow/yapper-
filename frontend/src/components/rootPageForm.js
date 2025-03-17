@@ -5,10 +5,10 @@ import './rootPageForm.css';  // Make sure to import the CSS
 function PageForm() {
   const [content, setContent] = useState('');
   const [message, setMessage] = useState('');
-  const [story, setStory] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);  // New state for loading
+  const [isLoading, setIsLoading] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
+  const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -19,20 +19,17 @@ function PageForm() {
       return;
     }
     
-    setIsLoading(true);  // Start loading
+    setIsLoading(true);
     try {
       const response = await axios.post('http://localhost:5000/api/pages', {
         content: content
       });
       setMessage('Entry saved successfully!');
-      if (response.data.story && response.data.story.story) {
-        setStory(response.data.story.story);
-      }
       setContent('');
     } catch (error) {
       setMessage('Error saving entry: ' + error.message);
     } finally {
-      setIsLoading(false);  // Stop loading regardless of outcome
+      setIsLoading(false);
     }
   };
 
@@ -72,7 +69,7 @@ function PageForm() {
 
   const uploadAudio = async (blob) => {
     try {
-      setIsLoading(true);  // Start loading
+      setIsLoading(true);
       const formData = new FormData();
       formData.append('audio', blob, 'recording.wav');
 
@@ -84,32 +81,68 @@ function PageForm() {
 
       if (response.data.transcription) {
         setContent(response.data.transcription);
-        // Don't call handleSubmit directly, as it creates a new loading state
-        // Instead, make the API call here
+        // Make the API call here
         const pageResponse = await axios.post('http://localhost:5000/api/pages', {
           content: response.data.transcription
         });
         
-        if (pageResponse.data.story && pageResponse.data.story.story) {
-          setStory(pageResponse.data.story.story);
-        }
         setMessage('Entry saved successfully!');
       }
     } catch (error) {
       console.error('Error:', error);
       setMessage('Error processing audio: ' + error.message);
     } finally {
-      setIsLoading(false);  // Stop loading regardless of outcome
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check if file is .txt or .docx
+    const fileType = file.name.split('.').pop().toLowerCase();
+    if (fileType !== 'txt' && fileType !== 'docx') {
+      setMessage('Only .txt and .docx files are supported');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('http://localhost:5000/api/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.content) {
+        setContent(response.data.content);
+        setMessage('File uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setMessage('Error uploading file: ' + error.message);
+    } finally {
+      setIsLoading(false);
+      // Reset file input
+      e.target.value = null;
     }
   };
 
   return (
-    <div className="page-form-container">
+    <div className="page-form-container-single">
       <div className="input-section">
-        <h1>Txtile</h1>
+        <h1></h1>
         {message && <div className="message">{message}</div>}
         <form onSubmit={handleSubmit}>
-          <div>
+          <div className="textarea-container">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -119,36 +152,38 @@ function PageForm() {
               required
             />
           </div>
-          <div className="button-group">
-            <button type="submit" disabled={isLoading}>Save Entry</button>
+          <div className="button-row">
+            <div className="left-buttons">
+              <button type="submit" disabled={isLoading}>Save Entry</button>
+              <button 
+                type="button" 
+                onClick={isRecording ? stopRecording : startRecording}
+                className={isRecording ? 'recording' : ''}
+                disabled={isLoading}
+              >
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </button>
+            </div>
             <button 
               type="button" 
-              onClick={isRecording ? stopRecording : startRecording}
-              className={isRecording ? 'recording' : ''}
-              disabled={isLoading}
+              className="file-upload-button"
+              onClick={handleFileButtonClick}
             >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
+              Upload File
             </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".txt,.docx"
+              style={{ display: 'none' }}
+            />
           </div>
         </form>
-      </div>
-      
-      <div className="story-section">
-        {isLoading ? (
+        {isLoading && (
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Narrative is being constructed...</p>
-          </div>
-        ) : story ? (
-          <>
-            <h2>Your Narrative</h2>
-            <div className="story-text">
-              {story}
-            </div>
-          </>
-        ) : (
-          <div className="empty-story">
-            <p>Your narrative will appear here...</p>
+            <p>Processing your entry...</p>
           </div>
         )}
       </div>

@@ -46,4 +46,5 @@ AI's ideas for where to go, 01.26.2025
 13. Quote section - 1. create inspiring quotes based off of knowledge of all inspirign quotes. take in the user's past journal entries as context. goal: "exactly what I needed to hear"... 2. prompt the user for inspiring quotes that they like, that way it can take those in as context, too. Or perhaps create quotes from those quotes, that kinda thing?
 14. Graph network for characters: https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/ , https://blog.miz.space/, https://blog.miz.space/research/2019/06/05/wikipedia-graph-dataset-neo4j-mongodb-time-series-networks/
 15. add "users voice extraction" feature that captures their language, cadence, and other components (research) to the processed data table. Or simple add to the prompt to write it in the users voice given the unedited data. 
-16. add voice recording and transcription
+16. add voice recording and transcription x
+17. reflect the user's voice in the chat responses.

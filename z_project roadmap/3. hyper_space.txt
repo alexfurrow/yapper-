@@ -5,4 +5,4 @@
 5. what's the magic? insights that the user wouldn't otherwise know about
 6. product where user can create their own language - like create new words and define them, sharing, changing, and adding to the lexical space.
 7. resonance - a visual representation of the degree to which a story is resonating with a group. 
-8.
+8. mind crafter: this tool helps you develop your thinking. basically you yap about anything - your ideas, your experiences, your understandings of the world, your feelings, etc. then it meets you where you are and tries to do the n+1 thing where it helps you get a little bit better in a direction of some preselected vector (or user defined, potentially), but the vecotr would like "be more courageous" or "handle uncertainty" ... things that essentially are in between pyschology and therapy (helping people self realize) and then things that are educational, like learning to read and understand text better. and to make the experience compelling you really ahve to meet the person where they are at with regards to their semantic intelligence, their emotional state, etc.

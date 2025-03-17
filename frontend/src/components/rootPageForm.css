@@ -1,37 +1,11 @@
-.page-form-container {
-  display: flex;
-  gap: 40px;
+.page-form-container-single {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .input-section {
-  flex: 1;
-  min-width: 300px;
-}
-
-.story-section {
-  flex: 1;
-  min-width: 300px;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: #f9f9f9;
-  height: fit-content;
-  margin-top: 85px;
-}
-
-.story-text {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  font-size: 16px;
-}
-
-.empty-story {
-  color: #666;
-  font-style: italic;
-  text-align: center;
+  width: 100%;
 }
 
 textarea {
@@ -42,8 +16,13 @@ textarea {
   font-size: 16px;
 }
 
-button {
+.button-group {
+  display: flex;
+  gap: 10px;
   margin-top: 10px;
+}
+
+button {
   padding: 10px 20px;
   background-color: #007bff;
   color: white;
@@ -56,20 +35,6 @@ button:hover {
   background-color: #0056b3;
 }
 
-.message {
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 5px;
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.button-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
 button.recording {
   background-color: #dc3545;
 }
@@ -78,12 +43,29 @@ button.recording:hover {
   background-color: #c82333;
 }
 
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background-color: #cccccc;
+}
+
+.message {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #d4edda;
+  color: #155724;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  margin-top: 20px;
 }
 
 .loading-spinner {
@@ -101,11 +83,35 @@ button.recording:hover {
   100% { transform: rotate(360deg); }
 }
 
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.textarea-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
-button:disabled:hover {
-  background-color: #cccccc;
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.left-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.file-upload-button {
+  background-color: #e57373; /* Soft red */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.file-upload-button:hover {
+  background-color: #ef5350; /* Slightly darker red on hover */
 } 

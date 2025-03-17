@@ -84,24 +84,4 @@ def search_similar_pages():
         }), 200
     except Exception as e:
         print(f"Error searching pages: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@pages_bp.route('/pages/semantic-search', methods=['POST'])
-def semantic_search():
-    data = request.get_json()
-    
-    if not data or 'query' not in data:
-        return jsonify({'error': 'Query is required'}), 400
-    
-    try:
-        from backend.services.embedding import search_by_text
-        
-        limit = data.get('limit', 5)
-        similar_pages = search_by_text(data['query'], limit)
-        
-        return jsonify({
-            'results': similar_pages
-        }), 200
-    except Exception as e:
-        print(f"Error searching pages: {str(e)}")
         return jsonify({'error': str(e)}), 500 
