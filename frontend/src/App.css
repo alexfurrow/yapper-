@@ -2,6 +2,8 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: #FDF6E3; /* Parchment base background */
+  color: #4B286D; /* Royal ink text color */
 }
 
 .app-header {
@@ -18,7 +20,8 @@
 .tabs button {
   padding: 10px 20px;
   margin: 0 10px;
-  background-color: #f0f0f0;
+  background-color: #7D8456; /* Olive leaf color for buttons */
+  color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -26,11 +29,15 @@
   transition: all 0.3s ease;
 }
 
+.tabs button:hover {
+  background-color: #3E6B6B; /* Deep teal for hover states */
+}
+
 .tabs button.active {
-  background-color: #007bff;
+  background-color: #B5694E; /* Terracotta dust for active/CTA states */
   color: white;
 }
 
 .app-content {
   min-height: 600px;
-} 
+}

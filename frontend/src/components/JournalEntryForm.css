@@ -1,0 +1,105 @@
+.journal-form-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #FDF6E3; /* Parchment base background */
+  color: #4B286D; /* Royal ink text color */
+}
+
+.textarea-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #E6D8B4; /* Aged scroll color */
+  border-radius: 5px;
+  font-size: 16px;
+  min-height: 200px;
+  background-color: #E6D8B4; /* Aged scroll for journal entry form */
+  color: #4B286D; /* Royal ink text color */
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.left-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #7D8456; /* Olive leaf color for buttons */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #3E6B6B; /* Deep teal for hover states */
+}
+
+button.recording {
+  background-color: #B5694E; /* Terracotta dust for recording state */
+}
+
+button.recording:hover {
+  background-color: #A05A43; /* Darker terracotta for hover */
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.message {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #E6D8B4; /* Aged scroll color */
+  color: #4B286D; /* Royal ink text color */
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #E6D8B4; /* Aged scroll color */
+  border-top: 5px solid #7D8456; /* Olive leaf color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-height: 700px) {
+  .journal-form-container {
+    height: auto;
+  }
+  
+  textarea {
+    min-height: 200px;
+  }
+} 

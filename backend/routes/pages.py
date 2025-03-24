@@ -7,16 +7,16 @@ from backend.models.Page_Table import Page_Table
 from backend.services.initial_processing import process_text
 
 #Personality
-from backend.services.personality_profile import personality_prompt, create_personality_and_write_to_db
-from backend.models.Personality_Table import Personality_Table
+# from backend.services.personality_profile import personality_prompt, create_personality_and_write_to_db
+# from backend.models.Personality_Table import Personality_Table
 
 #Story Components
 # from backend.services import plot_set_char_prompt, create_story_components_and_write_to_db
 # from backend.models.Plot_Set_Char_Table import Plot_Set_Char_Table
 
 #Story
-from backend.services.write_story import write_story_and_write_to_db
-from backend.models.Story_Table import Story_Table
+# from backend.services.write_story import write_story_and_write_to_db
+# from backend.models.Story_Table import Story_Table
 
 pages_bp = Blueprint('pages', __name__)
 
@@ -42,12 +42,11 @@ def create_page():
         db.session.commit()
         response_data = new_page.to_dict()
         
-        personality = create_personality_and_write_to_db(new_page.entry_id,processed_content)        
-        response_data['personality'] = personality
+        # personality = create_personality_and_write_to_db(new_page.entry_id,processed_content)        
+        # response_data['personality'] = personality
 
-        story = write_story_and_write_to_db(new_page.entry_id,processed_content)
-        # story = write_story_and_write_to_db(new_page.entry_id,data['content'])
-        response_data['story'] = story
+        # story = write_story_and_write_to_db(new_page.entry_id,processed_content)
+        # response_data['story'] = story
 
         return jsonify(response_data), 201
 
@@ -74,10 +73,10 @@ def search_similar_pages():
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        from backend.services.embedding_service import find_similar_pages
+        from backend.services.embedding import search_by_text
         
         limit = data.get('limit', 5)
-        similar_pages = find_similar_pages(data['query'], limit)
+        similar_pages = search_by_text(data['query'], limit)
         
         return jsonify({
             'results': similar_pages

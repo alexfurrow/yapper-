@@ -6,8 +6,6 @@ function ChatInterface() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [entries, setEntries] = useState([]);
-  const [selectedEntry, setSelectedEntry] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Auto-scroll to bottom of messages
@@ -18,20 +16,6 @@ function ChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Fetch entries when component mounts
-  useEffect(() => {
-    fetchEntries();
-  }, []);
-
-  const fetchEntries = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/pages');
-      setEntries(response.data);
-    } catch (error) {
-      console.error('Error fetching entries:', error);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,28 +52,14 @@ function ChatInterface() {
     }
   };
 
-  const handleEntryClick = (entry) => {
-    setSelectedEntry(entry);
-  };
-
   const handleSourceClick = (entryId) => {
-    // Find the entry with the matching ID
-    const entry = entries.find(e => e.entry_id === entryId);
-    if (entry) {
-      setSelectedEntry(entry);
-      
-      // Find the entry element in the DOM and scroll to it
-      const entryElement = document.getElementById(`entry-${entryId}`);
-      if (entryElement) {
-        entryElement.scrollIntoView({ behavior: 'smooth' });
-      }
+    // Find the entry element in the DOM and scroll to it
+    const entryElement = document.getElementById(`entry-${entryId}`);
+    if (entryElement) {
+      entryElement.scrollIntoView({ behavior: 'smooth' });
+      // Highlight the entry
+      entryElement.click();
     }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString(undefined, options); // e.g., Mar 18, 2025
   };
 
   return (
@@ -147,45 +117,6 @@ function ChatInterface() {
             Send
           </button>
         </form>
-      </div>
-      
-      <div className="entries-container">
-        <div className="entries-header">
-          <h2>Your Journal Entries</h2>
-        </div>
-        <div className="entries-list">
-          {entries.length === 0 ? (
-            <div className="empty-entries">
-              <p>No entries yet. Start journaling!</p>
-            </div>
-          ) : (
-            entries.map((entry) => (
-              <div 
-                id={`entry-${entry.entry_id}`}
-                key={entry.entry_id} 
-                className={`entry-item ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
-                onClick={() => handleEntryClick(entry)}
-              >
-                <div className="entry-header">
-                  <span className="entry-id">#{entry.entry_id}</span>
-                  <span className="entry-date">{formatDate(entry.created_at)}</span>
-                </div>
-                <div className="entry-preview">
-                  {entry.content.length > 100 
-                    ? entry.content.substring(0, 100) + '...' 
-                    : entry.content}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        {selectedEntry && (
-          <div className="entry-detail">
-            <h3>Entry #{selectedEntry.entry_id}</h3>
-            <div className="entry-date-full">{formatDate(selectedEntry.created_at)}</div>
-            <div className="entry-content">{selectedEntry.content}</div>
-          </div>
-        )}
       </div>
     </div>
   );

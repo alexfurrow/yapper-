@@ -391,3 +391,30 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    
    hey i realized that i added voice transcription already, which was something taht was in liminal space! I thought i'd never get to something in that area, at least not for a long time, but here we are, already having done it.
    also for the front end i am thinking of tiling as a general principle for the front end as a theme. like you have different types of tiling that reflect the complexities of the person.
+
+
+   3/18/2025
+      okay im taking a quick break to understand my app, learn about it.
+      i'm learning about blueprints, which are basically the definition of the pipes that connect results to each other. i'm viewing results as the thing that comes from the front end result (like an entry) with another result which is the databse (kinda the end part of the backend)
+      and the route can be registered in the app.py file. 
+      yea the city analogy really works: the routes are the roads, the services are the buildings, and the blueprints are the city master plan - layout of roads and paths that requests can take.
+
+   3/19/2025
+      so i should probalby continue to study. 
+   
+   3/22/2025
+      but instead i've been just trying to mvoe a button. the collapse button for the sidebar. tbh those im jsut going to leave it as functional but ugly...
+      it's all about adding user functionality now.
+      cleaning up a few ui things, for instance hiding the data upload button because i want to do that later, it's not essential.
+      secondly, i'm going to put off the data upload stuff and focus on making the first journal entry a compelling experience 
+
+      1. user system
+      2. encryption
+      3. quick summary
+      4. story thing
+      
+
+
+   
+
+      

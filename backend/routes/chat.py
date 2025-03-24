@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from backend.services.embedding import find_similar_pages
+from backend.services.embedding import search_by_text
 
 # Load environment variables
 load_dotenv(override=True)

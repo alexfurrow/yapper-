@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import './rootPageForm.css';  // Make sure to import the CSS
+import './JournalEntryForm.css';
 
-function PageForm() {
+function JournalEntryForm() {
   const [content, setContent] = useState('');
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -26,6 +26,12 @@ function PageForm() {
       });
       setMessage('Entry saved successfully!');
       setContent('');
+      
+      // Call the global refresh function to update the entries list
+      if (window.refreshEntries) {
+        window.refreshEntries();
+      }
+      
     } catch (error) {
       setMessage('Error saving entry: ' + error.message);
     } finally {
@@ -87,6 +93,10 @@ function PageForm() {
         });
         
         setMessage('Entry saved successfully!');
+        // Notify parent component to refresh entries
+        if (window.refreshEntries) {
+          window.refreshEntries();
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -137,58 +147,50 @@ function PageForm() {
   };
 
   return (
-    <div className="page-form-container-single">
-      <div className="input-section">
-        <h1></h1>
-        {message && <div className="message">{message}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="textarea-container">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter your text here..."
-              rows="10"
-              cols="50"
-              required
-            />
-          </div>
-          <div className="button-row">
-            <div className="left-buttons">
-              <button type="submit" disabled={isLoading}>Save Entry</button>
-              <button 
-                type="button" 
-                onClick={isRecording ? stopRecording : startRecording}
-                className={isRecording ? 'recording' : ''}
-                disabled={isLoading}
-              >
-                {isRecording ? 'Stop Recording' : 'Start Recording'}
-              </button>
-            </div>
+    <div className="journal-form-container">
+      <h1></h1>
+      {message && <div className="message">{message}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="textarea-container">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Enter your text here..."
+            rows="10"
+            cols="50"
+            required
+          />
+        </div>
+        <div className="button-row">
+          <div className="left-buttons">
+            <button type="submit" disabled={isLoading}>Save Entry</button>
             <button 
               type="button" 
-              className="file-upload-button"
-              onClick={handleFileButtonClick}
+              onClick={isRecording ? stopRecording : startRecording}
+              className={isRecording ? 'recording' : ''}
+              disabled={isLoading}
             >
-              Upload File
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".txt,.docx"
-              style={{ display: 'none' }}
-            />
           </div>
-        </form>
-        {isLoading && (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Processing your entry...</p>
-          </div>
-        )}
-      </div>
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".txt,.docx"
+            style={{ display: 'none' }}
+          />
+        </div>
+      </form>
+      {isLoading && (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Processing your entry...</p>
+        </div>
+      )}
     </div>
   );
 }
 
-export default PageForm; 
+export default JournalEntryForm; 

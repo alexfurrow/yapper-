@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import PageForm from './components/rootPageForm';
+import JournalEntryForm from './components/JournalEntryForm';
 import ChatInterface from './components/ChatInterface';
+import SharedLayout from './components/SharedLayout';
 import './App.css';
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
   return (
     <div className="App">
       <div className="app-header">
-        <h1>Txtile</h1>
+        <h1>Yapper</h1>
         <div className="tabs">
           <button 
             className={activeTab === 'entry' ? 'active' : ''} 
@@ -26,13 +27,13 @@ function App() {
         </div>
       </div>
       
-      <div className="app-content">
+      <SharedLayout activeTab={activeTab}>
         {activeTab === 'entry' ? (
-          <PageForm />
+          <JournalEntryForm />
         ) : (
           <ChatInterface />
         )}
-      </div>
+      </SharedLayout>
     </div>
   );
 }

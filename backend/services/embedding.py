@@ -12,6 +12,8 @@ load_dotenv(override=True)
 # Initialize the client with the API key from .env
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
+__all__ = ['search_by_text', 'generate_embedding', 'vectorize_all_pages']
+
 def generate_embedding(text):
     """Generate embedding for a single text using OpenAI API"""
     try:
@@ -54,7 +56,7 @@ def vectorize_all_pages():
         db.session.rollback()
         return False
 
-def find_similar_pages(query_text, limit=5):
+def search_by_text(query_text, limit=5):
     """Find pages with similar content to the query text"""
     try:
         # Generate embedding for query text
@@ -79,8 +81,14 @@ def find_similar_pages(query_text, limit=5):
         # Sort by similarity (highest first)
         similarities.sort(key=lambda x: x[1], reverse=True)
         
-        # Return top N results
-        return [page.to_dict() for page, _ in similarities[:limit]]
+        # Return top N results with similarity scores
+        results = []
+        for page, similarity in similarities[:limit]:
+            page_dict = page.to_dict()
+            page_dict['similarity'] = float(similarity)  # Add similarity score to the dictionary
+            results.append(page_dict)
+            
+        return results
     except Exception as e:
         print(f"Error finding similar pages: {str(e)}")
         return [] 
