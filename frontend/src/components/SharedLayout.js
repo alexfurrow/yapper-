@@ -22,7 +22,7 @@ function SharedLayout({ children, activeTab }) {
   // Use useCallback to create a stable function reference
   const fetchEntries = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/pages');
+      const response = await axios.get('http://localhost:5000/api/entries');
       const newEntries = response.data;
       
       // Check if there's a new entry by comparing with previous entries

@@ -21,7 +21,7 @@ function JournalEntryForm() {
     
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/pages', {
+      await axios.post('http://localhost:5000/api/entries', {
         content: content
       });
       setMessage('Entry saved successfully!');
@@ -106,10 +106,6 @@ function JournalEntryForm() {
     }
   };
 
-  const handleFileButtonClick = () => {
-    fileInputRef.current.click();
-  };
-
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -158,29 +154,40 @@ function JournalEntryForm() {
             placeholder="Enter your text here..."
             rows="10"
             cols="50"
-            required
-          />
+            disabled={isLoading}
+          ></textarea>
         </div>
         <div className="button-row">
           <div className="left-buttons">
-            <button type="submit" disabled={isLoading}>Save Entry</button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={isRecording ? stopRecording : startRecording}
               className={isRecording ? 'recording' : ''}
               disabled={isLoading}
             >
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
+            
+            <button
+              type="button"
+              onClick={() => fileInputRef.current.click()}
+              disabled={isLoading || isRecording}
+            >
+              Upload Audio
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept="audio/*"
+              onChange={handleFileUpload}
+              disabled={isLoading}
+            />
           </div>
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".txt,.docx"
-            style={{ display: 'none' }}
-          />
+          
+          <button type="submit" disabled={isLoading || !content.trim()}>
+            Save Entry
+          </button>
         </div>
       </form>
       {isLoading && (

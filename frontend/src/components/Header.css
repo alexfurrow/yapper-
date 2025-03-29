@@ -1,0 +1,90 @@
+.app-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #E6D8B4;
+}
+
+.app-header h1 {
+  color: #4B286D; /* Royal ink text color */
+  margin-bottom: 20px;
+}
+
+.header-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  background-color: #7D8456; /* Olive leaf color for buttons */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.tabs button:hover {
+  background-color: #3E6B6B; /* Deep teal for hover states */
+}
+
+.tabs button.active {
+  background-color: #B5694E; /* Terracotta dust for active/CTA states */
+  color: white;
+}
+
+.user-controls {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.username {
+  margin-right: 15px;
+  color: #4B286D; /* Royal ink text color */
+  font-weight: 500;
+}
+
+.logout-button {
+  padding: 8px 15px;
+  background-color: #B5694E; /* Terracotta dust */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #A05A43; /* Darker terracotta */
+}
+
+.auth-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.auth-buttons button {
+  padding: 10px 20px;
+  background-color: #7D8456; /* Olive leaf color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.auth-buttons button:hover {
+  background-color: #3E6B6B; /* Deep teal */
+} 

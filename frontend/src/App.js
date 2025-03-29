@@ -1,40 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './components/Login';
+import Register from './components/Register';
 import JournalEntryForm from './components/JournalEntryForm';
 import ChatInterface from './components/ChatInterface';
-import SharedLayout from './components/SharedLayout';
+import Header from './components/Header';
 import './App.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('entry');
-
   return (
-    <div className="App">
-      <div className="app-header">
-        <h1>Yapper</h1>
-        <div className="tabs">
-          <button 
-            className={activeTab === 'entry' ? 'active' : ''} 
-            onClick={() => setActiveTab('entry')}
-          >
-            Journal Entry
-          </button>
-          <button 
-            className={activeTab === 'chat' ? 'active' : ''} 
-            onClick={() => setActiveTab('chat')}
-          >
-            Chat with Journal
-          </button>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Header />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <JournalEntryForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <ChatInterface />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
         </div>
-      </div>
-      
-      <SharedLayout activeTab={activeTab}>
-        {activeTab === 'entry' ? (
-          <JournalEntryForm />
-        ) : (
-          <ChatInterface />
-        )}
-      </SharedLayout>
-    </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

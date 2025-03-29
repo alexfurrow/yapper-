@@ -402,7 +402,7 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
    3/19/2025
       so i should probalby continue to study. 
    
-   3/22/2025
+   3/23/2025
       but instead i've been just trying to mvoe a button. the collapse button for the sidebar. tbh those im jsut going to leave it as functional but ugly...
       it's all about adding user functionality now.
       cleaning up a few ui things, for instance hiding the data upload button because i want to do that later, it's not essential.
@@ -412,8 +412,11 @@ Okay so I wanted to early prompting. I want to spend some time away from the ide
       2. encryption
       3. quick summary
       4. story thing
-      
 
+      okay so i cleaned up the frontend instead hahaha. but i did start the user system. back to the CORS hell. I'm sure it's really simple, the lastest message in composer seems to add up with what i'm seeing in the browswer console.
+      so i'll retry tomorrow, need to head to bed. 
+      once i have the user system, it's about seeing if i can get privacy to work... it may be that i just have to ask people to trust me with their data.
+      then it's back to featurizinnngg w/ 3 and 4.
 
    
 

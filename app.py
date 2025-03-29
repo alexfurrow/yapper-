@@ -7,11 +7,13 @@ from backend.routes.pages import pages_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
 from backend.routes.files import files_bp
-# from backend.routes.personality import personality_bp
+from backend.routes.entries import entries_bp
 from backend.commands import vectorize_pages_command
 from flask_apscheduler import APScheduler
 from datetime import datetime
 import pytz
+import os
+from models import User, UserInput
 
 scheduler = APScheduler()
 
@@ -31,25 +33,34 @@ def create_app(config_class=Config):
         r"/*": {
             "origins": ["http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE"],
-            "allow_headers": ["Content-Type"]
+            "allow_headers": ["Content-Type", "Authorization"]
         }
     })
     scheduler.init_app(app)
 
     # Register blueprints
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(pages_bp, url_prefix='/api')
     app.register_blueprint(audio_bp, url_prefix='/api')
     app.register_blueprint(chat_bp, url_prefix='/api')
     app.register_blueprint(files_bp, url_prefix='/api')
-    # app.register_blueprint(personality_bp, url_prefix='/api')
+    app.register_blueprint(entries_bp, url_prefix='/api')
 
     # Register commands
     app.cli.add_command(vectorize_pages_command)
 
     # Start the scheduler
     scheduler.start()
+
+    # Database configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:password@localhost/yapper')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key')
+
+    # Create tables if they don't exist
+    with app.app_context():
+        db.create_all()
 
     return app
 
