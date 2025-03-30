@@ -154,6 +154,7 @@
   z-index: 1001;
   transition: all 0.3s ease;
   top: 80px;
+  right: 20px;
 }
 
 .entries-toggle-button:hover {
@@ -245,4 +246,4 @@
 .horizontal-resize-handle:hover,
 .horizontal-resize-handle.resizing {
   background-color: rgba(125, 132, 86, 0.2); /* Olive leaf color with opacity */
-} 
+}

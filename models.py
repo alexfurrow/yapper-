@@ -1,11 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
+from extensions import db  # Import db from extensions instead
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import os
 from datetime import datetime, timedelta
-
-db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -48,4 +46,4 @@ class UserInput(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     vectors = db.Column(db.Text, nullable=True)  # Store as JSON string
-    processed = db.Column(db.Boolean, default=False) 
+    processed = db.Column(db.Text, nullable=True)  # Changed from Boolean to Text to store processed content 

@@ -8,7 +8,6 @@ function JournalEntryForm() {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
-  const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -106,42 +105,6 @@ function JournalEntryForm() {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Check if file is .txt or .docx
-    const fileType = file.name.split('.').pop().toLowerCase();
-    if (fileType !== 'txt' && fileType !== 'docx') {
-      setMessage('Only .txt and .docx files are supported');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post('http://localhost:5000/api/files/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.content) {
-        setContent(response.data.content);
-        setMessage('File uploaded successfully!');
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setMessage('Error uploading file: ' + error.message);
-    } finally {
-      setIsLoading(false);
-      // Reset file input
-      e.target.value = null;
-    }
-  };
-
   return (
     <div className="journal-form-container">
       <h1></h1>
@@ -167,22 +130,6 @@ function JournalEntryForm() {
             >
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
-            
-            <button
-              type="button"
-              onClick={() => fileInputRef.current.click()}
-              disabled={isLoading || isRecording}
-            >
-              Upload Audio
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              accept="audio/*"
-              onChange={handleFileUpload}
-              disabled={isLoading}
-            />
           </div>
           
           <button type="submit" disabled={isLoading || !content.trim()}>
