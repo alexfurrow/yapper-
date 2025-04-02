@@ -4,7 +4,7 @@ import numpy as np
 import os
 from dotenv import load_dotenv
 from extensions import db
-from backend.models.Page_Table import Page_Table
+from backend.models.Entry_Table import Entry_Table
 
 # Force reload the .env file
 load_dotenv(override=True)
@@ -12,7 +12,7 @@ load_dotenv(override=True)
 # Initialize the client with the API key from .env
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-__all__ = ['search_by_text', 'generate_embedding', 'vectorize_all_pages']
+__all__ = ['search_by_text', 'generate_embedding', 'vectorize_all_entries']
 
 def generate_embedding(text):
     """Generate embedding for a single text using OpenAI API"""
@@ -27,13 +27,13 @@ def generate_embedding(text):
         print(f"Error generating embedding: {str(e)}")
         return None
 
-def vectorize_all_pages():
-    """Generate embeddings for all pages in the database"""
+def vectorize_all_entries():
+    """Generate embeddings for all entries in the database"""
     try:
         # Get all pages that don't have vectors yet
-        pages = Page_Table.query.filter(
-            Page_Table.processed.isnot(None),
-            Page_Table.vectors.is_(None)
+        pages = Entry_Table.query.filter(
+            Entry_Table.processed.isnot(None),
+            Entry_Table.vectors.is_(None)
         ).all()
         
         print(f"Found {len(pages)} pages to vectorize")
@@ -56,7 +56,7 @@ def vectorize_all_pages():
         db.session.rollback()
         return False
 
-def search_by_text(query_text, limit=5):
+def search_by_text(query_text, limit=5, user_id=None):
     """Find pages with similar content to the query text"""
     try:
         # Generate embedding for query text
@@ -68,25 +68,30 @@ def search_by_text(query_text, limit=5):
         query_vector = np.array(query_embedding)
         
         # Get all pages with vectors
-        pages = Page_Table.query.filter(Page_Table.vectors.isnot(None)).all()
+        entries = Entry_Table.query.filter(Entry_Table.vectors.isnot(None)).all()
+        
+        # Add user_id filter if provided
+        if user_id is not None:
+            # Filter entries to only include those belonging to the user
+            entries = [entry for entry in entries if entry.user_id == user_id]
         
         # Calculate cosine similarity
         similarities = []
-        for page in pages:
-            page_vector = np.array(page.vectors)
+        for entry in entries:
+            entry_vector = np.array(entry.vectors)
             # Cosine similarity = dot product / (norm(A) * norm(B))
-            similarity = np.dot(query_vector, page_vector) / (np.linalg.norm(query_vector) * np.linalg.norm(page_vector))
-            similarities.append((page, similarity))
+            similarity = np.dot(query_vector, entry_vector) / (np.linalg.norm(query_vector) * np.linalg.norm(entry_vector))
+            similarities.append((entry, similarity))
         
         # Sort by similarity (highest first)
         similarities.sort(key=lambda x: x[1], reverse=True)
         
         # Return top N results with similarity scores
         results = []
-        for page, similarity in similarities[:limit]:
-            page_dict = page.to_dict()
-            page_dict['similarity'] = float(similarity)  # Add similarity score to the dictionary
-            results.append(page_dict)
+        for entry, similarity in similarities[:limit]:
+            entry_dict = entry.to_dict()
+            entry_dict['similarity'] = float(similarity)  # Add similarity score to the dictionary
+            results.append(entry_dict)
             
         return results
     except Exception as e:

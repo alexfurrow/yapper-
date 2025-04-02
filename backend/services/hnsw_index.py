@@ -3,7 +3,7 @@ import numpy as np
 import os
 import pickle
 from flask import current_app
-from backend.models.Page_Table import Page_Table
+from backend.models.Entry_Table import Entry_Table
 from extensions import db
 
 class HNSWIndex:
@@ -23,30 +23,30 @@ class HNSWIndex:
         self.entry_id_to_id = {}  # Maps database entry_ids to HNSW internal IDs
         
     def build_index(self):
-        """Build HNSW index from all vectorized pages in the database"""
-        # Get all pages with vectors
-        pages = Page_Table.query.filter(Page_Table.vectors.isnot(None)).all()
+        """Build HNSW index from all vectorized entries in the database"""
+        # Get all entries with vectors
+        entries = Entry_Table.query.filter(Entry_Table.vectors.isnot(None)).all()
         
-        if not pages:
-            print("No vectorized pages found in database")
+        if not entries:
+            print("No vectorized entries found in database")
             return False
             
         # Create new index
         self.index = hnswlib.Index(space='cosine', dim=self.dim)
         
         # Initialize with slightly more capacity than needed
-        num_elements = len(pages)
+        num_elements = len(entries)
         self.index.init_index(max_elements=num_elements + 100, ef_construction=self.ef_construction, M=self.M)
         
         # Add vectors to index
         vectors = []
         ids = []
         
-        for i, page in enumerate(pages):
-            vectors.append(page.vectors)
+        for i, entry in enumerate(entries):
+            vectors.append(entry.vectors)
             ids.append(i)
-            self.id_to_entry_id[i] = page.entry_id
-            self.entry_id_to_id[page.entry_id] = i
+            self.id_to_entry_id[i] = entry.entry_id
+            self.entry_id_to_id[entry.entry_id] = i
             
         self.index.add_items(np.array(vectors), ids)
         
@@ -148,7 +148,7 @@ def load_index():
     return index.load('instance/hnsw_index')
     
 def search_similar(query_vector, k=5):
-    """Search for similar pages"""
+    """Search for similar entries"""
     # Try to load index if not already loaded
     if index.index is None:
         if not load_index():

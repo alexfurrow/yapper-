@@ -87,7 +87,7 @@ function JournalEntryForm() {
       if (response.data.transcription) {
         setContent(response.data.transcription);
         // Make the API call here
-        const pageResponse = await axios.post('http://localhost:5000/api/pages', {
+        const entryResponse = await axios.post('http://localhost:5000/api/entries', {
           content: response.data.transcription
         });
         

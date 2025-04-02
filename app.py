@@ -3,7 +3,6 @@ from config import Config
 from extensions import db, migrate, cors
 from backend.routes.main import main_bp
 from backend.routes.auth import auth_bp
-from backend.routes.pages import pages_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
 from backend.routes.files import files_bp
@@ -13,7 +12,7 @@ from flask_apscheduler import APScheduler
 from datetime import datetime
 import pytz
 import os
-from models import User, UserInput
+from backend.models.User_Table import User_Table as User
 
 scheduler = APScheduler()
 
@@ -31,7 +30,7 @@ def create_app(config_class=Config):
     # Configure CORS to allow requests from React
     cors.init_app(app, resources={
         r"/*": {
-            "origins": ["http://localhost:3000"],
+            "origins": ["http://localhost:3000", "http://localhost:5173"],
             "methods": ["GET", "POST", "PUT", "DELETE"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -41,11 +40,10 @@ def create_app(config_class=Config):
     # Register blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/api')
-    app.register_blueprint(pages_bp, url_prefix='/api')
+    app.register_blueprint(entries_bp, url_prefix='/api')
     app.register_blueprint(audio_bp, url_prefix='/api')
     app.register_blueprint(chat_bp, url_prefix='/api')
     app.register_blueprint(files_bp, url_prefix='/api')
-    app.register_blueprint(entries_bp, url_prefix='/api')
 
     # Register commands
     app.cli.add_command(vectorize_pages_command)
@@ -69,8 +67,8 @@ def create_app(config_class=Config):
                start_date='2025-03-02 01:00:00')
 def scheduled_vectorize():
     with scheduler.app.app_context():
-        from backend.services.embedding import vectorize_all_pages
-        vectorize_all_pages()
+        from backend.services.embedding import vectorize_all_entries
+        vectorize_all_entries()
 
 # Add this scheduled task
 @scheduler.task('cron', id='rebuild_index_weekly', day_of_week='mon', hour=2, minute=0, 
