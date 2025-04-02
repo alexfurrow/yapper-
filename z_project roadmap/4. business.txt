@@ -1,6 +1,0 @@
-1. create a whole foods history. [key difference of interface]
-2. reward function in social media is that you get attention from people - watch time, likes, comments, etc. so perhaps we need a new reward function, or maybe not, let's explore both routes
-3. new reward function: a feedback mechanism that 1. praises the user 2. creates a piece of art: story, photo, poem, etc. that reflects their day. something they can share on social media
-    empahsis on expression: styels of poetry, ai creativity, etc. custom music
-4. alternative reward function path: hypothesis: you don't need that many users to get a sense of what's going on.
-5. product tiers: based on user location: news summaries. pull in logistics information (traffic crime, weather, gdp, electricity consumption, water consumption, communication like quantity of emails sent, number of businessses, types of businesses, demographics [births deaths, etc]. job postings, concerns, etc., legistlation, construction, events, etc.)

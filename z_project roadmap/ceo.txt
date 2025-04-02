@@ -1,5 +1,0 @@
-Make requirements less dumb.
-Delete the part or process
-simplify the design/optimise
-Accelerate cycle time
-Automate
