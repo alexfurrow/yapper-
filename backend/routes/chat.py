@@ -25,12 +25,12 @@ def chat_with_database():
         
         # Search for relevant entries
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
-        similar_pages = search_by_text(user_message, limit)
+        similar_entries = search_by_text(user_message, limit)
         
         # Extract content from similar pages
         context = ""
-        for page in similar_pages:
-            context += f"Entry {page['entry_id']} (similarity: {page['similarity']:.2f}):\n{page['processed']}\n\n"
+        for entry in similar_entries:
+            context += f"Entry {entry['entry_id']} (similarity: {entry['similarity']:.2f}):\n{entry['processed']}\n\n"
         
         # Generate response using OpenAI
         response = client.chat.completions.create(
@@ -51,7 +51,7 @@ def chat_with_database():
         
         return jsonify({
             'response': ai_response,
-            'sources': [{'entry_id': page['entry_id'], 'similarity': page['similarity']} for page in similar_pages]
+            'sources': [{'entry_id': entries['entry_id'], 'similarity': entries['similarity']} for page in similar_pages]
         }), 200
         
     except Exception as e:

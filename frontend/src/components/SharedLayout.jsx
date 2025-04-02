@@ -5,7 +5,7 @@ import './SharedLayout.css';
 function SharedLayout({ children, activeTab }) {
   const [entries, setEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [newEntryId, setNewEntryId] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(500); // Default width
   const prevEntriesRef = useRef([]);
@@ -22,8 +22,17 @@ function SharedLayout({ children, activeTab }) {
   // Use useCallback to create a stable function reference
   const fetchEntries = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/entries');
+      const token = localStorage.getItem('token');
+      console.log("Using token for entries:", token); // Debug log
+      
+      const response = await axios.get('http://localhost:5000/api/entries', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       const newEntries = response.data;
+      console.log("Entries received:", newEntries); // Debug log
       
       // Check if there's a new entry by comparing with previous entries
       if (prevEntriesRef.current.length > 0 && newEntries.length > prevEntriesRef.current.length) {
@@ -44,7 +53,7 @@ function SharedLayout({ children, activeTab }) {
       setEntries(newEntries);
       prevEntriesRef.current = newEntries;
     } catch (error) {
-      console.error('Error fetching entries:', error);
+      console.error('Error fetching entries:', error.response?.data || error.message);
     }
   }, []);
 
@@ -66,6 +75,7 @@ function SharedLayout({ children, activeTab }) {
   // Update CSS variable when sidebar width changes
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
+    console.log("Set sidebar width to:", sidebarWidth); // Debug log
   }, [sidebarWidth]);
 
   // Handle vertical resize functionality
@@ -159,6 +169,13 @@ function SharedLayout({ children, activeTab }) {
 
   return (
     <div className={`layout-container ${isPanelCollapsed ? 'panel-collapsed' : ''}`}>
+      {/* Debug info */}
+      <div style={{ position: 'fixed', top: 0, left: 0, background: 'white', padding: '5px', zIndex: 9999 }}>
+        Panel Collapsed: {isPanelCollapsed ? 'Yes' : 'No'}<br />
+        Entries: {entries.length}<br />
+        Selected: {selectedEntry ? selectedEntry.entry_id : 'None'}
+      </div>
+      
       <div className="content-area">
         {children}
       </div>
@@ -224,6 +241,7 @@ function SharedLayout({ children, activeTab }) {
         type="button"
         className="entries-toggle-button"
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+        style={{ backgroundColor: 'red', zIndex: 9999 }}
       >
         {isPanelCollapsed ? 'Show Journal' : 'Hide Journal'}
       </button>

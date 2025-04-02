@@ -1,12 +1,13 @@
 from extensions import db
 from datetime import datetime
+import json
 from sqlalchemy.dialects.postgresql import ARRAY, FLOAT
 
-class UserInput(db.Model):
-    __tablename__ = 'user_inputs'
+class entries(db.Model):
+    __tablename__ = 'entries'
     
     entry_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Allow null for existing records
     content = db.Column(db.Text, nullable=False)
     processed = db.Column(db.Text)
     vectors = db.Column(ARRAY(FLOAT))  # Store embeddings as array of floats
@@ -14,7 +15,7 @@ class UserInput(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Define relationship with User
-    user = db.relationship('User_Table', backref=db.backref('entries', lazy=True))
+    user = db.relationship('users', backref=db.backref('entries', lazy=True))
     
     def to_dict(self):
         return {

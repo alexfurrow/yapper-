@@ -12,7 +12,7 @@ from flask_apscheduler import APScheduler
 from datetime import datetime
 import pytz
 import os
-from backend.models.User_Table import User_Table as User
+from backend.models.users import users
 
 scheduler = APScheduler()
 
@@ -22,7 +22,8 @@ def create_app(config_class=Config):
 
     # Configure scheduler
     app.config['SCHEDULER_API_ENABLED'] = True
-    
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
@@ -54,7 +55,6 @@ def create_app(config_class=Config):
     # Database configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:password@localhost/yapper')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key')
 
     # Create tables if they don't exist
     with app.app_context():

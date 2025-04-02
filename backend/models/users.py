@@ -5,7 +5,7 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
-class User_Table(db.Model):
+class users(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
@@ -44,7 +44,7 @@ class User_Table(db.Model):
                 os.environ.get('SECRET_KEY', 'dev-secret-key'),
                 algorithms=['HS256']
             )
-            return User_Table.query.get(payload['user_id'])
+            return users.query.get(payload['user_id'])
         except:
             return None
 
@@ -56,8 +56,4 @@ class User_Table(db.Model):
 #account status
 #external integrations such as facebook_id, google_id, etc.
 
-
-
-
-
-#background data
+#background data 

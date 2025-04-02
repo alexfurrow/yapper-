@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
-from backend.models.User_Table import User_Table as User
-from backend.models.Entry_Table import Entry_Table
+from backend.models.users import users
+from backend.models.entries import entries
 from backend.routes.auth import token_required
 from backend.services.initial_processing import process_text
 
@@ -11,8 +11,8 @@ entries_bp = Blueprint('entries', __name__)
 @token_required
 def get_entries(current_user):
     """Get all entries for the current user"""
-    entries = Entry_Table.query.filter_by(user_id=current_user.id).order_by(Entry_Table.created_at.desc()).all()
-    return jsonify([entry.to_dict() for entry in entries]), 200
+    all_entries = entries.query.filter_by(user_id=current_user.id).order_by(entries.created_at.desc()).all()
+    return jsonify([entry.to_dict() for entry in all_entries]), 200
 
 @entries_bp.route('/entries', methods=['POST'])
 @token_required
@@ -31,7 +31,7 @@ def create_entry(current_user):
         print(f"Processed content: {processed_content}")
         
         # Create new entry
-        new_entry = Entry_Table(
+        new_entry = entries(
             user_id=current_user.id,
             content=data['content'],
             processed=processed_content
@@ -59,7 +59,7 @@ def create_entry(current_user):
 @token_required
 def get_entry(current_user, entry_id):
     """Get a specific entry by ID"""
-    entry = Entry_Table.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
+    entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
     
     if not entry:
         return jsonify({'message': 'Entry not found'}), 404
@@ -70,7 +70,7 @@ def get_entry(current_user, entry_id):
 @token_required
 def update_entry(current_user, entry_id):
     """Update an existing entry"""
-    entry = Entry_Table.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
+    entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
     
     if not entry:
         return jsonify({'message': 'Entry not found'}), 404
@@ -99,7 +99,7 @@ def update_entry(current_user, entry_id):
 @token_required
 def delete_entry(current_user, entry_id):
     """Delete an entry"""
-    entry = Entry_Table.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
+    entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
     
     if not entry:
         return jsonify({'message': 'Entry not found'}), 404

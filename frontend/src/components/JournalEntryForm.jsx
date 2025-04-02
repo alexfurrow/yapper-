@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import './JournalEntryForm.css';
+import SharedLayout from './SharedLayout';
 
 function JournalEntryForm() {
   const [content, setContent] = useState('');
@@ -106,44 +107,46 @@ function JournalEntryForm() {
   };
 
   return (
-    <div className="journal-form-container">
-      <h1></h1>
-      {message && <div className="message">{message}</div>}
-      <form onSubmit={handleSubmit}>
-        <div className="textarea-container">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter your text here..."
-            rows="10"
-            cols="50"
-            disabled={isLoading}
-          ></textarea>
-        </div>
-        <div className="button-row">
-          <div className="left-buttons">
-            <button
-              type="button"
-              onClick={isRecording ? stopRecording : startRecording}
-              className={isRecording ? 'recording' : ''}
+    <SharedLayout activeTab="journal">
+      <div className="journal-form-container">
+        <h1></h1>
+        {message && <div className="message">{message}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="textarea-container">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter your text here..."
+              rows="10"
+              cols="50"
               disabled={isLoading}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
+            ></textarea>
+          </div>
+          <div className="button-row">
+            <div className="left-buttons">
+              <button
+                type="button"
+                onClick={isRecording ? stopRecording : startRecording}
+                className={isRecording ? 'recording' : ''}
+                disabled={isLoading}
+              >
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </button>
+            </div>
+            
+            <button type="submit" disabled={isLoading || !content.trim()}>
+              Save Entry
             </button>
           </div>
-          
-          <button type="submit" disabled={isLoading || !content.trim()}>
-            Save Entry
-          </button>
-        </div>
-      </form>
-      {isLoading && (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Processing your entry...</p>
-        </div>
-      )}
-    </div>
+        </form>
+        {isLoading && (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Processing your entry...</p>
+          </div>
+        )}
+      </div>
+    </SharedLayout>
   );
 }
 

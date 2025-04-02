@@ -4,7 +4,7 @@ import numpy as np
 import os
 from dotenv import load_dotenv
 from extensions import db
-from backend.models.Entry_Table import Entry_Table
+from backend.models.entries import entries
 
 # Force reload the .env file
 load_dotenv(override=True)
@@ -30,34 +30,34 @@ def generate_embedding(text):
 def vectorize_all_entries():
     """Generate embeddings for all entries in the database"""
     try:
-        # Get all pages that don't have vectors yet
-        pages = Entry_Table.query.filter(
-            Entry_Table.processed.isnot(None),
-            Entry_Table.vectors.is_(None)
+        # Get all entries that don't have vectors yet
+        vectorless = entries.query.filter(
+            entries.processed.isnot(None),
+            entries.vectors.is_(None)
         ).all()
         
-        print(f"Found {len(pages)} pages to vectorize")
+        print(f"Found {len(vectorless)} entries to vectorize")
         
-        for page in pages:
-            if page.processed:
+        for entry in vectorless:
+            if entry.processed:
                 # Generate embedding for processed text
-                embedding = generate_embedding(page.processed)
+                embedding = generate_embedding(entry.processed)
                 if embedding:
                     # Store embedding in database
-                    page.vectors = embedding
-                    print(f"Generated embedding for page {page.entry_id}")
+                    entry.vectors = embedding
+                    print(f"Generated embedding for entry {entry.entry_id}")
             
         # Commit all changes
         db.session.commit()
         print("Vectorization complete")
         return True
     except Exception as e:
-        print(f"Error vectorizing pages: {str(e)}")
+        print(f"Error vectorizing entries: {str(e)}")
         db.session.rollback()
         return False
 
 def search_by_text(query_text, limit=5, user_id=None):
-    """Find pages with similar content to the query text"""
+    """Find entries with similar content to the query text"""
     try:
         # Generate embedding for query text
         query_embedding = generate_embedding(query_text)
@@ -67,17 +67,17 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Convert to numpy array for calculations
         query_vector = np.array(query_embedding)
         
-        # Get all pages with vectors
-        entries = Entry_Table.query.filter(Entry_Table.vectors.isnot(None)).all()
+        # Get all entries with vectors
+        all_entries = entries.query.filter(entries.vectors.isnot(None)).all()
         
         # Add user_id filter if provided
         if user_id is not None:
             # Filter entries to only include those belonging to the user
-            entries = [entry for entry in entries if entry.user_id == user_id]
+            all_entries = [entry for entry in all_entries if entry.user_id == user_id]
         
         # Calculate cosine similarity
         similarities = []
-        for entry in entries:
+        for entry in all_entries:
             entry_vector = np.array(entry.vectors)
             # Cosine similarity = dot product / (norm(A) * norm(B))
             similarity = np.dot(query_vector, entry_vector) / (np.linalg.norm(query_vector) * np.linalg.norm(entry_vector))
@@ -95,5 +95,5 @@ def search_by_text(query_text, limit=5, user_id=None):
             
         return results
     except Exception as e:
-        print(f"Error finding similar pages: {str(e)}")
+        print(f"Error finding similar entries: {str(e)}")
         return [] 

@@ -3,7 +3,7 @@ import numpy as np
 import os
 import pickle
 from flask import current_app
-from backend.models.Entry_Table import Entry_Table
+from backend.models.entries import entries  # Updated import
 from extensions import db
 
 class HNSWIndex:
@@ -25,9 +25,9 @@ class HNSWIndex:
     def build_index(self):
         """Build HNSW index from all vectorized entries in the database"""
         # Get all entries with vectors
-        entries = Entry_Table.query.filter(Entry_Table.vectors.isnot(None)).all()
+        all_entries = entries.query.filter(entries.vectors.isnot(None)).all()
         
-        if not entries:
+        if not all_entries:
             print("No vectorized entries found in database")
             return False
             
@@ -35,14 +35,14 @@ class HNSWIndex:
         self.index = hnswlib.Index(space='cosine', dim=self.dim)
         
         # Initialize with slightly more capacity than needed
-        num_elements = len(entries)
+        num_elements = len(all_entries)
         self.index.init_index(max_elements=num_elements + 100, ef_construction=self.ef_construction, M=self.M)
         
         # Add vectors to index
         vectors = []
         ids = []
         
-        for i, entry in enumerate(entries):
+        for i, entry in enumerate(all_entries):
             vectors.append(entry.vectors)
             ids.append(i)
             self.id_to_entry_id[i] = entry.entry_id
