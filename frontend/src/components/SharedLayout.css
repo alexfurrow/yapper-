@@ -18,10 +18,10 @@
 }
 
 .entries-container {
-  position: fixed !important;
-  right: 0 !important;
-  top: 0 !important;
-  width: 500px !important;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 500px;
   min-width: 250px;
   max-width: 800px;
   height: 100vh;
@@ -35,8 +35,8 @@
 }
 
 .entries-container.collapsed {
-  transform: translateX(100%) !important;
-  opacity: 0 !important;
+  transform: translateX(100%);
+  opacity: 0;
 }
 
 .entries-header {
