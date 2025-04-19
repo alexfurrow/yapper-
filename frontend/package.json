@@ -16,7 +16,7 @@
     "vite": "^6.2.3"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode development",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest"

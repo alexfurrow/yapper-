@@ -21,7 +21,7 @@ function JournalEntryForm() {
     
     setIsLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/entries', {
+      await axios.post('/api/entries', {
         content: content
       });
       setMessage('Entry saved successfully!');
@@ -79,7 +79,7 @@ function JournalEntryForm() {
       const formData = new FormData();
       formData.append('audio', blob, 'recording.wav');
 
-      const response = await axios.post('http://localhost:5000/api/audio', formData, {
+      const response = await axios.post('/api/audio', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -88,7 +88,7 @@ function JournalEntryForm() {
       if (response.data.transcription) {
         setContent(response.data.transcription);
         // Make the API call here
-        const entryResponse = await axios.post('http://localhost:5000/api/entries', {
+        const entryResponse = await axios.post('/api/entries', {
           content: response.data.transcription
         });
         

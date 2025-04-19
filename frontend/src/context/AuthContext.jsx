@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Create the context with a default value
 const AuthContext = createContext({
   currentUser: null,
@@ -72,7 +74,7 @@ function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     try {
       setError(null);
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         username,
         password
       });
@@ -103,7 +105,7 @@ function AuthProvider({ children }) {
   const register = useCallback(async (username, password) => {
     try {
       setError(null);
-      await axios.post('http://localhost:5000/api/register', {
+      await axios.post('/api/auth/register', {
         username,
         password
       });
