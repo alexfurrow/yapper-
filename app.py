@@ -1,3 +1,6 @@
+from backend.config.environment import load_environment
+load_environment()
+
 from flask import Flask
 from config import Config
 from extensions import db, migrate, cors
@@ -31,7 +34,7 @@ def create_app(config_class=Config):
     # Configure CORS to allow requests from React
     cors.init_app(app, resources={
         r"/*": {
-            "origins": ["http://localhost:3000", "http://localhost:5173"],
+            "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -52,7 +55,9 @@ def create_app(config_class=Config):
     scheduler.start()
 
     # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:password@localhost/yapper')
+    if 'DATABASE_URL' not in os.environ:
+        print("WARNING: DATABASE_URL environment variable not set!")
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Create tables if they don't exist
@@ -70,7 +75,7 @@ def scheduled_vectorize():
         vectorize_all_entries()
 
 # Add this scheduled task
-@scheduler.task('cron', id='rebuild_index_weekly', day_of_week='mon', hour=2, minute=0, 
+@scheduler.task('cron', id='rebuild_index_weekly', day_of_week='sun', hour=1, minute=30, 
                start_date='2025-03-03 02:00:00')
 def scheduled_index_rebuild():
     with scheduler.app.app_context():
@@ -81,3 +86,9 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run()
+
+# Add this after app = create_app()
+with app.app_context():
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint}: {rule.rule}")
