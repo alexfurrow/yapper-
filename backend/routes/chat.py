@@ -10,7 +10,7 @@ load_dotenv(override=True)
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-chat_bp = Blueprint('chat', __name__)
+chat_bp = Blueprint('chat', __name__, url_prefix='/chat')
 
 @chat_bp.route('/chat', methods=['POST'])
 def chat_with_database():

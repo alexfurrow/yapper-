@@ -5,7 +5,7 @@ from backend.models.entries import entries
 from backend.routes.auth import token_required
 from backend.services.initial_processing import process_text
 
-entries_bp = Blueprint('entries', __name__)
+entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
 @entries_bp.route('/entries', methods=['GET'])
 @token_required

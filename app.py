@@ -84,11 +84,10 @@ def scheduled_index_rebuild():
 
 app = create_app()
 
-if __name__ == '__main__':
-    app.run()
-
-# Add this after app = create_app()
 with app.app_context():
     print("Registered routes:")
     for rule in app.url_map.iter_rules():
         print(f"{rule.endpoint}: {rule.rule}")
+
+if __name__ == '__main__':
+    app.run()

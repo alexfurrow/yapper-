@@ -6,7 +6,7 @@ import os
 import jwt
 from datetime import datetime
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__j, url_prefix='/auth')
 
 # Authentication decorator
 def token_required(f):
@@ -126,5 +126,9 @@ def verify_token(token):
     except Exception as e:
         print(f"Token verification error: {str(e)}")
         return None
+
+@auth_bp.route('/test', methods=['GET'])
+def test():
+    return jsonify({'message': 'API is working!'}), 200
 
 # Export the token_required decorator so it can be used in other blueprints 

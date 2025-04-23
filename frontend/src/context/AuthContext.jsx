@@ -105,10 +105,14 @@ function AuthProvider({ children }) {
   const register = useCallback(async (username, password) => {
     try {
       setError(null);
-      await axios.post('/api/auth/register', {
+      const response = await axios.post('/api/auth/register', {
         username,
         password
       });
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Registration failed');
+      }
       
       // Auto login after registration
       return await login(username, password);

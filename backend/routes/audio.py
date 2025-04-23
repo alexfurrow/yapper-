@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-audio_bp = Blueprint('audio_api', __name__)
+audio_bp = Blueprint('audio', __name__, url_prefix='/audio')
 
-@audio_bp.route('/audio/api', methods=['POST'])
+@audio_bp.route('/api_call', methods=['POST'])
 def upload_audio_api():
     try:
         if 'audio' not in request.files:
