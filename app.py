@@ -8,7 +8,7 @@ from backend.routes.chat import chat_bp
 # from backend.routes.files import files_bp
 from backend.routes.entries import entries_bp
 from backend.commands import vectorize_pages_command
-from flask_apscheduler import APScheduler
+from flask_apscheduler import APScheduler 
 from datetime import datetime
 import pytz
 import os
@@ -44,8 +44,7 @@ def create_app(config_class=Config):
     app.register_blueprint(entries_bp, url_prefix='/api')
     app.register_blueprint(audio_bp, url_prefix='/api')
     app.register_blueprint(chat_bp, url_prefix='/api')
-    # app.register_blueprint(files_bp, url_prefix='/api')
-
+ 
     # Register commands
     app.cli.add_command(vectorize_pages_command)
 

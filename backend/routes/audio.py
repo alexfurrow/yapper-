@@ -1,15 +1,17 @@
 from flask import Blueprint, request, jsonify
 import os
 from werkzeug.utils import secure_filename
-import whisper
+import requests
+import json
+from dotenv import load_dotenv
 
-audio_bp = Blueprint('audio', __name__)
+# Load environment variables
+load_dotenv()
 
-# Initialize Whisper model
-model = whisper.load_model("base")
+audio_bp = Blueprint('audio_api', __name__)
 
-@audio_bp.route('/audio', methods=['POST'])
-def upload_audio():
+@audio_bp.route('/audio/api', methods=['POST'])
+def upload_audio_api():
     try:
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file'}), 400
@@ -24,17 +26,43 @@ def upload_audio():
         os.makedirs('temp', exist_ok=True)
         audio_file.save(temp_path)
 
-        # Transcribe the audio
-        result = model.transcribe(temp_path, fp16=False) #CHANGE THIS TO TRUE, to save a lot of memory and speed up processing. do this once you migrate bc my cpu cant use this=True for some reason. 
-        transcription = result["text"]
+        # Get API key from environment variable
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return jsonify({'error': 'API key not configured'}), 500
 
+        # Call OpenAI's Whisper API
+        with open(temp_path, 'rb') as audio_data:
+            headers = {
+                'Authorization': f'Bearer {api_key}'
+            }
+            response = requests.post(
+                'https://api.openai.com/v1/audio/transcriptions',
+                headers=headers,
+                files={
+                    'file': audio_data,
+                },
+                data={
+                    'model': 'whisper-1',
+                }
+            )
+        
         # Clean up the temporary file
         os.remove(temp_path)
 
-        return jsonify({
-            'message': 'Audio processed successfully',
-            'transcription': transcription
-        }), 200
+        # Process the API response
+        if response.status_code == 200:
+            result = response.json()
+            transcription = result.get('text', '')
+            return jsonify({
+                'message': 'Audio processed successfully via API',
+                'transcription': transcription
+            }), 200
+        else:
+            return jsonify({
+                'error': f'API error: {response.status_code}',
+                'details': response.text
+            }), 500
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500 
