@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 // Create the context with a default value
 const AuthContext = createContext({
@@ -74,6 +74,7 @@ function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     try {
       setError(null);
+      console.log(`Attempting to login at: ${API_URL}/api/auth/login`);
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         username,
         password
@@ -109,16 +110,19 @@ function AuthProvider({ children }) {
         username,
         password
       });
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Registration failed');
+
+      // Check if backend indicated success (adjust if needed)
+      // Assuming 201 means success for registration API itself
+      if (response.status !== 201) {
+         throw new Error(response.data.message || 'Registration API call failed');
       }
-      
-      // Auto login after registration
+
+      // Auto login after registration - THIS PART IS FAILING
       return await login(username, password);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Registration failed';
-      console.error("Registration error:", errorMsg);
+      // This catch block is triggered because the login() call fails
+      const errorMsg = err.response?.data?.message || 'Registration failed (likely during auto-login)';
+      console.error("Registration error:", errorMsg, err); // Log the actual error
       setError(errorMsg);
       return false;
     }

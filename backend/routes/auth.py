@@ -6,7 +6,7 @@ import os
 import jwt
 from datetime import datetime
 
-auth_bp = Blueprint('auth', __name__j, url_prefix='/auth')
+auth_bp = Blueprint('auth', __name__)
 
 # Authentication decorator
 def token_required(f):
@@ -41,7 +41,8 @@ def token_required(f):
     
     return decorated
 
-@auth_bp.route('/register', methods=['POST'])
+#revert in case eeded @auth_bp.route('/auth/register', methods=['POST'])
+@auth_bp.route('/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
     print(f"Registration attempt with data: {data}")
@@ -68,7 +69,7 @@ def register():
         db.session.rollback()
         return jsonify({'message': f'Error creating user: {str(e)}'}), 500
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
     
@@ -92,7 +93,7 @@ def login():
 @staticmethod
 def verify_token(token):
     try:
-        payload = jwt.decode(
+        payload = jwt_test.decode(
             token,
             os.environ.get('SECRET_KEY', 'dev-secret-key'),
             algorithms=['HS256']
@@ -117,17 +118,17 @@ def verify_token(token):
             return None
             
         return user
-    except jwt.ExpiredSignatureError:
+    except jwt_test.ExpiredSignatureError:
         print("Token signature expired")
         return None
-    except jwt.InvalidTokenError as e:
+    except jwt_test.InvalidTokenError as e:
         print(f"Invalid token: {str(e)}")
         return None
     except Exception as e:
         print(f"Token verification error: {str(e)}")
         return None
 
-@auth_bp.route('/test', methods=['GET'])
+@auth_bp.route('/auth/test', methods=['GET'])
 def test():
     return jsonify({'message': 'API is working!'}), 200
 
