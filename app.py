@@ -1,6 +1,9 @@
 from backend.config.environment import load_environment
 load_environment()
 
+import sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from flask import Flask
 from config import Config
 from extensions import db, migrate, cors
