@@ -58,13 +58,16 @@ def create_app(config_class=Config):
     scheduler.start()
 
     # Database configuration
-    if 'DATABASE_URL' not in os.environ:
-        print("WARNING: DATABASE_URL environment variable not set!")
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    db_url_from_env = os.environ.get('DATABASE_URL')
+    print(f"--- DEBUG: DATABASE_URL from os.environ AFTER load_dotenv: {db_url_from_env}")
+    if not db_url_from_env:
+        print("CRITICAL WARNING: DATABASE_URL is not set in environment!")
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url_from_env
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Create tables if they don't exist
     with app.app_context():
+        print(f"--- DEBUG: Attempting db.create_all() with URI: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
         db.create_all()
 
     return app

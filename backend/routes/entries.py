@@ -3,7 +3,7 @@ from extensions import db
 from backend.models.users import users
 from backend.models.entries import entries
 from backend.routes.auth import token_required
-from ..services.initial_processing import process_text
+from backend.services.initial_processing import process_text
 
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
