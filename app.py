@@ -1,5 +1,6 @@
 from backend.config.environment import load_environment
 load_environment()
+import os
 
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -17,7 +18,6 @@ from backend.commands import vectorize_pages_command
 from flask_apscheduler import APScheduler 
 from datetime import datetime
 import pytz
-import os
 from backend.models.users import users
 
 scheduler = APScheduler()
