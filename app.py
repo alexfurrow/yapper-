@@ -1,9 +1,9 @@
-from backend.config.environment import load_environment
-load_environment()
 import os
-
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
+from backend.config.environment import load_environment
+load_environment()
 
 from flask import Flask
 from config import Config
