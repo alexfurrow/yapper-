@@ -1,7 +1,13 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+// This correctly reads the Vercel environment variable in production builds
+const API_URL = import.meta.env.VITE_API_URL;
+console.log("--- INFO: Using API_URL:", API_URL); // Good for debugging
+
+// Ensure axios calls use this base URL or prepend it
+// Option 1: Set Axios base URL (Good practice)
+axios.defaults.baseURL = API_URL;
 
 // Create the context with a default value
 const AuthContext = createContext({
@@ -75,7 +81,7 @@ function AuthProvider({ children }) {
     try {
       setError(null);
       console.log(`Attempting to login at: ${API_URL}/api/auth/login`);
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
+      const response = await axios.post('/api/auth/login', {
         username,
         password
       });

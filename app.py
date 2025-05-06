@@ -2,6 +2,10 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+# --- ADD DEBUG HERE ---
+print(f"--- DEBUG [app.py top level]: DATABASE_URL before load_environment: {os.environ.get('DATABASE_URL')}")
+# --- END DEBUG ---
+
 from backend.config.environment import load_environment
 load_environment()
 
@@ -34,12 +38,23 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     
-    # Configure CORS to allow requests from React
+    # Configure CORS to allow requests from React and Vercel
+    # Get Vercel URL from an environment variable for flexibility
+    vercel_url = os.environ.get('FRONTEND_URL', None) # Example: Set FRONTEND_URL=https://my-yapper-frontend.vercel.app in Railway vars
+    allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    if vercel_url:
+        allowed_origins.append(vercel_url)
+        # Optionally allow subdomains if needed (e.g., preview deployments)
+        # allowed_origins.append(f"https://*.{vercel_url.split('//')[1]}") # Be careful with wildcards
+
+    print(f"--- INFO: Allowed CORS Origins: {allowed_origins}") # Add for debugging
+
     cors.init_app(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
-            "methods": ["GET", "POST", "PUT", "DELETE"],
-            "allow_headers": ["Content-Type", "Authorization"]
+        r"/api/*": { # Make sure CORS applies to your /api/* routes
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Add OPTIONS for preflight requests
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True # If you use cookies/sessions
         }
     })
     scheduler.init_app(app)

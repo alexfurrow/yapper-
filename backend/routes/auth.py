@@ -128,8 +128,4 @@ def verify_token(token):
         print(f"Token verification error: {str(e)}")
         return None
 
-@auth_bp.route('/auth/test', methods=['GET'])
-def test():
-    return jsonify({'message': 'API is working!'}), 200
-
 # Export the token_required decorator so it can be used in other blueprints 
