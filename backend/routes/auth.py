@@ -126,6 +126,4 @@ def verify_token(token):
         return None
     except Exception as e:
         print(f"Token verification error: {str(e)}")
-        return None
-
-# Export the token_required decorator so it can be used in other blueprints 
+        return None 
