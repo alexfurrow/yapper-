@@ -35,11 +35,5 @@
       "src": "/(.*)",
       "dest": "frontend/dist/index.html"
     }
-  ],
-  "env": {
-    "FLASK_ENV": "production",
-    "OPENAI_API_KEY": "@openai_api_key",
-    "SECRET_KEY": "@secret_key",
-    "DATABASE_URL": "@database_url"
-  }
+  ]
 }

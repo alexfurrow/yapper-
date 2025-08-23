@@ -1,5 +1,6 @@
 #env
 .env*
+
 # Python
 __pycache__/
 *.py[cod]
@@ -46,5 +47,7 @@ yarn-error.log*
 
 #project roadmap
 z_project_roadmap/
+zz_project_roadmap/
 
-
+#txt
+thinking.txt
