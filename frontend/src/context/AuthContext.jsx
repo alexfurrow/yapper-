@@ -2,8 +2,14 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 // This correctly reads the Vercel environment variable in production builds
-const API_URL = import.meta.env.VITE_API_URL;
+let API_URL = import.meta.env.VITE_API_URL;
 console.log("--- INFO: Using API_URL:", API_URL); // Good for debugging
+
+// Ensure API_URL has proper protocol
+if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://')) {
+  API_URL = `https://${API_URL}`;
+  console.log("--- INFO: Added https:// protocol to API_URL:", API_URL);
+}
 
 // Check if API_URL is set in production
 if (!API_URL && import.meta.env.MODE === 'production') {
