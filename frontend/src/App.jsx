@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import Login from './components/Login';
@@ -88,6 +88,26 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Simple test component for routes
+function TestRoute() {
+  return (
+    <div>
+      <h1>Testing - Modern Router</h1>
+      <p>If you can see this, the modern React Router is working!</p>
+      <p>Environment: {import.meta.env.MODE}</p>
+      <p>API URL: {import.meta.env.VITE_API_URL}</p>
+    </div>
+  );
+}
+
+// Create the router configuration
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <TestRoute />,
+  },
+]);
+
 function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -101,12 +121,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className="App">
-          <h1>Testing - AuthProvider Added</h1>
-          <p>If you can see this, the AuthProvider is working.</p>
-          <p>Environment: {import.meta.env.MODE}</p>
-          <p>API URL: {import.meta.env.VITE_API_URL}</p>
-        </div>
+        <RouterProvider router={router} />
       </AuthProvider>
     </ErrorBoundary>
   );
