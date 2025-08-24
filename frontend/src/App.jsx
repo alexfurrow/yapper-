@@ -89,7 +89,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // Custom router component with navigation context
-const NavigationContext = React.createContext();
+export const NavigationContext = React.createContext();
 
 function CustomRouter() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
