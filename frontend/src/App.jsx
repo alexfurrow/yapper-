@@ -8,6 +8,7 @@ import JournalEntryForm from './components/JournalEntryForm';
 import ChatInterface from './components/ChatInterface';
 import Header from './components/Header';
 import SharedLayout from './components/SharedLayout';
+import LandingPage from './components/LandingPage';
 import './App.css';
 
 // Simple error boundary component
@@ -108,6 +109,15 @@ function CustomRouter() {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
   };
+
+  // Show landing page for unauthenticated users on home page
+  if (currentPath === '/' && !currentUser) {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <LandingPage />
+      </NavigationContext.Provider>
+    );
+  }
 
   // Route matching logic
   if (currentPath === '/login') {
