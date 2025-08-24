@@ -185,12 +185,8 @@ function CustomRouter() {
 function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log("App.jsx - Stored token:", token);
-    console.log("App.jsx - VITE_API_URL:", import.meta.env.VITE_API_URL);
-    console.log("App.jsx - Environment:", import.meta.env.MODE);
+    // Removed debugging console.log statements
   }, []);
-
-  console.log("App.jsx - About to render components");
 
   return (
     <ErrorBoundary>

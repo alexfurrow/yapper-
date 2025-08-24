@@ -3,12 +3,10 @@ import axios from 'axios';
 
 // This correctly reads the Vercel environment variable in production builds
 let API_URL = import.meta.env.VITE_API_URL;
-console.log("--- INFO: Using API_URL:", API_URL); // Good for debugging
 
 // Ensure API_URL has proper protocol
 if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://')) {
   API_URL = `https://${API_URL}`;
-  console.log("--- INFO: Added https:// protocol to API_URL:", API_URL);
 }
 
 // Check if API_URL is set in production
@@ -50,7 +48,6 @@ function AuthProvider({ children }) {
         setCurrentUser(JSON.parse(user));
         // Set default Authorization header for all requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        console.log("Initialized auth from localStorage with token:", token.substring(0, 15) + "...");
       } catch (e) {
         console.error("Error parsing user from localStorage:", e);
         localStorage.removeItem('user');
@@ -73,7 +70,6 @@ function AuthProvider({ children }) {
         return false;
       }
       
-      console.log(`Attempting to login at: ${API_URL}/api/auth/login`);
       const response = await axios.post('/api/auth/login', {
         username,
         password
@@ -81,15 +77,12 @@ function AuthProvider({ children }) {
       
       const { token, username: user, user_id } = response.data;
       
-      console.log("Login successful, received token:", token.substring(0, 15) + "...");
-      
       // Store token and user info
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify({ username, id: user_id }));
       
       // Set default Authorization header for all requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log("Set default Authorization header");
       
       setCurrentUser({ username, id: user_id });
       return true;
@@ -137,7 +130,6 @@ function AuthProvider({ children }) {
     delete axios.defaults.headers.common['Authorization'];
     
     setCurrentUser(null);
-    console.log("User logged out");
   }, []);
 
   // Create the context value object
