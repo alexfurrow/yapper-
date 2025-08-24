@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 // import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import Login from './components/Login';
 // import Register from './components/Register';
@@ -100,12 +100,14 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="App">
-        <h1>Minimal React App</h1>
-        <p>If you can see this, React is working without any external dependencies.</p>
-        <p>Environment: {import.meta.env.MODE}</p>
-        <p>API URL: {import.meta.env.VITE_API_URL}</p>
-      </div>
+      <AuthProvider>
+        <div className="App">
+          <h1>Testing - AuthProvider Added</h1>
+          <p>If you can see this, the AuthProvider is working.</p>
+          <p>Environment: {import.meta.env.MODE}</p>
+          <p>API URL: {import.meta.env.VITE_API_URL}</p>
+        </div>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
