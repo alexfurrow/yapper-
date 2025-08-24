@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import Login from './components/Login';
@@ -92,16 +92,17 @@ class ErrorBoundary extends React.Component {
 function TestRoute() {
   return (
     <div>
-      <h1>Testing - Modern Router</h1>
-      <p>If you can see this, the modern React Router is working!</p>
+      <h1>Testing - HashRouter</h1>
+      <p>If you can see this, the HashRouter is working!</p>
       <p>Environment: {import.meta.env.MODE}</p>
       <p>API URL: {import.meta.env.VITE_API_URL}</p>
+      <p>Current URL: {window.location.href}</p>
     </div>
   );
 }
 
 // Create the router configuration
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: "/",
     element: <TestRoute />,
