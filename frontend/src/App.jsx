@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 // import { createHashRouter, RouterProvider } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-// import ProtectedRoute from './components/ProtectedRoute';
-// import Login from './components/Login';
-// import Register from './components/Register';
-// import JournalEntryForm from './components/JournalEntryForm';
-// import ChatInterface from './components/ChatInterface';
-// import Header from './components/Header';
-// import SharedLayout from './components/SharedLayout';
+import { AuthProvider, AuthContext } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './components/Login';
+import Register from './components/Register';
+import JournalEntryForm from './components/JournalEntryForm';
+import ChatInterface from './components/ChatInterface';
+import Header from './components/Header';
+import SharedLayout from './components/SharedLayout';
 import './App.css';
 
 // Simple error boundary component
@@ -88,9 +88,12 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Simple custom router without React Router
+// Custom router component with navigation context
+const NavigationContext = React.createContext();
+
 function CustomRouter() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const { currentUser } = useContext(AuthContext);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -106,37 +109,66 @@ function CustomRouter() {
     setCurrentPath(path);
   };
 
-  // Simple route matching
+  // Route matching logic
+  if (currentPath === '/login') {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <Login />
+        </div>
+      </NavigationContext.Provider>
+    );
+  }
+
+  if (currentPath === '/register') {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <Register />
+        </div>
+      </NavigationContext.Provider>
+    );
+  }
+
+  if (currentPath === '/chat') {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <Header />
+          <ProtectedRoute>
+            <SharedLayout>
+              <ChatInterface />
+            </SharedLayout>
+          </ProtectedRoute>
+        </div>
+      </NavigationContext.Provider>
+    );
+  }
+
   if (currentPath === '/') {
     return (
-      <div>
-        <h1>Custom Router - Home Page</h1>
-        <p>If you can see this, the custom router is working!</p>
-        <p>Environment: {import.meta.env.MODE}</p>
-        <p>API URL: {import.meta.env.VITE_API_URL}</p>
-        <p>Current Path: {currentPath}</p>
-        <button onClick={() => navigate('/test')}>Go to Test Page</button>
-      </div>
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <Header />
+          <ProtectedRoute>
+            <SharedLayout>
+              <JournalEntryForm />
+            </SharedLayout>
+          </ProtectedRoute>
+        </div>
+      </NavigationContext.Provider>
     );
   }
 
-  if (currentPath === '/test') {
-    return (
-      <div>
-        <h1>Custom Router - Test Page</h1>
-        <p>Navigation is working!</p>
-        <p>Current Path: {currentPath}</p>
-        <button onClick={() => navigate('/')}>Go Back Home</button>
-      </div>
-    );
-  }
-
+  // 404 page
   return (
-    <div>
-      <h1>404 - Page Not Found</h1>
-      <p>Path: {currentPath}</p>
-      <button onClick={() => navigate('/')}>Go Home</button>
-    </div>
+    <NavigationContext.Provider value={{ navigate }}>
+      <div className="App">
+        <h1>404 - Page Not Found</h1>
+        <p>Path: {currentPath}</p>
+        <button onClick={() => navigate('/')}>Go Home</button>
+      </div>
+    </NavigationContext.Provider>
   );
 }
 
@@ -153,9 +185,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className="App">
-          <CustomRouter />
-        </div>
+        <CustomRouter />
       </AuthProvider>
     </ErrorBoundary>
   );
