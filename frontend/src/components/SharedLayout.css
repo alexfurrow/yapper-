@@ -182,15 +182,6 @@
   transform: translateY(0);
 }
 
-.panel-collapsed .entries-toggle-button {
-  right: 20px;
-}
-
-.layout-container:not(.panel-collapsed) .entries-toggle-button {
-  right: var(--sidebar-width, 500px); /* Position at the left edge of the entries panel */
-  border-radius: 5px 0 0 5px; /* Round only the left corners when attached to panel */
-}
-
 @media (max-width: 1000px) {
   .layout-container {
     padding-right: 0;
