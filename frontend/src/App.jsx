@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
@@ -100,8 +100,8 @@ function App() {
       <MockAuthProvider>
         <Router>
           <div className="App">
-            <h1>Testing - HashRouter</h1>
-            <p>If you can see this, the HashRouter is working.</p>
+            <h1>Testing - Updated React Router</h1>
+            <p>If you can see this, the updated Router is working.</p>
             <Routes>
               <Route path="/" element={<TestRoute />} />
             </Routes>
