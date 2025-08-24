@@ -22,26 +22,26 @@ function LandingPage() {
         <div className="hero-content">
           <h1 className="hero-title">
             <span className="title-line">Your Personal</span>
-            <span className="title-line highlight">Journal Assistant</span>
+            <span className="title-line highlight">Yapper</span>
           </h1>
           
           <p className="hero-subtitle">
-            Transform your thoughts into insights with AI-powered journaling. 
-            Write, reflect, and discover patterns in your daily life.
+            Enhance your memory, brighten your thinking, and chronicle your life. 
+            Transform your thoughts into something beautiful.
           </p>
 
           <div className="hero-features">
             <div className="feature">
+              <div className="feature-icon">🎤</div>
+              <span>Yap directly into the mic</span>
+            </div>
+            <div className="feature">
               <div className="feature-icon">✍️</div>
-              <span>Smart Writing</span>
+              <span>Write like you mean it</span>
             </div>
             <div className="feature">
-              <div className="feature-icon">🤖</div>
-              <span>AI Insights</span>
-            </div>
-            <div className="feature">
-              <div className="feature-icon">🔒</div>
-              <span>Private & Secure</span>
+              <div className="feature-icon">🔄</div>
+              <span>Engage your past self</span>
             </div>
           </div>
 
@@ -50,7 +50,7 @@ function LandingPage() {
               className="cta-primary"
               onClick={() => navigate('/register')}
             >
-              Start Journaling Free
+              Start Yapping Free
             </button>
             <button 
               className="cta-secondary"
@@ -62,20 +62,28 @@ function LandingPage() {
         </div>
 
         <div className="hero-visual">
-          <div className="journal-preview">
-            <div className="journal-page">
-              <div className="journal-line"></div>
-              <div className="journal-line short"></div>
-              <div className="journal-line"></div>
-              <div className="journal-line short"></div>
-              <div className="journal-line"></div>
+          <div className="abstract-artwork">
+            {/* Abstract geometric shapes inspired by SEO Yeo Hon */}
+            <div className="art-layer layer-1">
+              <div className="geometric-shape circle-1"></div>
+              <div className="geometric-shape square-1"></div>
+              <div className="geometric-shape triangle-1"></div>
             </div>
-            <div className="ai-insight">
-              <div className="insight-icon">💡</div>
-              <div className="insight-text">
-                <div className="insight-line"></div>
-                <div className="insight-line short"></div>
-              </div>
+            <div className="art-layer layer-2">
+              <div className="geometric-shape circle-2"></div>
+              <div className="geometric-shape rectangle-1"></div>
+              <div className="geometric-shape oval-1"></div>
+            </div>
+            <div className="art-layer layer-3">
+              <div className="geometric-shape hexagon-1"></div>
+              <div className="geometric-shape circle-3"></div>
+              <div className="geometric-shape diamond-1"></div>
+            </div>
+            {/* Floating text elements */}
+            <div className="text-elements">
+              <div className="floating-text text-1">thoughts</div>
+              <div className="floating-text text-2">memories</div>
+              <div className="floating-text text-3">ideas</div>
             </div>
           </div>
         </div>
@@ -83,10 +91,10 @@ function LandingPage() {
 
       {/* Social Proof */}
       <div className="social-proof">
-        <p className="trust-text">Trusted by thousands of users worldwide</p>
+        <p className="trust-text">Trusted by thousands of thinkers worldwide</p>
         <div className="testimonial">
-          <div className="quote">"Yapper has transformed how I reflect on my day. The AI insights are incredibly helpful!"</div>
-          <div className="author">- Sarah M., Journal Enthusiast</div>
+          <div className="quote">"Yapper has transformed how I capture and reflect on my thoughts. It's like having a conversation with my future self."</div>
+          <div className="author">- Alex M., Creative Thinker</div>
         </div>
       </div>
     </div>
