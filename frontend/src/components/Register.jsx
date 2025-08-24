@@ -1,25 +1,23 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { NavigationContext } from '../App';
 import './Auth.css';
 
 function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const { register, error } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { navigate } = useContext(NavigationContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      alert('Passwords do not match');
       return;
     }
     
-    setPasswordError('');
     const success = await register(username, password);
     if (success) {
       navigate('/');
@@ -61,7 +59,6 @@ function Register() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-            {passwordError && <div className="field-error">{passwordError}</div>}
           </div>
           <button type="submit" className="auth-button">Register</button>
         </form>

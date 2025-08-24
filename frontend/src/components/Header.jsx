@@ -1,12 +1,12 @@
 import React, { useContext } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { NavigationContext } from '../App';
 import './Header.css';
 
 function Header() {
   const { currentUser, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { navigate } = useContext(NavigationContext);
+  const currentPath = window.location.pathname;
   
   const handleLogout = () => {
     logout();
@@ -20,16 +20,18 @@ function Header() {
       {currentUser ? (
         <div className="header-nav">
           <div className="tabs">
-            <Link to="/">
-              <button className={location.pathname === '/' ? 'active' : ''}>
-                Journal Entry
-              </button>
-            </Link>
-            <Link to="/chat">
-              <button className={location.pathname === '/chat' ? 'active' : ''}>
-                Chat with Journal
-              </button>
-            </Link>
+            <button 
+              className={currentPath === '/' ? 'active' : ''}
+              onClick={() => navigate('/')}
+            >
+              Journal Entry
+            </button>
+            <button 
+              className={currentPath === '/chat' ? 'active' : ''}
+              onClick={() => navigate('/chat')}
+            >
+              Chat with Journal
+            </button>
           </div>
           
           <div className="user-controls">
@@ -39,12 +41,8 @@ function Header() {
         </div>
       ) : (
         <div className="auth-buttons">
-          <Link to="/login">
-            <button>Login</button>
-          </Link>
-          <Link to="/register">
-            <button>Register</button>
-          </Link>
+          <button onClick={() => navigate('/login')}>Login</button>
+          <button onClick={() => navigate('/register')}>Register</button>
         </div>
       )}
     </header>
