@@ -61,36 +61,6 @@ function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // Add request/response interceptors
-  useEffect(() => {
-    const requestInterceptor = axios.interceptors.request.use(
-      config => {
-        console.log('Request:', config.url, config.headers);
-        return config;
-      },
-      error => {
-        console.error('Request error:', error);
-        return Promise.reject(error);
-      }
-    );
-    
-    const responseInterceptor = axios.interceptors.response.use(
-      response => {
-        console.log('Response:', response.status, response.data);
-        return response;
-      },
-      error => {
-        console.error('Response error:', error.response?.status, error.response?.data);
-        return Promise.reject(error);
-      }
-    );
-    
-    return () => {
-      axios.interceptors.request.eject(requestInterceptor);
-      axios.interceptors.response.eject(responseInterceptor);
-    };
-  }, []);
-
   // Login function
   const login = useCallback(async (username, password) => {
     try {
