@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
@@ -93,33 +93,32 @@ function App() {
   return (
     <ErrorBoundary>
       <MockAuthProvider>
-        <Router>
-          <div className="App">
-            <h1>Testing - Basic App Structure</h1>
-            <p>If you can see this, the basic structure works.</p>
-            {/* Temporarily comment out components to isolate the issue */}
-            {/* <Header /> */}
-            {/* <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <SharedLayout>
-                    <JournalEntryForm />
-                  </SharedLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/chat" element={
-                <ProtectedRoute>
-                  <SharedLayout>
-                    <ChatInterface />
-                  </SharedLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes> */}
-          </div>
-        </Router>
+        <div className="App">
+          <h1>Testing - Basic App Structure</h1>
+          <p>If you can see this, the basic structure works.</p>
+          <p>Router removed for testing.</p>
+          {/* Temporarily comment out components to isolate the issue */}
+          {/* <Header /> */}
+          {/* <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <SharedLayout>
+                  <JournalEntryForm />
+                </SharedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <SharedLayout>
+                  <ChatInterface />
+                </SharedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes> */}
+        </div>
       </MockAuthProvider>
     </ErrorBoundary>
   );
