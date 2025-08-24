@@ -63,27 +63,35 @@ function LandingPage() {
 
         <div className="hero-visual">
           <div className="abstract-artwork">
-            {/* Abstract geometric shapes inspired by SEO Yeo Hon */}
+            {/* Organic flowing forms inspired by SEO Hyojung */}
             <div className="art-layer layer-1">
-              <div className="geometric-shape circle-1"></div>
-              <div className="geometric-shape square-1"></div>
-              <div className="geometric-shape triangle-1"></div>
+              <div className="organic-shape blob-1"></div>
+              <div className="organic-shape blob-2"></div>
+              <div className="organic-shape blob-3"></div>
             </div>
             <div className="art-layer layer-2">
-              <div className="geometric-shape circle-2"></div>
-              <div className="geometric-shape rectangle-1"></div>
-              <div className="geometric-shape oval-1"></div>
+              <div className="organic-shape wave-1"></div>
+              <div className="organic-shape wave-2"></div>
+              <div className="organic-shape cloud-1"></div>
             </div>
             <div className="art-layer layer-3">
-              <div className="geometric-shape hexagon-1"></div>
-              <div className="geometric-shape circle-3"></div>
-              <div className="geometric-shape diamond-1"></div>
+              <div className="organic-shape mist-1"></div>
+              <div className="organic-shape mist-2"></div>
+              <div className="organic-shape breath-1"></div>
             </div>
-            {/* Floating text elements */}
+            {/* Ethereal text elements */}
             <div className="text-elements">
               <div className="floating-text text-1">thoughts</div>
               <div className="floating-text text-2">memories</div>
               <div className="floating-text text-3">ideas</div>
+              <div className="floating-text text-4">dreams</div>
+              <div className="floating-text text-5">feelings</div>
+            </div>
+            {/* Subtle light effects */}
+            <div className="light-effects">
+              <div className="light-orb orb-1"></div>
+              <div className="light-orb orb-2"></div>
+              <div className="light-orb orb-3"></div>
             </div>
           </div>
         </div>

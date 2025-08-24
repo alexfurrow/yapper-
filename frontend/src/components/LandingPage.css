@@ -227,144 +227,186 @@
   position: relative;
   width: 500px;
   height: 500px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(30px);
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  box-shadow: 
+    0 0 60px rgba(255, 255, 255, 0.1),
+    inset 0 0 60px rgba(255, 255, 255, 0.05);
 }
 
-/* Art Layers */
+/* Art Layers - More organic movement */
 .art-layer {
   position: absolute;
   width: 100%;
   height: 100%;
-  animation: rotate 20s linear infinite;
+  animation: gentleFloat 40s ease-in-out infinite;
 }
 
 .layer-1 {
-  animation-duration: 30s;
+  animation-duration: 50s;
   animation-direction: reverse;
 }
 
 .layer-2 {
-  animation-duration: 25s;
+  animation-duration: 45s;
 }
 
 .layer-3 {
-  animation-duration: 35s;
+  animation-duration: 55s;
   animation-direction: reverse;
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
   }
-  to {
-    transform: rotate(360deg);
+  25% {
+    transform: translateY(-5px) rotate(2deg) scale(1.02);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0deg) scale(1.05);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-2deg) scale(1.02);
   }
 }
 
-/* Geometric Shapes */
-.geometric-shape {
+/* Organic Shapes - SEO Hyojung Style */
+.organic-shape {
   position: absolute;
-  border-radius: 50%;
-  opacity: 0.8;
-  animation: float 6s ease-in-out infinite;
+  opacity: 0.6;
+  animation: organicFlow 12s ease-in-out infinite;
+  filter: blur(0.5px);
 }
 
-.circle-1 {
-  width: 80px;
+/* Blob shapes - organic, flowing forms */
+.blob-1 {
+  width: 120px;
   height: 80px;
-  background: linear-gradient(135deg, #ffd89b, #19547b);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+  border-radius: 60px 40px 60px 40px;
   top: 20%;
   left: 15%;
   animation-delay: 0s;
+  transform: rotate(15deg);
 }
 
-.circle-2 {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  top: 70%;
-  right: 20%;
-  animation-delay: 2s;
-}
-
-.circle-3 {
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(135deg, #f093fb, #f5576c);
-  bottom: 15%;
-  left: 25%;
-  animation-delay: 4s;
-}
-
-.square-1 {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-  border-radius: 8px;
-  top: 30%;
-  right: 30%;
-  animation-delay: 1s;
-}
-
-.rectangle-1 {
-  width: 120px;
-  height: 30px;
-  background: linear-gradient(135deg, #a8edea, #fed6e3);
-  border-radius: 15px;
-  top: 50%;
-  left: 10%;
-  animation-delay: 3s;
-}
-
-.oval-1 {
+.blob-2 {
   width: 90px;
-  height: 45px;
-  background: linear-gradient(135deg, #ffecd2, #fcb69f);
-  border-radius: 45px;
-  top: 15%;
-  right: 10%;
-  animation-delay: 1.5s;
-}
-
-.triangle-1 {
-  width: 0;
-  height: 0;
-  border-left: 25px solid transparent;
-  border-right: 25px solid transparent;
-  border-bottom: 43px solid #ff9a9e;
+  height: 110px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  border-radius: 45px 55px 45px 55px;
   top: 60%;
-  left: 60%;
-  animation-delay: 2.5s;
+  right: 20%;
+  animation-delay: 4s;
+  transform: rotate(-20deg);
 }
 
-.hexagon-1 {
+.blob-3 {
+  width: 100px;
+  height: 70px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.08));
+  border-radius: 50px 35px 50px 35px;
+  bottom: 25%;
+  left: 30%;
+  animation-delay: 8s;
+  transform: rotate(10deg);
+}
+
+/* Wave forms - flowing, organic lines */
+.wave-1 {
+  width: 140px;
+  height: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 10px;
+  top: 35%;
+  left: 10%;
+  animation-delay: 2s;
+  transform: rotate(25deg);
+}
+
+.wave-2 {
+  width: 100px;
+  height: 15px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  border-radius: 8px;
+  top: 70%;
+  right: 15%;
+  animation-delay: 6s;
+  transform: rotate(-15deg);
+}
+
+.cloud-1 {
+  width: 80px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  border-radius: 40px 20px 40px 20px;
+  top: 15%;
+  right: 25%;
+  animation-delay: 3s;
+  transform: rotate(5deg);
+}
+
+/* Mist forms - ethereal, breath-like */
+.mist-1 {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #a8edea, #fed6e3);
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  top: 40%;
-  right: 15%;
-  animation-delay: 0.5s;
-}
-
-.diamond-1 {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #ffecd2, #fcb69f);
-  transform: rotate(45deg);
-  top: 25%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  top: 45%;
   left: 50%;
-  animation-delay: 3.5s;
+  animation-delay: 1s;
+  filter: blur(2px);
 }
 
-/* Floating Text Elements */
+.mist-2 {
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+  border-radius: 50%;
+  bottom: 15%;
+  right: 30%;
+  animation-delay: 5s;
+  filter: blur(3px);
+}
+
+.breath-1 {
+  width: 70px;
+  height: 70px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 80%);
+  border-radius: 50%;
+  top: 30%;
+  right: 10%;
+  animation-delay: 7s;
+  filter: blur(1.5px);
+}
+
+@keyframes organicFlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-8px) rotate(3deg) scale(1.03);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-15px) rotate(0deg) scale(1.06);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateY(-8px) rotate(-3deg) scale(1.03);
+    opacity: 0.9;
+  }
+}
+
+/* Floating Text Elements - More ethereal */
 .text-elements {
   position: absolute;
   width: 100%;
@@ -374,56 +416,113 @@
 
 .floating-text {
   position: absolute;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.2rem;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  font-weight: 300;
   text-transform: lowercase;
-  animation: floatText 8s ease-in-out infinite;
-  opacity: 0.7;
+  animation: etherealFloat 15s ease-in-out infinite;
+  opacity: 0.6;
+  font-style: italic;
+  letter-spacing: 1px;
 }
 
 .text-1 {
-  top: 20%;
-  left: 20%;
+  top: 25%;
+  left: 25%;
   animation-delay: 0s;
 }
 
 .text-2 {
-  top: 70%;
-  right: 25%;
-  animation-delay: 2.5s;
+  top: 65%;
+  right: 30%;
+  animation-delay: 3s;
 }
 
 .text-3 {
-  bottom: 30%;
-  left: 30%;
-  animation-delay: 5s;
+  bottom: 35%;
+  left: 35%;
+  animation-delay: 6s;
 }
 
-@keyframes floatText {
+.text-4 {
+  top: 15%;
+  right: 20%;
+  animation-delay: 9s;
+}
+
+.text-5 {
+  bottom: 20%;
+  right: 15%;
+  animation-delay: 12s;
+}
+
+@keyframes etherealFloat {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
-    opacity: 0.7;
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-12px) rotate(2deg);
+    opacity: 0.8;
   }
   50% {
-    transform: translateY(-15px) rotate(5deg);
-    opacity: 1;
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translateY(-12px) rotate(-2deg);
+    opacity: 0.7;
   }
 }
 
-/* Enhanced floating animation for shapes */
-@keyframes float {
+/* Light Effects - Subtle orbs */
+.light-effects {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.light-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  animation: gentlePulse 8s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.orb-1 {
+  width: 40px;
+  height: 40px;
+  top: 20%;
+  left: 40%;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 30px;
+  height: 30px;
+  top: 60%;
+  right: 25%;
+  animation-delay: 3s;
+}
+
+.orb-3 {
+  width: 35px;
+  height: 35px;
+  bottom: 25%;
+  left: 20%;
+  animation-delay: 6s;
+}
+
+@keyframes gentlePulse {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg) scale(1);
-  }
-  25% {
-    transform: translateY(-10px) rotate(90deg) scale(1.05);
+    transform: scale(1);
+    opacity: 0.3;
   }
   50% {
-    transform: translateY(-20px) rotate(180deg) scale(1.1);
-  }
-  75% {
-    transform: translateY(-10px) rotate(270deg) scale(1.05);
+    transform: scale(1.2);
+    opacity: 0.6;
   }
 }
 
@@ -470,12 +569,12 @@
     height: 400px;
   }
   
-  .geometric-shape {
+  .organic-shape {
     transform: scale(0.8);
   }
   
   .floating-text {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 }
 
@@ -485,12 +584,12 @@
     height: 300px;
   }
   
-  .geometric-shape {
+  .organic-shape {
     transform: scale(0.6);
   }
   
   .floating-text {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -540,3 +639,4 @@
     max-width: 300px;
   }
 }
+
