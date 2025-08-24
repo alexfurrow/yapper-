@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { createHashRouter, RouterProvider } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+// import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 // import ProtectedRoute from './components/ProtectedRoute';
 // import Login from './components/Login';
@@ -88,26 +88,57 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Simple test component for routes
-function TestRoute() {
+// Simple custom router without React Router
+function CustomRouter() {
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+  };
+
+  // Simple route matching
+  if (currentPath === '/') {
+    return (
+      <div>
+        <h1>Custom Router - Home Page</h1>
+        <p>If you can see this, the custom router is working!</p>
+        <p>Environment: {import.meta.env.MODE}</p>
+        <p>API URL: {import.meta.env.VITE_API_URL}</p>
+        <p>Current Path: {currentPath}</p>
+        <button onClick={() => navigate('/test')}>Go to Test Page</button>
+      </div>
+    );
+  }
+
+  if (currentPath === '/test') {
+    return (
+      <div>
+        <h1>Custom Router - Test Page</h1>
+        <p>Navigation is working!</p>
+        <p>Current Path: {currentPath}</p>
+        <button onClick={() => navigate('/')}>Go Back Home</button>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1>Testing - HashRouter</h1>
-      <p>If you can see this, the HashRouter is working!</p>
-      <p>Environment: {import.meta.env.MODE}</p>
-      <p>API URL: {import.meta.env.VITE_API_URL}</p>
-      <p>Current URL: {window.location.href}</p>
+      <h1>404 - Page Not Found</h1>
+      <p>Path: {currentPath}</p>
+      <button onClick={() => navigate('/')}>Go Home</button>
     </div>
   );
 }
-
-// Create the router configuration
-const router = createHashRouter([
-  {
-    path: "/",
-    element: <TestRoute />,
-  },
-]);
 
 function App() {
   useEffect(() => {
@@ -122,7 +153,9 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <div className="App">
+          <CustomRouter />
+        </div>
       </AuthProvider>
     </ErrorBoundary>
   );
