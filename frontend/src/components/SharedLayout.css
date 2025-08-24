@@ -144,17 +144,13 @@
 }
 
 .entries-toggle-button {
-  position: fixed;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
   border-radius: 12px;
   padding: 10px 20px;
   cursor: pointer;
-  z-index: 1001;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  top: 80px;
-  right: 20px;
   font-weight: 600;
   font-size: 0.9rem;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);

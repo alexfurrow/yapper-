@@ -170,7 +170,17 @@ function SharedLayout({ children, activeTab }) {
   return (
     <div className={`layout-container ${isPanelCollapsed ? 'panel-collapsed' : ''}`}>
       <div className="content-area">
-        {children}
+        {React.cloneElement(children, { 
+          journalToggleButton: (
+            <button 
+              type="button"
+              className="entries-toggle-button"
+              onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+            >
+              {isPanelCollapsed ? 'Show Journal' : 'Hide Journal'}
+            </button>
+          )
+        })}
       </div>
       
       <div 
@@ -229,14 +239,6 @@ function SharedLayout({ children, activeTab }) {
           </>
         )}
       </div>
-      
-      <button 
-        type="button"
-        className="entries-toggle-button"
-        onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-      >
-        {isPanelCollapsed ? 'Show Journal' : 'Hide Journal'}
-      </button>
     </div>
   );
 }

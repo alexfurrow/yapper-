@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './ChatInterface.css';
+import SharedLayout from './SharedLayout';
+import NavigationTabs from './NavigationTabs';
 
-function ChatInterface() {
+function ChatInterface({ journalToggleButton }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +30,7 @@ function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/chat', {
+      const response = await axios.post('/api/chat', {
         message: input,
         limit: 3
       });
@@ -63,62 +65,71 @@ function ChatInterface() {
   };
 
   return (
-    <div className="chat-interface-container">
-      <div className="chat-container">
-        <div className="chat-header">
-          <h2>Journal Assistant</h2>
-        </div>
-        <div className="messages-container">
-          {messages.length === 0 ? (
-            <div className="empty-chat">
-              <p>Ask me anything about your journal entries!</p>
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.type}`}>
-                <div className="message-content">{msg.content}</div>
-                {msg.sources && (
-                  <div className="message-sources">
-                    <p className="sources-title">Sources:</p>
-                    {msg.sources.map((source, idx) => (
-                      <span 
-                        key={idx} 
-                        className="source-badge clickable"
-                        onClick={() => handleSourceClick(source.entry_id)}
-                      >
-                        Entry #{source.entry_id}
-                      </span>
-                    ))}
-                  </div>
-                )}
+    <SharedLayout activeTab="chat">
+      <div className="chat-interface-container">
+        <NavigationTabs />
+        
+        <div className="chat-container">
+          <div className="chat-header">
+            <h2>Journal Assistant</h2>
+          </div>
+          <div className="messages-container">
+            {messages.length === 0 ? (
+              <div className="empty-chat">
+                <p>Ask me anything about your journal entries!</p>
               </div>
-            ))
-          )}
-          {isLoading && (
-            <div className="message ai loading">
-              <div className="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            ) : (
+              messages.map((msg, index) => (
+                <div key={index} className={`message ${msg.type}`}>
+                  <div className="message-content">{msg.content}</div>
+                  {msg.sources && (
+                    <div className="message-sources">
+                      <p className="sources-title">Sources:</p>
+                      {msg.sources.map((source, idx) => (
+                        <span 
+                          key={idx} 
+                          className="source-badge clickable"
+                          onClick={() => handleSourceClick(source.entry_id)}
+                        >
+                          Entry #{source.entry_id}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+            {isLoading && (
+              <div className="message ai loading">
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <form onSubmit={handleSubmit} className="chat-input-form">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about your journal entries..."
+              disabled={isLoading}
+            />
+            <button type="submit" disabled={isLoading || !input.trim()}>
+              Send
+            </button>
+          </form>
         </div>
-        <form onSubmit={handleSubmit} className="chat-input-form">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your journal entries..."
-            disabled={isLoading}
-          />
-          <button type="submit" disabled={isLoading || !input.trim()}>
-            Send
-          </button>
-        </form>
+        
+        <div className="journal-toggle-container">
+          {journalToggleButton}
+        </div>
       </div>
-    </div>
+    </SharedLayout>
   );
 }
 

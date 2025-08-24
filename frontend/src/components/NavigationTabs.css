@@ -1,0 +1,54 @@
+.navigation-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.navigation-tabs button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.navigation-tabs button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.navigation-tabs button:hover::before {
+  left: 100%;
+}
+
+.navigation-tabs button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.navigation-tabs button.active {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+}
+
+.navigation-tabs button.active:hover {
+  box-shadow: 0 8px 25px rgba(240, 147, 251, 0.5);
+}
+
+.navigation-tabs button:active {
+  transform: translateY(0);
+}

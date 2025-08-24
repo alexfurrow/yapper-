@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import './JournalEntryForm.css';
 import SharedLayout from './SharedLayout';
+import NavigationTabs from './NavigationTabs';
 
-function JournalEntryForm() {
+function JournalEntryForm({ journalToggleButton }) {
   const [content, setContent] = useState('');
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -109,8 +110,10 @@ function JournalEntryForm() {
   return (
     <SharedLayout activeTab="journal">
       <div className="journal-form-container">
-        <h1></h1>
+        <NavigationTabs />
+        
         {message && <div className="message">{message}</div>}
+        
         <form onSubmit={handleSubmit}>
           <div className="textarea-container">
             <textarea
@@ -122,6 +125,7 @@ function JournalEntryForm() {
               disabled={isLoading}
             ></textarea>
           </div>
+          
           <div className="button-row">
             <div className="left-buttons">
               <button
@@ -139,12 +143,17 @@ function JournalEntryForm() {
             </button>
           </div>
         </form>
+        
         {isLoading && (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Processing your entry...</p>
           </div>
         )}
+        
+        <div className="journal-toggle-container">
+          {journalToggleButton}
+        </div>
       </div>
     </SharedLayout>
   );
