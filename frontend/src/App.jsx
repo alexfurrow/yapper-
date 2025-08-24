@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './components/Login';
-import Register from './components/Register';
-import JournalEntryForm from './components/JournalEntryForm';
-import ChatInterface from './components/ChatInterface';
-import Header from './components/Header';
-import SharedLayout from './components/SharedLayout';
+// import ProtectedRoute from './components/ProtectedRoute';
+// import Login from './components/Login';
+// import Register from './components/Register';
+// import JournalEntryForm from './components/JournalEntryForm';
+// import ChatInterface from './components/ChatInterface';
+// import Header from './components/Header';
+// import SharedLayout from './components/SharedLayout';
 import './App.css';
 
 // Simple error boundary component
@@ -25,6 +25,9 @@ class ErrorBoundary extends React.Component {
     console.error('Error caught by boundary:', error);
     console.error('Error info:', errorInfo);
     console.error('Component stack:', errorInfo.componentStack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     this.setState({ errorInfo });
   }
 
@@ -34,6 +37,7 @@ class ErrorBoundary extends React.Component {
         <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
           <h2>Something went wrong.</h2>
           <p><strong>Error:</strong> {this.state.error?.message || 'Unknown error'}</p>
+          <p><strong>Error Name:</strong> {this.state.error?.name || 'Unknown'}</p>
           {this.state.errorInfo && (
             <details style={{ marginTop: '20px', textAlign: 'left' }}>
               <summary>Component Stack Trace</summary>
@@ -45,6 +49,20 @@ class ErrorBoundary extends React.Component {
                 whiteSpace: 'pre-wrap'
               }}>
                 {this.state.errorInfo.componentStack}
+              </pre>
+            </details>
+          )}
+          {this.state.error?.stack && (
+            <details style={{ marginTop: '20px', textAlign: 'left' }}>
+              <summary>Error Stack Trace</summary>
+              <pre style={{ 
+                background: '#f5f5f5', 
+                padding: '10px', 
+                overflow: 'auto', 
+                fontSize: '12px',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {this.state.error.stack}
               </pre>
             </details>
           )}
@@ -70,21 +88,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Simple mock AuthProvider for testing
-function MockAuthProvider({ children }) {
-  return (
-    <div>
-      <p>Mock AuthProvider - Testing if this renders</p>
-      {children}
-    </div>
-  );
-}
-
-// Simple test component for routes
-function TestRoute() {
-  return <div>Test Route - Router is working!</div>;
-}
-
 function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -97,17 +100,12 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <MockAuthProvider>
-        <Router>
-          <div className="App">
-            <h1>Testing - Updated React Router</h1>
-            <p>If you can see this, the updated Router is working.</p>
-            <Routes>
-              <Route path="/" element={<TestRoute />} />
-            </Routes>
-          </div>
-        </Router>
-      </MockAuthProvider>
+      <div className="App">
+        <h1>Minimal React App</h1>
+        <p>If you can see this, React is working without any external dependencies.</p>
+        <p>Environment: {import.meta.env.MODE}</p>
+        <p>API URL: {import.meta.env.VITE_API_URL}</p>
+      </div>
     </ErrorBoundary>
   );
 }
