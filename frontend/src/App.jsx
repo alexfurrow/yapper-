@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+// import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -70,6 +70,16 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Simple mock AuthProvider for testing
+function MockAuthProvider({ children }) {
+  return (
+    <div>
+      <p>Mock AuthProvider - Testing if this renders</p>
+      {children}
+    </div>
+  );
+}
+
 function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -82,7 +92,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
+      <MockAuthProvider>
         <Router>
           <div className="App">
             <h1>Testing - Basic App Structure</h1>
@@ -110,7 +120,7 @@ function App() {
             </Routes> */}
           </div>
         </Router>
-      </AuthProvider>
+      </MockAuthProvider>
     </ErrorBoundary>
   );
 }
