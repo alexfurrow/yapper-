@@ -13,7 +13,9 @@ import './App.css';
 function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log("Stored token:", token);
+    console.log("App.jsx - Stored token:", token);
+    console.log("App.jsx - VITE_API_URL:", import.meta.env.VITE_API_URL);
+    console.log("App.jsx - Environment:", import.meta.env.MODE);
   }, []);
 
   return (

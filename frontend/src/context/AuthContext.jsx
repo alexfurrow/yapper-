@@ -5,9 +5,18 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("--- INFO: Using API_URL:", API_URL); // Good for debugging
 
+// Check if API_URL is set in production
+if (!API_URL && import.meta.env.MODE === 'production') {
+  console.error("CRITICAL ERROR: VITE_API_URL is not set in production environment!");
+}
+
 // Ensure axios calls use this base URL or prepend it
 // Option 1: Set Axios base URL (Good practice)
-axios.defaults.baseURL = API_URL;
+if (API_URL) {
+  axios.defaults.baseURL = API_URL;
+} else {
+  console.warn("API_URL not set, axios requests may fail");
+}
 
 // Create the context with a default value
 const AuthContext = createContext({
@@ -80,6 +89,14 @@ function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     try {
       setError(null);
+      
+      if (!API_URL) {
+        const errorMsg = 'API URL not configured. Please check environment variables.';
+        console.error(errorMsg);
+        setError(errorMsg);
+        return false;
+      }
+      
       console.log(`Attempting to login at: ${API_URL}/api/auth/login`);
       const response = await axios.post('/api/auth/login', {
         username,
