@@ -1,11 +1,12 @@
 import React, { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Header.css';
 
 function Header() {
   const { currentUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   
   const handleLogout = () => {
     logout();
@@ -20,12 +21,12 @@ function Header() {
         <div className="header-nav">
           <div className="tabs">
             <Link to="/">
-              <button className={window.location.pathname === '/' ? 'active' : ''}>
+              <button className={location.pathname === '/' ? 'active' : ''}>
                 Journal Entry
               </button>
             </Link>
             <Link to="/chat">
-              <button className={window.location.pathname === '/chat' ? 'active' : ''}>
+              <button className={location.pathname === '/chat' ? 'active' : ''}>
                 Chat with Journal
               </button>
             </Link>
