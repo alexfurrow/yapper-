@@ -169,13 +169,6 @@ function SharedLayout({ children, activeTab }) {
 
   return (
     <div className={`layout-container ${isPanelCollapsed ? 'panel-collapsed' : ''}`}>
-      {/* Debug info */}
-      <div style={{ position: 'fixed', top: 0, left: 0, background: 'white', padding: '5px', zIndex: 9999 }}>
-        Panel Collapsed: {isPanelCollapsed ? 'Yes' : 'No'}<br />
-        Entries: {entries.length}<br />
-        Selected: {selectedEntry ? selectedEntry.entry_id : 'None'}
-      </div>
-      
       <div className="content-area">
         {children}
       </div>
@@ -241,7 +234,6 @@ function SharedLayout({ children, activeTab }) {
         type="button"
         className="entries-toggle-button"
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-        style={{ backgroundColor: 'red', zIndex: 9999 }}
       >
         {isPanelCollapsed ? 'Show Journal' : 'Hide Journal'}
       </button>

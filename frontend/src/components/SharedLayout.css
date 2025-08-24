@@ -145,20 +145,45 @@
 
 .entries-toggle-button {
   position: fixed;
-  background-color: #7D8456; /* Olive leaf color for buttons */
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
-  border-radius: 5px;
-  padding: 8px 15px;
+  border-radius: 12px;
+  padding: 10px 20px;
   cursor: pointer;
   z-index: 1001;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   top: 80px;
   right: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.entries-toggle-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.entries-toggle-button:hover::before {
+  left: 100%;
 }
 
 .entries-toggle-button:hover {
-  background-color: #3E6B6B; /* Deep teal for hover states */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.entries-toggle-button:active {
+  transform: translateY(0);
 }
 
 .panel-collapsed .entries-toggle-button {
