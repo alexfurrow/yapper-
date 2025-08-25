@@ -1,14 +1,11 @@
-import React, { useEffect, useState, useContext } from 'react';
-// import { createHashRouter, RouterProvider } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import React, { useContext } from 'react';
+import axios from 'axios';
+import { AuthContext } from './context/AuthContext';
+import Header from './components/Header';
+import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
-import JournalEntryForm from './components/JournalEntryForm';
-import ChatInterface from './components/ChatInterface';
-import Header from './components/Header';
-import SharedLayout from './components/SharedLayout';
-import LandingPage from './components/LandingPage';
+import JournalPage from './components/JournalPage';
 import './App.css';
 
 // Simple error boundary component
@@ -155,16 +152,13 @@ function CustomRouter() {
     );
   }
 
-  if (currentPath === '/') {
+  // For authenticated users, show the main page with header
+  if (currentUser) {
     return (
       <NavigationContext.Provider value={{ navigate }}>
         <div className="App">
           <Header />
-          <ProtectedRoute>
-            <SharedLayout>
-              <JournalEntryForm />
-            </SharedLayout>
-          </ProtectedRoute>
+          <JournalPage />
         </div>
       </NavigationContext.Provider>
     );
