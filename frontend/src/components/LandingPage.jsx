@@ -63,21 +63,21 @@ function LandingPage() {
 
         <div className="hero-visual">
           <div className="abstract-artwork">
-            {/* Geometric shapes with vibrant colors */}
+            {/* Abstract geometric shapes inspired by SEO Yeo Hon */}
             <div className="art-layer layer-1">
-              <div className="geometric-shape square-1"></div>
               <div className="geometric-shape circle-1"></div>
+              <div className="geometric-shape square-1"></div>
               <div className="geometric-shape triangle-1"></div>
             </div>
             <div className="art-layer layer-2">
-              <div className="geometric-shape square-2"></div>
               <div className="geometric-shape circle-2"></div>
-              <div className="geometric-shape triangle-2"></div>
+              <div className="geometric-shape rectangle-1"></div>
+              <div className="geometric-shape oval-1"></div>
             </div>
             <div className="art-layer layer-3">
-              <div className="geometric-shape square-3"></div>
+              <div className="geometric-shape hexagon-1"></div>
               <div className="geometric-shape circle-3"></div>
-              <div className="geometric-shape triangle-3"></div>
+              <div className="geometric-shape diamond-1"></div>
             </div>
             {/* Floating text elements */}
             <div className="text-elements">
