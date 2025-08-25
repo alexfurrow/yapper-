@@ -63,35 +63,27 @@ function LandingPage() {
 
         <div className="hero-visual">
           <div className="abstract-artwork">
-            {/* Organic flowing forms inspired by SEO Hyojung */}
+            {/* Geometric shapes with vibrant colors */}
             <div className="art-layer layer-1">
-              <div className="organic-shape blob-1"></div>
-              <div className="organic-shape blob-2"></div>
-              <div className="organic-shape blob-3"></div>
+              <div className="geometric-shape square-1"></div>
+              <div className="geometric-shape circle-1"></div>
+              <div className="geometric-shape triangle-1"></div>
             </div>
             <div className="art-layer layer-2">
-              <div className="organic-shape wave-1"></div>
-              <div className="organic-shape wave-2"></div>
-              <div className="organic-shape cloud-1"></div>
+              <div className="geometric-shape square-2"></div>
+              <div className="geometric-shape circle-2"></div>
+              <div className="geometric-shape triangle-2"></div>
             </div>
             <div className="art-layer layer-3">
-              <div className="organic-shape mist-1"></div>
-              <div className="organic-shape mist-2"></div>
-              <div className="organic-shape breath-1"></div>
+              <div className="geometric-shape square-3"></div>
+              <div className="geometric-shape circle-3"></div>
+              <div className="geometric-shape triangle-3"></div>
             </div>
-            {/* Ethereal text elements */}
+            {/* Floating text elements */}
             <div className="text-elements">
               <div className="floating-text text-1">thoughts</div>
               <div className="floating-text text-2">memories</div>
               <div className="floating-text text-3">ideas</div>
-              <div className="floating-text text-4">dreams</div>
-              <div className="floating-text text-5">feelings</div>
-            </div>
-            {/* Subtle light effects */}
-            <div className="light-effects">
-              <div className="light-orb orb-1"></div>
-              <div className="light-orb orb-2"></div>
-              <div className="light-orb orb-3"></div>
             </div>
           </div>
         </div>
