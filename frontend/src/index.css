@@ -6,14 +6,12 @@ body, html {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #FDF6E3; /* Parchment base background */
   color: #4B286D; /* Royal ink text color */
   min-height: 100vh;
 }
 
 #root {
   min-height: 100vh;
-  background-color: #FDF6E3; /* Parchment base background */
 }
 
 code {
