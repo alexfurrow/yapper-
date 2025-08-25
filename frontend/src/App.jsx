@@ -137,21 +137,6 @@ function CustomRouter() {
     );
   }
 
-  if (currentPath === '/chat') {
-    return (
-      <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
-          <Header />
-          <ProtectedRoute>
-            <SharedLayout>
-              <ChatInterface />
-            </SharedLayout>
-          </ProtectedRoute>
-        </div>
-      </NavigationContext.Provider>
-    );
-  }
-
   // For authenticated users, show the main page with header
   if (currentUser) {
     return (
