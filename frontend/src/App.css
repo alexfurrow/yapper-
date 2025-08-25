@@ -11,13 +11,21 @@ body {
   min-height: 100vh;
   color: #2d3748;
   line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  margin: 0;
+  padding: 0;
 }
 
 .App {
   text-align: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding-top: 80px; /* Account for fixed header */
+  padding-top: 60px; /* Reduced to account for smaller header */
+  margin: 0;
 }
 
 /* Modern Header Styles */
