@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from './context/AuthContext';
 import Header from './components/Header';
@@ -158,6 +158,67 @@ function CustomRouter() {
         <button onClick={() => navigate('/')}>Go Home</button>
       </div>
     </NavigationContext.Provider>
+  );
+}
+
+// Auth Provider Component
+function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // You could verify the token here if needed
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setCurrentUser(JSON.parse(userData));
+      }
+    }
+  }, []);
+
+  const login = async (username, password) => {
+    try {
+      const response = await axios.post('/api/login', { username, password });
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setCurrentUser(user);
+      setError('');
+      return true;
+    } catch (error) {
+      setError(error.response?.data?.message || 'Login failed');
+      return false;
+    }
+  };
+
+  const register = async (username, password) => {
+    try {
+      const response = await axios.post('/api/register', { username, password });
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setCurrentUser(user);
+      setError('');
+      return true;
+    } catch (error) {
+      setError(error.response?.data?.message || 'Registration failed');
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ currentUser, login, register, logout, error }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
