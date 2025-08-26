@@ -61,11 +61,23 @@ def create_app(config_class=Config):
     scheduler.init_app(app)
 
     # Register blueprints
+    print("--- DEBUG: Registering blueprints...")
     app.register_blueprint(main_bp)
+    print("  ✓ main_bp registered")
     app.register_blueprint(auth_bp, url_prefix='/api')
+    print("  ✓ auth_bp registered with /api prefix")
     app.register_blueprint(entries_bp, url_prefix='/api')
+    print("  ✓ entries_bp registered with /api prefix")
     app.register_blueprint(audio_bp, url_prefix='/api')
-    app.register_blueprint(chat_bp, url_prefix='/api')
+    print("  ✓ audio_bp registered with /api prefix")
+    
+    try:
+        app.register_blueprint(chat_bp, url_prefix='/api')
+        print("  ✓ chat_bp registered with /api prefix")
+    except Exception as e:
+        print(f"  ✗ ERROR registering chat_bp: {str(e)}")
+    
+    print("--- DEBUG: Blueprint registration complete")
  
     # Register commands
     app.cli.add_command(vectorize_pages_command)
