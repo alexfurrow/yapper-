@@ -241,10 +241,15 @@ function JournalPage() {
     setIsChatLoading(true);
 
     try {
+      console.log('Sending chat request to:', '/api/chat');
+      console.log('Request payload:', { message: chatInput, limit: 3 });
+      
       const response = await axios.post('/api/chat', {
         message: chatInput,
         limit: 3
       });
+
+      console.log('Chat response received:', response.data);
 
       const aiMessage = { 
         type: 'ai', 
@@ -253,10 +258,21 @@ function JournalPage() {
       };
       setChatMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Chat API Error Details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      });
+      
       const errorMessage = { 
         type: 'error', 
-        content: 'Sorry, there was an error processing your request.' 
+        content: `Error: ${error.response?.data?.error || error.message || 'Unknown error occurred'}`
       };
       setChatMessages(prev => [...prev, errorMessage]);
     } finally {
