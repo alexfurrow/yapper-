@@ -63,12 +63,23 @@ def chat_with_database(current_user):
         
         print(f"Found {len(similar_entries)} similar entries for user {current_user.id}")
         
+        # Debug: Print each entry found
+        for i, entry in enumerate(similar_entries):
+            print(f"Entry {i+1}: ID={entry['entry_id']}, Similarity={entry['similarity']:.3f}")
+            print(f"  Content preview: {entry['processed'][:100]}...")
+        
         # Extract content from similar entries
         context = ""
         for entry in similar_entries:
             context += f"Entry {entry['entry_id']} (similarity: {entry['similarity']:.2f}):\n{entry['processed']}\n\n"
         
         print(f"Context length: {len(context)} characters")
+        print(f"Context preview: {context[:200]}...")
+        
+        # If no context found, let the AI know
+        if not context.strip():
+            print("WARNING: No context found - no similar entries or empty processed content")
+            context = "No relevant journal entries found for this query."
         
         # Generate response using OpenAI
         response = client.chat.completions.create(

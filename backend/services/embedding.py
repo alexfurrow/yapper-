@@ -62,18 +62,27 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Generate embedding for query text
         query_embedding = generate_embedding(query_text)
         if not query_embedding:
+            print("Failed to generate embedding for query text")
             return []
         
         # Convert to numpy array for calculations
         query_vector = np.array(query_embedding)
         
-        # Get all entries with vectors
-        all_entries = entries.query.filter(entries.vectors.isnot(None)).all()
+        # Build database query with proper filtering
+        query = entries.query.filter(entries.vectors.isnot(None))
         
         # Add user_id filter if provided
         if user_id is not None:
-            # Filter entries to only include those belonging to the user
-            all_entries = [entry for entry in all_entries if entry.user_id == user_id]
+            query = query.filter(entries.user_id == user_id)
+            print(f"Filtering entries for user_id: {user_id}")
+        
+        # Get all matching entries
+        all_entries = query.all()
+        print(f"Found {len(all_entries)} entries with vectors (user_id filter: {user_id is not None})")
+        
+        if not all_entries:
+            print("No entries found with vectors")
+            return []
         
         # Calculate cosine similarity
         similarities = []
@@ -93,6 +102,7 @@ def search_by_text(query_text, limit=5, user_id=None):
             entry_dict['similarity'] = float(similarity)  # Add similarity score to the dictionary
             results.append(entry_dict)
             
+        print(f"Returning {len(results)} results with similarities: {[r['similarity'] for r in results]}")
         return results
     except Exception as e:
         print(f"Error finding similar entries: {str(e)}")
