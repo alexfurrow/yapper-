@@ -9,6 +9,7 @@ function JournalPage() {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [entries, setEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -16,9 +17,16 @@ function JournalPage() {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   
+  // Auto-save states
+  const [autoSaveStatus, setAutoSaveStatus] = useState(''); // 'saving', 'saved', 'error'
+  const [lastSavedTime, setLastSavedTime] = useState(null);
+  const [draftId, setDraftId] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const messagesEndRef = useRef(null);
+  const autoSaveTimeoutRef = useRef(null);
   const { currentUser } = useContext(AuthContext);
 
   // Auto-scroll to bottom of chat messages
@@ -35,6 +43,27 @@ function JournalPage() {
     loadEntries();
   }, []);
 
+  // Auto-save effect
+  useEffect(() => {
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Only auto-save if content is substantial enough
+    if (content.trim().length >= 50 && hasUnsavedChanges) {
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveDraft();
+      }, 3000); // 3 second delay
+    }
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [content, hasUnsavedChanges]);
+
   const loadEntries = async () => {
     try {
       const response = await axios.get('/api/entries');
@@ -42,6 +71,49 @@ function JournalPage() {
     } catch (error) {
       console.error('Error loading entries:', error);
     }
+  };
+
+  // Auto-save draft function
+  const autoSaveDraft = async () => {
+    if (!content.trim() || content.trim().length < 50) return;
+
+    try {
+      setAutoSaveStatus('saving');
+      
+      const response = await axios.post('/api/entries', { 
+        content: content,
+        is_draft: true 
+      });
+      
+      setDraftId(response.data.entry_id);
+      setAutoSaveStatus('saved');
+      setHasUnsavedChanges(false);
+      setLastSavedTime(new Date());
+      
+      // Refresh entries list
+      loadEntries();
+      
+      // Clear saved status after 2 seconds
+      setTimeout(() => {
+        setAutoSaveStatus('');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      setAutoSaveStatus('error');
+      
+      // Clear error status after 3 seconds
+      setTimeout(() => {
+        setAutoSaveStatus('');
+      }, 3000);
+    }
+  };
+
+  // Handle content changes
+  const handleContentChange = (e) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    setHasUnsavedChanges(true);
   };
 
   // Journal Entry Functions
@@ -52,16 +124,48 @@ function JournalPage() {
       return;
     }
     
-    setIsLoading(true);
+    // Clear any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
     try {
-      await axios.post('/api/entries', { content });
+      setAutoSaveStatus('saving');
+      
+      // If we have a draft, update it; otherwise create new entry
+      const endpoint = draftId ? `/api/entries/${draftId}` : '/api/entries';
+      const method = draftId ? 'put' : 'post';
+      
+      const response = await axios[method](endpoint, { 
+        content: content,
+        is_draft: false // Mark as final entry
+      });
+      
       setMessage('Entry saved successfully!');
       setContent('');
-      loadEntries(); // Refresh entries list
+      setDraftId(null);
+      setHasUnsavedChanges(false);
+      setAutoSaveStatus('saved');
+      setLastSavedTime(new Date());
+      
+      // Refresh entries list
+      loadEntries();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage('');
+        setAutoSaveStatus('');
+      }, 3000);
+      
     } catch (error) {
       setMessage('Error saving entry: ' + error.message);
-    } finally {
-      setIsLoading(false);
+      setAutoSaveStatus('error');
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setMessage('');
+        setAutoSaveStatus('');
+      }, 5000);
     }
   };
 
@@ -79,6 +183,7 @@ function JournalPage() {
 
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        setAudioBlob(audioBlob);
         uploadAudio(audioBlob);
       };
 
@@ -110,12 +215,12 @@ function JournalPage() {
 
       if (response.data.transcription) {
         setContent(response.data.transcription);
-        const entryResponse = await axios.post('/api/entries', {
-          content: response.data.transcription
-        });
+        setHasUnsavedChanges(true);
         
-        setMessage('Entry saved successfully!');
-        loadEntries();
+        // Auto-save the transcribed content
+        setTimeout(() => {
+          autoSaveDraft();
+        }, 1000);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -177,6 +282,19 @@ function JournalPage() {
     });
   };
 
+  const formatTimeAgo = (date) => {
+    if (!date) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return formatDate(date);
+  };
+
   return (
     <div className="journal-page">
       {/* Main Content Area */}
@@ -213,12 +331,30 @@ function JournalPage() {
                 <div className="textarea-wrapper">
                   <textarea
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={handleContentChange}
                     placeholder="What's on your mind today?"
                     rows="12"
                     disabled={isLoading}
                     className="journal-textarea"
                   />
+                  
+                  {/* Auto-save status indicator */}
+                  <div className="auto-save-indicator">
+                    {autoSaveStatus === 'saving' && (
+                      <span className="status-saving">💾 Saving draft...</span>
+                    )}
+                    {autoSaveStatus === 'saved' && (
+                      <span className="status-saved">✅ Draft saved</span>
+                    )}
+                    {autoSaveStatus === 'error' && (
+                      <span className="status-error">❌ Save failed</span>
+                    )}
+                    {lastSavedTime && !autoSaveStatus && (
+                      <span className="status-last-saved">
+                        Last saved: {formatTimeAgo(lastSavedTime)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="form-actions">
@@ -238,7 +374,7 @@ function JournalPage() {
                   
                   <button 
                     type="submit" 
-                    disabled={isLoading || !content.trim()}
+                    disabled={!content.trim()}
                     className="save-button"
                   >
                     <span className="button-icon">💾</span>
@@ -259,7 +395,11 @@ function JournalPage() {
           {activeTab === 'chat' && (
             <div className="chat-tab">
               <div className="chat-container">
-                <div className="chat-messages">
+                <div className="chat-header">
+                  <h2>Journal Assistant</h2>
+                </div>
+                
+                <div className="messages-container">
                   {chatMessages.length === 0 ? (
                     <div className="empty-chat">
                       <div className="empty-icon">🤖</div>

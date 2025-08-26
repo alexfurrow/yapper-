@@ -101,6 +101,7 @@
 
 .textarea-wrapper {
   padding: 24px;
+  position: relative;
 }
 
 .journal-textarea {
@@ -125,6 +126,41 @@
 
 .journal-textarea::placeholder {
   color: #94a3b8;
+}
+
+/* Auto-save indicator */
+.auto-save-indicator {
+  position: absolute;
+  bottom: 8px;
+  right: 32px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.status-saving {
+  color: #7D8456; /* Olive leaf color */
+  animation: pulse 1.5s infinite;
+}
+
+.status-saved {
+  color: #10b981;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+.status-error {
+  color: #ef4444;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+.status-last-saved {
+  color: #64748b;
+  font-style: italic;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 .form-actions {
