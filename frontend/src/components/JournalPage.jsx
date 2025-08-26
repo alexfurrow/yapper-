@@ -244,7 +244,7 @@ function JournalPage() {
       console.log('Sending chat request to:', '/api/chat');
       console.log('Request payload:', { message: chatInput, limit: 3 });
       
-      const response = await axios.post('/api/chat', {
+      const response = await axios.post('/api/chat/', {
         message: chatInput,
         limit: 3
       });
