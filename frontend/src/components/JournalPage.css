@@ -353,24 +353,28 @@
   line-height: 1.6; /* Improved line height */
   word-wrap: break-word;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  text-align: left; /* Default left alignment */
 }
 
 .chat-message.user .message-content {
   background: #4B286D; /* Royal ink color */
   color: white;
   border-bottom-right-radius: 4px; /* Pointed corner for user messages */
+  text-align: right; /* Right-align text for user messages */
 }
 
 .chat-message.ai .message-content {
   background: #f1f5f9;
   color: #1e293b;
   border-bottom-left-radius: 4px; /* Pointed corner for AI messages */
+  text-align: left; /* Left-align text for AI messages */
 }
 
 .chat-message.error .message-content {
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fecaca;
+  text-align: center; /* Center-align text for error messages */
 }
 
 .message-sources {
