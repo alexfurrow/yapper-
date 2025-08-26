@@ -51,7 +51,7 @@ def chat_with_database():
         
         return jsonify({
             'response': ai_response,
-            'sources': [{'entry_id': entries['entry_id'], 'similarity': entries['similarity']} for page in similar_pages]
+            'sources': [{'entry_id': entry['entry_id'], 'similarity': entry['similarity']} for entry in similar_entries]
         }), 200
         
     except Exception as e:
