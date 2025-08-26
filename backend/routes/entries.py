@@ -4,6 +4,7 @@ from backend.models.users import users
 from backend.models.entries import entries
 from backend.routes.auth import token_required
 from backend.services.initial_processing import process_text
+from backend.services.embedding import generate_embedding
 
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
@@ -17,7 +18,7 @@ def get_entries(current_user):
 @entries_bp.route('/entries', methods=['POST'])
 @token_required
 def create_entry(current_user):
-    """Create a new entry with processed content"""
+    """Create a new entry with processed content and immediate embedding"""
     print("Received request:", request.get_json())  # Debug print
     data = request.get_json()
     
@@ -38,6 +39,17 @@ def create_entry(current_user):
         )
         
         db.session.add(new_entry)
+        db.session.flush()  # Get the entry_id without committing
+        
+        # Generate embedding immediately for real-time search
+        if processed_content:
+            embedding = generate_embedding(processed_content)
+            if embedding:
+                new_entry.vectors = embedding
+                print(f"Generated embedding for entry {new_entry.entry_id}")
+            else:
+                print(f"Failed to generate embedding for entry {new_entry.entry_id}")
+        
         db.session.commit()
         
         response_data = new_entry.to_dict()
