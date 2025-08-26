@@ -23,7 +23,6 @@ html {
 .App {
   text-align: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding-top: 60px; /* Exactly matches header height */
   margin: 0;
 }

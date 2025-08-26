@@ -330,7 +330,7 @@ function JournalPage() {
             className="sidebar-toggle"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
-            {isSidebarOpen ? '◀' : '▶'}
+            <span className="toggle-icon">📚</span>
           </button>
         </div>
         
@@ -372,6 +372,17 @@ function JournalPage() {
           </div>
         )}
       </div>
+
+      {/* Sidebar Toggle Button (when sidebar is closed) */}
+      {!isSidebarOpen && (
+        <button 
+          className="sidebar-toggle-button"
+          onClick={() => setIsSidebarOpen(true)}
+          title="Show Journal History"
+        >
+          <span className="toggle-icon">📚</span>
+        </button>
+      )}
     </div>
   );
 }
