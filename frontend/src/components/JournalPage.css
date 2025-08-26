@@ -20,6 +20,7 @@
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
+  justify-content: center;
   background: white;
   border-bottom: 1px solid #E6D8B4; /* Aged scroll color */
   padding: 0 24px;
