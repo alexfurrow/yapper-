@@ -3,6 +3,9 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from backend.services.embedding import search_by_text
+from backend.routes.auth import token_required
+from extensions import db
+from backend.models.entries import entries
 
 # Load environment variables
 load_dotenv(override=True)
@@ -12,8 +15,38 @@ client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 chat_bp = Blueprint('chat', __name__, url_prefix='/chat')
 
-@chat_bp.route('/chat', methods=['POST'])
-def chat_with_database():
+@chat_bp.route('/debug', methods=['GET'])
+@token_required
+def debug_user_entries(current_user):
+    """Debug endpoint to check user's entries and embeddings"""
+    try:
+        # Get all entries for the user
+        user_entries = entries.query.filter_by(user_id=current_user.id).all()
+        
+        # Count entries with and without embeddings
+        total_entries = len(user_entries)
+        entries_with_embeddings = len([e for e in user_entries if e.vectors is not None])
+        entries_without_embeddings = total_entries - entries_with_embeddings
+        
+        return jsonify({
+            'user_id': current_user.id,
+            'total_entries': total_entries,
+            'entries_with_embeddings': entries_with_embeddings,
+            'entries_without_embeddings': entries_without_embeddings,
+            'sample_entries': [
+                {
+                    'entry_id': e.entry_id,
+                    'has_embedding': e.vectors is not None,
+                    'content_preview': e.content[:100] + '...' if len(e.content) > 100 else e.content
+                } for e in user_entries[:5]  # Show first 5 entries
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@chat_bp.route('/', methods=['POST'])
+@token_required
+def chat_with_database(current_user):
     data = request.get_json()
     
     if not data or 'message' not in data:
@@ -22,15 +55,20 @@ def chat_with_database():
     try:
         # Get user message
         user_message = data['message']
+        print(f"Chat request from user {current_user.id}: {user_message}")
         
-        # Search for relevant entries
+        # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
-        similar_entries = search_by_text(user_message, limit)
+        similar_entries = search_by_text(user_message, limit, user_id=current_user.id)
         
-        # Extract content from similar pages
+        print(f"Found {len(similar_entries)} similar entries for user {current_user.id}")
+        
+        # Extract content from similar entries
         context = ""
         for entry in similar_entries:
             context += f"Entry {entry['entry_id']} (similarity: {entry['similarity']:.2f}):\n{entry['processed']}\n\n"
+        
+        print(f"Context length: {len(context)} characters")
         
         # Generate response using OpenAI
         response = client.chat.completions.create(
