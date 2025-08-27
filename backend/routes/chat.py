@@ -20,10 +20,12 @@ def test_chat_blueprint():
     """Simple test endpoint to verify chat blueprint is working"""
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
 
-@chat_bp.route('/debug', methods=['GET'])
+@chat_bp.route('/debug', methods=['GET', 'OPTIONS'])
 @token_required
 def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
+    if request.method == 'OPTIONS':
+        return '', 200
     try:
         # Get all entries for the user
         user_entries = entries.query.filter_by(user_id=current_user.id).all()
@@ -49,9 +51,12 @@ def debug_user_entries(current_user):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@chat_bp.route('/', methods=['POST'])
+@chat_bp.route('/', methods=['POST', 'OPTIONS'])
 @token_required
 def chat_with_database(current_user):
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     data = request.get_json()
     
     if not data or 'message' not in data:
