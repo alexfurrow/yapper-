@@ -241,8 +241,9 @@ function JournalPage() {
     setIsChatLoading(true);
 
     try {
-      console.log('Sending chat request to:', '/api/chat');
+      console.log('Sending chat request to:', '/api/chat/');
       console.log('Request payload:', { message: chatInput, limit: 3 });
+      console.log('Auth header:', axios.defaults.headers.common['Authorization']);
       
       const response = await axios.post('/api/chat/', {
         message: chatInput,

@@ -15,6 +15,11 @@ client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 chat_bp = Blueprint('chat', __name__)
 
+@chat_bp.route('/test', methods=['GET'])
+def test_chat_blueprint():
+    """Simple test endpoint to verify chat blueprint is working"""
+    return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
+
 @chat_bp.route('/debug', methods=['GET'])
 @token_required
 def debug_user_entries(current_user):
