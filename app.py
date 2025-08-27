@@ -20,19 +20,17 @@ from backend.routes.chat import chat_bp
 # from backend.routes.files import files_bp
 from backend.routes.entries import entries_bp
 from backend.commands import vectorize_pages_command
-from flask_apscheduler import APScheduler 
 from datetime import datetime
 import pytz
 from backend.models.users import users
 
-scheduler = APScheduler()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
     # Configure scheduler
-    app.config['SCHEDULER_API_ENABLED'] = True
+    # app.config['SCHEDULER_API_ENABLED'] = True # Removed as per edit hint
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
     # Initialize extensions
@@ -58,7 +56,7 @@ def create_app(config_class=Config):
             "supports_credentials": True # If you use cookies/sessions
         }
     })
-    scheduler.init_app(app)
+    # scheduler.init_app(app) # Removed as per edit hint
 
     # Register blueprints
     print("--- DEBUG: Registering blueprints...")
@@ -83,7 +81,7 @@ def create_app(config_class=Config):
     app.cli.add_command(vectorize_pages_command)
 
     # Start the scheduler
-    scheduler.start()
+    # scheduler.start() # Removed as per edit hint
 
     # Database configuration
     db_url_from_env = os.environ.get('DATABASE_URL')
@@ -101,20 +99,20 @@ def create_app(config_class=Config):
     return app
 
 # Define the scheduled task
-@scheduler.task('cron', id='vectorize_weekly', day_of_week='sun', hour=1, minute=0, 
-               start_date='2025-03-02 01:00:00')
-def scheduled_vectorize():
-    with scheduler.app.app_context():
-        from backend.services.embedding import vectorize_all_entries
-        vectorize_all_entries()
+# @scheduler.task('cron', id='vectorize_weekly', day_of_week='sun', hour=1, minute=0, 
+#                start_date='2025-03-02 01:00:00')
+# def scheduled_vectorize():
+#     with scheduler.app.app_context():
+#         from backend.services.embedding import vectorize_all_entries
+#         vectorize_all_entries()
 
 # Add this scheduled task
-@scheduler.task('cron', id='rebuild_index_weekly', day_of_week='sun', hour=1, minute=30, 
-               start_date='2025-03-03 02:00:00')
-def scheduled_index_rebuild():
-    with scheduler.app.app_context():
-        from backend.services.hnsw_index import build_and_save_index
-        build_and_save_index()
+# @scheduler.task('cron', id='rebuild_index_weekly', day_of_week='sun', hour=1, minute=30, 
+#                start_date='2025-03-03 02:00:00')
+# def scheduled_index_rebuild():
+#     with scheduler.app.app_context():
+#         from backend.services.hnsw_index import build_and_save_index
+#         build_and_save_index()
 
 app = create_app()
 
