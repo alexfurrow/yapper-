@@ -13,14 +13,14 @@ load_dotenv(override=True)
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-chat_bp = Blueprint('chat', __name__, url_prefix='/chat')
+chat_bp = Blueprint('chat', __name__)
 
-@chat_bp.route('/test', methods=['GET'])
+@chat_bp.route('/chat/test', methods=['GET'])
 def test_chat_blueprint():
     """Simple test endpoint to verify chat blueprint is working"""
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
 
-@chat_bp.route('/debug', methods=['GET'])
+@chat_bp.route('/chat/debug', methods=['GET'])
 @token_required
 def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
@@ -49,7 +49,7 @@ def debug_user_entries(current_user):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@chat_bp.route('/', methods=['POST'])
+@chat_bp.route('/chat/', methods=['POST'])
 @token_required
 def chat_with_database(current_user):
     """Chat endpoint with authentication"""

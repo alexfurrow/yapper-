@@ -74,6 +74,7 @@ def create_app(config_class=Config):
         print(f"  chat_bp name: {chat_bp.name}")
         print(f"  chat_bp url_prefix: {getattr(chat_bp, 'url_prefix', 'None')}")
         
+        # Register chat blueprint without additional prefix since it already has /chat
         app.register_blueprint(chat_bp, url_prefix='/api')
         print("  ✓ chat_bp registered with /api prefix")
         
