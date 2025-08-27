@@ -69,10 +69,24 @@ def create_app(config_class=Config):
     print("  ✓ audio_bp registered with /api prefix")
     
     try:
+        print(f"  Attempting to register chat_bp...")
+        print(f"  chat_bp type: {type(chat_bp)}")
+        print(f"  chat_bp name: {chat_bp.name}")
+        print(f"  chat_bp url_prefix: {getattr(chat_bp, 'url_prefix', 'None')}")
+        
         app.register_blueprint(chat_bp, url_prefix='/api')
         print("  ✓ chat_bp registered with /api prefix")
+        
+        # Check if routes were added
+        print(f"  Routes after chat_bp registration:")
+        for rule in app.url_map.iter_rules():
+            if 'chat' in rule.endpoint:
+                print(f"    {rule.endpoint}: {rule.rule}")
+                
     except Exception as e:
         print(f"  ✗ ERROR registering chat_bp: {str(e)}")
+        import traceback
+        traceback.print_exc()
     
     print("--- DEBUG: Blueprint registration complete")
  
@@ -118,7 +132,16 @@ app = create_app()
 with app.app_context():
     print("Registered routes:")
     for rule in app.url_map.iter_rules():
-        print(f"{rule.endpoint}: {rule.rule}")
+        print(f"  {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
+    
+    # Specifically check for chat routes
+    print("\n--- DEBUG: Looking for chat routes ---")
+    chat_routes = [rule for rule in app.url_map.iter_rules() if 'chat' in rule.endpoint]
+    for rule in chat_routes:
+        print(f"  Chat route: {rule.endpoint} -> {rule.rule} [{', '.join(rule.methods)}]")
+    
+    if not chat_routes:
+        print("  WARNING: No chat routes found!")
 
 if __name__ == '__main__':
     app.run()
