@@ -48,14 +48,13 @@ def create_app(config_class=Config):
 
     print(f"--- INFO: Allowed CORS Origins: {allowed_origins}") # Add for debugging
 
-    cors.init_app(app, resources={
-        r"/api/*": { # Make sure CORS applies to your /api/* routes
-            "origins": allowed_origins,
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Add OPTIONS for preflight requests
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True # If you use cookies/sessions
-        }
-    })
+    # Configure CORS more explicitly
+    cors.init_app(app, 
+        origins=allowed_origins,
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        supports_credentials=True
+    )
     # scheduler.init_app(app) # Removed as per edit hint
 
     # Register blueprints

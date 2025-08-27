@@ -20,45 +20,11 @@ def test_chat_blueprint():
     """Simple test endpoint to verify chat blueprint is working"""
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
 
-@chat_bp.route('/debug', methods=['GET', 'OPTIONS'])
-def debug_user_entries():
+@chat_bp.route('/debug', methods=['GET'])
+@token_required
+def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
-    if request.method == 'OPTIONS':
-        return '', 200
-    
-    # Only require token for GET requests
-    if request.method == 'GET':
-        return debug_user_entries_authenticated()
-    
-def debug_user_entries_authenticated():
-    """Authenticated version of debug endpoint"""
     try:
-        # Get current user from token
-        token = None
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-        
-        if not token:
-            return jsonify({'error': 'Token is missing!'}), 401
-        
-        # Verify token and get user
-        from backend.routes.auth import token_required
-        from functools import wraps
-        
-        def get_user_from_token(token):
-            try:
-                from backend.models.users import users
-                user = users.verify_token(token)
-                return user
-            except:
-                return None
-        
-        current_user = get_user_from_token(token)
-        if not current_user:
-            return jsonify({'error': 'Invalid token!'}), 401
-        
         # Get all entries for the user
         user_entries = entries.query.filter_by(user_id=current_user.id).all()
         
@@ -83,40 +49,16 @@ def debug_user_entries_authenticated():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@chat_bp.route('/', methods=['POST', 'OPTIONS'])
-def chat_with_database():
-    """Chat endpoint with CORS support"""
-    if request.method == 'OPTIONS':
-        return '', 200
+@chat_bp.route('/', methods=['POST'])
+@token_required
+def chat_with_database(current_user):
+    """Chat endpoint with authentication"""
+    data = request.get_json()
     
-    # Only require token for POST requests
-    if request.method == 'POST':
-        return chat_with_database_authenticated()
-
-def chat_with_database_authenticated():
-    """Authenticated version of chat endpoint"""
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Message is required'}), 400
+    
     try:
-        # Get current user from token
-        token = None
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-        
-        if not token:
-            return jsonify({'error': 'Token is missing!'}), 401
-        
-        # Verify token and get user
-        from backend.models.users import users
-        current_user = users.verify_token(token)
-        if not current_user:
-            return jsonify({'error': 'Invalid token!'}), 401
-        
-        data = request.get_json()
-        
-        if not data or 'message' not in data:
-            return jsonify({'error': 'Message is required'}), 400
-        
         # Get user message
         user_message = data['message']
         print(f"Chat request from user {current_user.id}: {user_message}")
