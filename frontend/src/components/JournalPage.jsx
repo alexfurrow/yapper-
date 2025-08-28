@@ -401,7 +401,7 @@ function JournalPage() {
                 onClick={() => setSelectedEntry(entry)}
               >
                 <div className="entry-header">
-                  <span className="entry-id">#{entry.entry_id}</span>
+                  <span className="entry-id">#{entry.user_entry_id || entry.entry_id}</span>
                   <span className="entry-date">{formatDate(entry.created_at)}</span>
                 </div>
                 <div className="entry-preview">
@@ -417,7 +417,7 @@ function JournalPage() {
         {selectedEntry && (
           <div className="entry-detail">
             <div className="detail-header">
-              <h4>Entry #{selectedEntry.entry_id}</h4>
+              <h4>Entry #{selectedEntry.user_entry_id || selectedEntry.entry_id}</h4>
               <span className="detail-date">{formatDate(selectedEntry.created_at)}</span>
             </div>
             <div className="detail-content">{selectedEntry.content}</div>

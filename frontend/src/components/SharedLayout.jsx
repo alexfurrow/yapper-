@@ -211,7 +211,7 @@ function SharedLayout({ children, activeTab }) {
                 onClick={() => handleEntryClick(entry)}
               >
                 <div className="entry-header">
-                  <span className="entry-id">#{entry.entry_id}</span>
+                  <span className="entry-id">#{entry.user_entry_id || entry.entry_id}</span>
                   <span className="entry-date">{formatDate(entry.created_at)}</span>
                 </div>
                 <div className="entry-preview">
@@ -232,7 +232,7 @@ function SharedLayout({ children, activeTab }) {
               title="Drag to resize height"
             ></div>
             <div className="entry-detail" ref={entryDetailRef}>
-              <h3>Entry #{selectedEntry.entry_id}</h3>
+              <h3>Entry #{selectedEntry.user_entry_id || selectedEntry.entry_id}</h3>
               <div className="entry-date-full">{formatDate(selectedEntry.created_at)}</div>
               <div className="entry-content">{selectedEntry.content}</div>
             </div>

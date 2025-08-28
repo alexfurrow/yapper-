@@ -31,24 +31,30 @@ def create_entry(current_user):
         processed_content = process_text(data['content'])
         print(f"Processed content: {processed_content}")
         
-        # Create new entry
-        new_entry = entries(
-            user_id=current_user.id,
-            content=data['content'],
-            processed=processed_content
-        )
-        
-        db.session.add(new_entry)
-        db.session.flush()  # Get the entry_id without committing
-        
-        # Generate embedding immediately for real-time search
-        if processed_content:
-            embedding = generate_embedding(processed_content)
-            if embedding:
-                new_entry.vectors = embedding
-                print(f"Generated embedding for entry {new_entry.entry_id}")
-            else:
-                print(f"Failed to generate embedding for entry {new_entry.entry_id}")
+        # Get the next user entry ID atomically
+        with db.session.begin():
+            user_entry_count = entries.query.filter_by(user_id=current_user.id).count()
+            next_user_entry_id = user_entry_count + 1
+            
+            # Create new entry
+            new_entry = entries(
+                user_id=current_user.id,
+                user_entry_id=next_user_entry_id,
+                content=data['content'],
+                processed=processed_content
+            )
+            
+            db.session.add(new_entry)
+            db.session.flush()  # Get the entry_id without committing
+            
+            # Generate embedding immediately for real-time search
+            if processed_content:
+                embedding = generate_embedding(processed_content)
+                if embedding:
+                    new_entry.vectors = embedding
+                    print(f"Generated embedding for entry {new_entry.entry_id}")
+                else:
+                    print(f"Failed to generate embedding for entry {new_entry.entry_id}")
         
         db.session.commit()
         

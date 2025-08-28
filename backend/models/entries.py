@@ -8,6 +8,7 @@ class entries(db.Model):
     
     entry_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Allow null for existing records
+    user_entry_id = db.Column(db.Integer, nullable=True)  # User-specific entry number
     content = db.Column(db.Text, nullable=False)
     processed = db.Column(db.Text)
     vectors = db.Column(ARRAY(FLOAT))  # Store embeddings as array of floats
@@ -20,6 +21,7 @@ class entries(db.Model):
     def to_dict(self):
         return {
             'entry_id': self.entry_id,
+            'user_entry_id': self.user_entry_id,  # Use this for display
             'user_id': self.user_id,
             'content': self.content,
             'processed': self.processed,
