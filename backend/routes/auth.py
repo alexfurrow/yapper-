@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.models.users import users
 from backend.services.email_service import EmailService
-from backend.utils.rate_limiter import rate_limit
 from extensions import db
 from functools import wraps
 import os
