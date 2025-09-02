@@ -36,7 +36,7 @@ def token_required(f):
     return decorated
 
 @auth_bp.route('/auth/register', methods=['POST'])
-@rate_limit(max_requests=3, window_seconds=300)  # 3 registrations per 5 minutes
+
 def register():
     data = request.get_json()
     
@@ -86,7 +86,7 @@ def register():
         return jsonify({'message': f'Error creating user: {str(e)}'}), 500
 
 @auth_bp.route('/auth/login', methods=['POST'])
-@rate_limit(max_requests=5, window_seconds=300)  # 5 login attempts per 5 minutes
+
 def login():
     data = request.get_json()
     
@@ -141,7 +141,7 @@ def verify_email():
         return jsonify({'message': 'Invalid verification token'}), 400
 
 @auth_bp.route('/auth/resend-verification', methods=['POST'])
-@rate_limit(max_requests=3, window_seconds=300)  # 3 resend attempts per 5 minutes
+
 def resend_verification():
     data = request.get_json()
     
@@ -165,7 +165,7 @@ def resend_verification():
     return jsonify({'message': 'Verification email sent successfully'}), 200
 
 @auth_bp.route('/auth/forgot-password', methods=['POST'])
-@rate_limit(max_requests=3, window_seconds=300)  # 3 password reset requests per 5 minutes
+
 def forgot_password():
     data = request.get_json()
     
@@ -186,7 +186,7 @@ def forgot_password():
     return jsonify({'message': 'If an account with this email exists, a password reset link has been sent.'}), 200
 
 @auth_bp.route('/auth/reset-password', methods=['POST'])
-@rate_limit(max_requests=3, window_seconds=300)  # 3 password reset attempts per 5 minutes
+
 def reset_password():
     data = request.get_json()
     
