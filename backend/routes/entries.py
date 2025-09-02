@@ -10,7 +10,7 @@ from supabase import create_client, Client
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
 # Initialize Supabase client
-supabase: Client = create_client(
+supabase: Client = createClient(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 )
@@ -45,7 +45,7 @@ def get_entries(current_user):
     return jsonify([entry.to_dict() for entry in all_entries]), 200
 
 @entries_bp.route('/entries', methods=['POST'])
-@supabase_auth_required
+
 def create_entry(current_user):
     """Create a new entry with processed content and immediate embedding"""
     print("Received request:", request.get_json())  # Debug print
