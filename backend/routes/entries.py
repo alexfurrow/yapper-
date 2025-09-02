@@ -1,22 +1,51 @@
 from flask import Blueprint, request, jsonify, current_app
 from extensions import db
-from backend.models.users import users
 from backend.models.entries import entries
-from backend.routes.auth import token_required
+# Remove this line: from backend.routes.auth import token_required
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
+import os
+from supabase import create_client, Client
 
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
+# Initialize Supabase client
+supabase: Client = create_client(
+    os.environ.get("SUPABASE_URL"),
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+)
+
+# New Supabase auth decorator
+def supabase_auth_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': 'Token is missing!'}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Verify token with Supabase
+            user = supabase.auth.get_user(token)
+            if not user.user:
+                return jsonify({'message': 'Invalid token!'}), 401
+            return f(user.user, *args, **kwargs)
+        except Exception as e:
+            return jsonify({'message': 'Token verification error!'}), 401
+    
+    return decorated
+
+# Update all your route decorators from @token_required to @supabase_auth_required
 @entries_bp.route('/entries', methods=['GET'])
-@token_required
+@supabase_auth_required
 def get_entries(current_user):
     """Get all entries for the current user"""
     all_entries = entries.query.filter_by(user_id=current_user.id).order_by(entries.created_at.desc()).all()
     return jsonify([entry.to_dict() for entry in all_entries]), 200
 
 @entries_bp.route('/entries', methods=['POST'])
-@token_required
+@supabase_auth_required
 def create_entry(current_user):
     """Create a new entry with processed content and immediate embedding"""
     print("Received request:", request.get_json())  # Debug print
@@ -74,7 +103,7 @@ def create_entry(current_user):
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
-@token_required
+@supabase_auth_required
 def get_entry(current_user, entry_id):
     """Get a specific entry by ID"""
     entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
@@ -85,7 +114,7 @@ def get_entry(current_user, entry_id):
     return jsonify(entry.to_dict()), 200
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
-@token_required
+@supabase_auth_required
 def update_entry(current_user, entry_id):
     """Update an existing entry"""
     entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
@@ -114,7 +143,7 @@ def update_entry(current_user, entry_id):
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
-@token_required
+@supabase_auth_required
 def delete_entry(current_user, entry_id):
     """Delete an entry"""
     entry = entries.query.filter_by(entry_id=entry_id, user_id=current_user.id).first()
@@ -132,7 +161,7 @@ def delete_entry(current_user, entry_id):
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/search', methods=['POST'])
-@token_required
+@supabase_auth_required
 def search_entries(current_user):
     """Search for similar entries using vector embeddings"""
     data = request.get_json()
