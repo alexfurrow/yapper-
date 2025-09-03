@@ -61,18 +61,23 @@ function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     try {
       setError(null);
+      console.log('Starting login with:', { email, password: '***' });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
+      console.log('Supabase login response:', { data, error });
+      
       if (error) {
+        console.error('Supabase login error:', error);
         setError(error.message);
         return false;
       }
       
       if (data.user) {
+        console.log('Login successful, setting user:', data.user);
         setCurrentUser({
           id: data.user.id,
           email: data.user.email,
@@ -91,9 +96,10 @@ function AuthProvider({ children }) {
   }, []);
 
   // Register function
-  const register = useCallback(async (email, password, username) => {
+  const register = useCallback(async (username, email, password) => {
     try {
       setError(null);
+      console.log('Starting registration with:', { username, email, password: '***' });
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -105,12 +111,16 @@ function AuthProvider({ children }) {
         }
       });
       
+      console.log('Supabase response:', { data, error });
+      
       if (error) {
+        console.error('Supabase registration error:', error);
         setError(error.message);
         return false;
       }
       
       if (data.user) {
+        console.log('Registration successful, attempting auto-login...');
         // Auto login after successful registration
         return await login(email, password);
       }
