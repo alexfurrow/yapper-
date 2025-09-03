@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import axios from 'axios';
+import { supabase } from '../context/supabase.js';
 import { AuthContext } from '../context/AuthContext';
 import './JournalPage.css';
 
@@ -33,15 +33,32 @@ function JournalPage() {
 
   // Load entries on component mount
   useEffect(() => {
-    loadEntries();
-  }, []);
+    if (currentUser) {
+      loadEntries();
+    }
+  }, [currentUser]);
 
   const loadEntries = async () => {
     try {
-      const response = await axios.get('/api/entries');
-      setEntries(response.data);
+      console.log('Loading entries for user:', currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from('entries')
+        .select('*')
+        .eq('user_id', currentUser?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading entries:', error);
+        setEntries([]);
+        return;
+      }
+
+      console.log('Entries loaded:', data);
+      setEntries(data || []);
     } catch (error) {
       console.error('Error loading entries:', error);
+      setEntries([]);
     }
   };
 
@@ -61,10 +78,32 @@ function JournalPage() {
     
     try {
       setMessage('Saving...');
+      setIsLoading(true);
       
-      const response = await axios.post('/api/entries', { 
-        content: content
-      });
+      // Get the next user_entry_id
+      const { data: maxEntry } = await supabase
+        .from('entries')
+        .select('user_entry_id')
+        .eq('user_id', currentUser?.id)
+        .order('user_entry_id', { ascending: false })
+        .limit(1);
+
+      const nextUserEntryId = (maxEntry?.[0]?.user_entry_id || 0) + 1;
+      
+      const { data, error } = await supabase
+        .from('entries')
+        .insert([
+          { 
+            content: content,
+            user_id: currentUser?.id,
+            user_entry_id: nextUserEntryId
+          }
+        ])
+        .select();
+
+      if (error) {
+        throw new Error(error.message);
+      }
       
       setMessage('Entry saved successfully!');
       setContent('');
@@ -78,12 +117,15 @@ function JournalPage() {
       }, 3000);
       
     } catch (error) {
+      console.error('Error saving entry:', error);
       setMessage('Error saving entry: ' + error.message);
       
       // Clear error after 5 seconds
       setTimeout(() => {
         setMessage('');
       }, 5000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -124,18 +166,19 @@ function JournalPage() {
   const uploadAudio = async (blob) => {
     try {
       setIsLoading(true);
-      const formData = new FormData();
-      formData.append('audio', blob, 'recording.wav');
-
-      const response = await axios.post('/api/audio', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      if (response.data.transcription) {
-        setContent(response.data.transcription);
-      }
+      setMessage('Processing audio...');
+      
+      // For now, we'll skip audio processing since we don't have the backend endpoint
+      // You can implement this later with your backend or a third-party service
+      setMessage('Audio recording feature coming soon!');
+      
+      // Clear the message after 3 seconds
+      setTimeout(() => {
+        setMessage('');
+      }, 3000);
+      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error processing audio:', error);
       setMessage('Error processing audio: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -153,42 +196,21 @@ function JournalPage() {
     setIsChatLoading(true);
 
     try {
-      console.log('Sending chat request to:', '/api/chat/');
-      console.log('Request payload:', { message: chatInput, limit: 3 });
-      console.log('Auth header:', axios.defaults.headers.common['Authorization']);
+      // For now, we'll add a simple AI response
+      // You can implement this later with your backend or OpenAI integration
+      setTimeout(() => {
+        const aiMessage = { 
+          type: 'ai', 
+          content: 'This is a placeholder response. Chat functionality will be implemented soon!' 
+        };
+        setChatMessages(prev => [...prev, aiMessage]);
+        setIsChatLoading(false);
+      }, 1000);
       
-      const response = await axios.post('/api/chat/', {
-        message: chatInput,
-        limit: 3
-      });
-
-      console.log('Chat response received:', response.data);
-
-      const aiMessage = { 
-        type: 'ai', 
-        content: response.data.response,
-        sources: response.data.sources 
-      };
-      setChatMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Chat API Error Details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers
-        }
-      });
-      
-      const errorMessage = { 
-        type: 'error', 
-        content: `Error: ${error.response?.data?.error || error.message || 'Unknown error occurred'}`
-      };
+      console.error('Chat error:', error);
+      const errorMessage = { type: 'ai', content: 'Sorry, I encountered an error. Please try again.' };
       setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsChatLoading(false);
     }
   };
@@ -312,20 +334,20 @@ function JournalPage() {
                 </div>
                 
                 <div className="messages-container">
-                  {chatMessages.length === 0 ? (
+                  {(!chatMessages || chatMessages.length === 0) ? (
                     <div className="empty-chat">
                       <div className="empty-icon">🤖</div>
                       <h3>Ask me anything about your journal</h3>
                       <p>I can help you reflect on your entries, find patterns, or answer questions about your thoughts.</p>
                     </div>
                   ) : (
-                    chatMessages.map((msg, index) => (
+                    (chatMessages || []).map((msg, index) => (
                       <div key={index} className={`chat-message ${msg.type}`}>
                         <div className="message-content">{msg.content}</div>
                         {msg.sources && (
                           <div className="message-sources">
                             <span className="sources-label">Sources:</span>
-                            {msg.sources.map((source, idx) => (
+                            {(msg.sources || []).map((source, idx) => (
                               <button 
                                 key={idx} 
                                 className="source-link"
@@ -387,14 +409,14 @@ function JournalPage() {
         </div>
         
         <div className="entries-list">
-          {entries.length === 0 ? (
+          {(!entries || entries.length === 0) ? (
             <div className="empty-entries">
               <div className="empty-icon">📝</div>
               <p>No entries yet</p>
               <span>Start writing to see your journal history here</span>
             </div>
           ) : (
-            entries.map((entry) => (
+            (entries || []).map((entry) => (
               <div 
                 key={entry.entry_id}
                 className={`entry-item ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
