@@ -4,14 +4,14 @@ import { NavigationContext } from '../App';
 import './Auth.css';
 
 function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, error } = useContext(AuthContext);
   const { navigate } = useContext(NavigationContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(username, password);
+    const success = await login(email, password);
     if (success) {
       navigate('/');
     }
@@ -24,12 +24,12 @@ function Login() {
         {error && <div className="auth-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="email">Email</label>
             <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
