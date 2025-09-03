@@ -188,26 +188,39 @@ function JournalPage() {
   // Test backend connectivity
   const testBackendConnection = async () => {
     try {
-      console.log('Testing backend connection...');
+      console.log('=== BACKEND CONNECTION TEST START ===');
       
       // First test the simple ping endpoint (no auth required)
-      console.log('Testing ping endpoint...');
+      console.log('1. Testing ping endpoint (no auth)...');
       const pingResponse = await fetch('/api/chat/ping', {
         method: 'GET'
       });
       
-      console.log('Ping response status:', pingResponse.status);
-      const pingData = await pingResponse.json();
-      console.log('Ping response data:', pingData);
+      console.log('   Ping response status:', pingResponse.status);
+      console.log('   Ping response status text:', pingResponse.statusText);
+      console.log('   Ping response URL:', pingResponse.url);
+      
+      if (pingResponse.ok) {
+        const pingData = await pingResponse.json();
+        console.log('   Ping response data:', pingData);
+        console.log('   ✓ Ping endpoint working!');
+      } else {
+        console.log('   ✗ Ping endpoint failed');
+        const errorText = await pingResponse.text();
+        console.log('   Error body:', errorText);
+      }
       
       // Now test the authenticated test endpoint
+      console.log('\n2. Testing authenticated test endpoint...');
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.log('No session found');
+        console.log('   ✗ No Supabase session found');
         return;
       }
 
       const accessToken = session.access_token;
+      console.log('   Access token exists:', !!accessToken);
+      console.log('   Token length:', accessToken.length);
       
       // Test the chat endpoint
       const response = await fetch('/api/chat/test', {
@@ -217,12 +230,28 @@ function JournalPage() {
         }
       });
       
-      console.log('Test response status:', response.status);
-      const data = await response.json();
-      console.log('Test response data:', data);
+      console.log('   Test response status:', response.status);
+      console.log('   Test response status text:', response.statusText);
+      console.log('   Test response URL:', response.url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('   Test response data:', data);
+        console.log('   ✓ Test endpoint working!');
+      } else {
+        console.log('   ✗ Test endpoint failed');
+        const errorText = await response.text();
+        console.log('   Error body:', errorText);
+      }
+      
+      console.log('=== BACKEND CONNECTION TEST END ===');
       
     } catch (error) {
       console.error('Backend connection test failed:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
     }
   };
 
