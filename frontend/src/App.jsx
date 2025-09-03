@@ -5,6 +5,7 @@ import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
+import EmailConfirmation from './components/EmailConfirmation';
 import JournalPage from './components/JournalPage';
 import './App.css';
 
@@ -132,6 +133,16 @@ function CustomRouter() {
       <NavigationContext.Provider value={{ navigate }}>
         <div className="App">
           <Register />
+        </div>
+      </NavigationContext.Provider>
+    );
+  }
+
+  if (currentPath === '/confirm-email') {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <EmailConfirmation />
         </div>
       </NavigationContext.Provider>
     );

@@ -87,4 +87,49 @@
 
 .auth-link span:hover {
   color: #7D8456; /* Olive leaf color */
+}
+
+/* Email Confirmation Styles */
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #D6C8A4;
+  border-top: 4px solid #7D8456;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.auth-success {
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #7D8456;
+  color: white;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.auth-button.secondary {
+  background-color: #D6C8A4;
+  color: #4B286D;
+}
+
+.auth-button.secondary:hover {
+  background-color: #C4B694;
 } 
