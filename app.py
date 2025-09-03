@@ -14,7 +14,6 @@ from flask import Flask
 from config import Config
 from extensions import db, migrate, cors
 from backend.routes.main import main_bp
-from backend.routes.auth import auth_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
 # from backend.routes.files import files_bp
@@ -22,7 +21,7 @@ from backend.routes.entries import entries_bp
 from backend.commands import vectorize_pages_command
 from datetime import datetime
 import pytz
-from backend.models.users import users
+# from backend.models.users import users
 
 
 def create_app(config_class=Config):
@@ -61,8 +60,6 @@ def create_app(config_class=Config):
     print("--- DEBUG: Registering blueprints...")
     app.register_blueprint(main_bp)
     print("  ✓ main_bp registered")
-    app.register_blueprint(auth_bp, url_prefix='/api')
-    print("  ✓ auth_bp registered with /api prefix")
     app.register_blueprint(entries_bp, url_prefix='/api')
     print("  ✓ entries_bp registered with /api prefix")
     app.register_blueprint(audio_bp, url_prefix='/api')
