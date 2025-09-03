@@ -10,7 +10,7 @@ print(f"--- DEBUG [app.py top level]: DATABASE_URL before load_environment: {os.
 from backend.config.environment import load_environment
 load_environment()
 
-from flask import Flask
+from flask import Flask, request
 from config import Config
 from extensions import db, migrate, cors
 from backend.routes.main import main_bp
@@ -36,7 +36,6 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     
-    # Configure CORS to allow requests from React and Vercel
     # Get Vercel URL from an environment variable for flexibility
     vercel_url = os.environ.get('FRONTEND_URL', None) # Example: Set FRONTEND_URL=https://my-yapper-frontend.vercel.app in Railway vars
     allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
@@ -46,14 +45,32 @@ def create_app(config_class=Config):
         # allowed_origins.append(f"https://*.{vercel_url.split('//')[1]}") # Be careful with wildcards
 
     print(f"--- INFO: Allowed CORS Origins: {allowed_origins}") # Add for debugging
+    print(f"--- INFO: FRONTEND_URL from env: {vercel_url}") # Add for debugging
+    print(f"--- INFO: All environment variables containing 'FRONTEND': {[k for k in os.environ.keys() if 'FRONTEND' in k.upper()]}")
+    print(f"--- INFO: All environment variables containing 'CORS': {[k for k in os.environ.keys() if 'CORS' in k.upper()]}")
+    print(f"--- INFO: All environment variables containing 'ORIGIN': {[k for k in os.environ.keys() if 'ORIGIN' in k.upper()]}")
 
-    # Configure CORS more explicitly
+    # Configure CORS more explicitly with additional options
     cors.init_app(app, 
         origins=allowed_origins,
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
-        supports_credentials=True
+        allow_headers=["Content-Type", "Authorization", "Accept", "Origin"],
+        expose_headers=["Content-Type", "Authorization"],
+        supports_credentials=True,
+        max_age=3600
     )
+    
+    # Add manual CORS headers to ensure they're set correctly
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        return response
     # scheduler.init_app(app) # Removed as per edit hint
 
     # Register blueprints

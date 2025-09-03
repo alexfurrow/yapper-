@@ -169,7 +169,7 @@ function AuthProvider({ children }) {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      setCurrentUser(null);
+    setCurrentUser(null);
     }
   }, []);
 

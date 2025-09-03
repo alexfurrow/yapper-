@@ -34,7 +34,7 @@ function JournalPage() {
   // Load entries on component mount
   useEffect(() => {
     if (currentUser) {
-      loadEntries();
+    loadEntries();
     }
   }, [currentUser]);
 
@@ -96,7 +96,7 @@ function JournalPage() {
         .from('entries')
         .insert([
           { 
-            content: content,
+        content: content,
             user_id: currentUser?.id,
             user_entry_id: nextUserEntryId
           }
@@ -305,8 +305,8 @@ function JournalPage() {
           'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          message: chatInput,
-          limit: 3
+        message: chatInput,
+        limit: 3
         })
       });
 
