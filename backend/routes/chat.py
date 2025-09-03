@@ -34,7 +34,7 @@ chat_bp = Blueprint('chat', __name__)
 print("DEBUG: Chat blueprint created")
 
 # Add a simple test route to debug routing
-@chat_bp.route('/hello', methods=['GET'])
+@chat_bp.route('/chat/hello', methods=['GET'])
 def hello():
     """Simple test route to verify routing works"""
     print("DEBUG: Hello route called")
@@ -79,7 +79,7 @@ def supabase_auth_required(f):
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
     return decorated_function
 
-@chat_bp.route('/ping', methods=['GET', 'POST'])
+@chat_bp.route('/chat/ping', methods=['GET', 'POST'])
 def ping():
     """Simple ping endpoint to test basic routing"""
     print(f"DEBUG: Ping endpoint called with method: {request.method}")
@@ -87,14 +87,14 @@ def ping():
 
 print("DEBUG: Ping route defined")
 
-@chat_bp.route('/test', methods=['GET'])
+@chat_bp.route('/chat/test', methods=['GET'])
 def test_chat_blueprint():
     """Simple test endpoint to verify chat blueprint is working"""
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
 
 print("DEBUG: Test route defined")
 
-@chat_bp.route('/debug', methods=['GET'])
+@chat_bp.route('/chat/debug', methods=['GET'])
 @supabase_auth_required
 def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
@@ -125,7 +125,7 @@ def debug_user_entries(current_user):
 
 print("DEBUG: Debug route defined")
 
-@chat_bp.route('/chat', methods=['POST'])
+@chat_bp.route('/chat/chat', methods=['POST'])
 @supabase_auth_required
 def chat_with_database(current_user):
     """Chat endpoint with authentication"""
