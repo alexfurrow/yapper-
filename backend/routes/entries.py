@@ -10,7 +10,7 @@ from supabase import create_client, Client
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
 # Initialize Supabase client
-supabase: Client = createClient(
+supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 )
