@@ -294,6 +294,21 @@
   font-weight: 600;
 }
 
+.test-button {
+  background: #7D8456;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.test-button:hover {
+  background: #3E6B6B;
+}
+
 .messages-container {
   flex: 1;
   overflow-y: auto;

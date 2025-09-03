@@ -185,6 +185,36 @@ function JournalPage() {
     }
   };
 
+  // Test backend connectivity
+  const testBackendConnection = async () => {
+    try {
+      console.log('Testing backend connection...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found');
+        return;
+      }
+
+      const accessToken = session.access_token;
+      
+      // Test the chat endpoint
+      const response = await fetch('/api/chat/test', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      console.log('Test response status:', response.status);
+      const data = await response.json();
+      console.log('Test response data:', data);
+      
+    } catch (error) {
+      console.error('Backend connection test failed:', error);
+    }
+  };
+
   // Chat Functions
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -206,6 +236,8 @@ function JournalPage() {
       const accessToken = session.access_token;
       
       console.log('Sending chat request to backend...');
+      console.log('User message:', chatInput);
+      console.log('Access token (first 20 chars):', accessToken.substring(0, 20) + '...');
       
       // Make API call to your backend chat endpoint
       const response = await fetch('/api/chat/', {
@@ -220,8 +252,13 @@ function JournalPage() {
         })
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const data = await response.json();
@@ -367,6 +404,13 @@ function JournalPage() {
               <div className="chat-container">
                 <div className="chat-header">
                   <h2>Journal Assistant</h2>
+                  <button 
+                    onClick={testBackendConnection}
+                    className="test-button"
+                    title="Test backend connection"
+                  >
+                    🔧 Test
+                  </button>
                 </div>
                 
                 <div className="messages-container">
