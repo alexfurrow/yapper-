@@ -20,26 +20,53 @@ supabase: Client = create_client(
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 )
 
+print(f"DEBUG: Supabase client initialized")
+print(f"DEBUG: SUPABASE_URL: {os.environ.get('SUPABASE_URL')}")
+print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY exists: {'SUPABASE_SERVICE_ROLE_KEY' in os.environ}")
+print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
+
 chat_bp = Blueprint('chat', __name__)
 
 # Supabase auth decorator
 def supabase_auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        print(f"DEBUG: supabase_auth_required decorator called for function {f.__name__}")
+        print(f"DEBUG: Request method: {request.method}")
+        print(f"DEBUG: Request URL: {request.url}")
+        print(f"DEBUG: Request headers: {dict(request.headers)}")
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header:
+            print("DEBUG: No Authorization header found")
             return jsonify({"msg": "Authorization header missing"}), 401
         
         try:
             token = auth_header.split(" ")[1]
+            print(f"DEBUG: Token extracted (first 20 chars): {token[:20]}...")
+            
             user_response = supabase.auth.get_user(token)
+            print(f"DEBUG: Supabase auth response: {user_response}")
+            
             if user_response.user:
+                print(f"DEBUG: User authenticated successfully: {user_response.user.id}")
                 return f(user_response.user, *args, **kwargs)
             else:
+                print("DEBUG: User authentication failed - no user in response")
                 return jsonify({"msg": "Invalid or expired token"}), 401
         except Exception as e:
+            print(f"DEBUG: Exception in auth decorator: {str(e)}")
+            print(f"DEBUG: Exception type: {type(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
     return decorated_function
+
+@chat_bp.route('/ping', methods=['GET', 'POST'])
+def ping():
+    """Simple ping endpoint to test basic routing"""
+    print(f"DEBUG: Ping endpoint called with method: {request.method}")
+    return jsonify({'message': 'Pong!', 'method': request.method, 'endpoint': 'ping'}), 200
 
 @chat_bp.route('/test', methods=['GET'])
 def test_chat_blueprint():

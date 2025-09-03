@@ -190,6 +190,17 @@ function JournalPage() {
     try {
       console.log('Testing backend connection...');
       
+      // First test the simple ping endpoint (no auth required)
+      console.log('Testing ping endpoint...');
+      const pingResponse = await fetch('/api/chat/ping', {
+        method: 'GET'
+      });
+      
+      console.log('Ping response status:', pingResponse.status);
+      const pingData = await pingResponse.json();
+      console.log('Ping response data:', pingData);
+      
+      // Now test the authenticated test endpoint
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log('No session found');
@@ -238,6 +249,12 @@ function JournalPage() {
       console.log('Sending chat request to backend...');
       console.log('User message:', chatInput);
       console.log('Access token (first 20 chars):', accessToken.substring(0, 20) + '...');
+      console.log('Request URL:', '/api/chat/');
+      console.log('Request method:', 'POST');
+      console.log('Request headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken.substring(0, 20)}...`
+      });
       
       // Make API call to your backend chat endpoint
       const response = await fetch('/api/chat/', {
@@ -253,7 +270,9 @@ function JournalPage() {
       });
 
       console.log('Response status:', response.status);
+      console.log('Response status text:', response.statusText);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response URL:', response.url);
 
       if (!response.ok) {
         const errorText = await response.text();
