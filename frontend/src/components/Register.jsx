@@ -72,25 +72,18 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-
-    if (passwordStrength.score < 5) {
-      alert('Please meet all password requirements');
+      setError('Passwords do not match');
       return;
     }
     
-    setIsSubmitting(true);
-    const success = await register(username, email, password);
-    setIsSubmitting(false);
-    
-    if (success) {
-      // Registration successful but email confirmation required
-      // The error message will show the success info
-      // User can then go to login page
+    try {
+      const success = await register(username, email, password);
+      // Remove automatic navigation - let AuthContext handle the flow
+    } catch (error) {
+      setError('Registration failed. Please try again.');
     }
   };
 

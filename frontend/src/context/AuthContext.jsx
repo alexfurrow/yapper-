@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase.js';
+import { useNavigate } from 'react-router-dom';
 
 // Create the context with a default value
 const AuthContext = createContext({
@@ -16,6 +17,7 @@ function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Initialize auth state from Supabase session
   useEffect(() => {
@@ -96,51 +98,49 @@ function AuthProvider({ children }) {
   }, []);
 
   // Register function
-  const register = useCallback(async (username, email, password) => {
+  const register = async (username, email, password) => {
     try {
+      setLoading(true);
       setError(null);
+      
       console.log('Starting registration with:', { username, email, password: '***' });
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            username: username
-          }
+          data: { username }
         }
       });
-      
-      console.log('Supabase response:', { data, error });
-      
+
       if (error) {
         console.error('Supabase registration error:', error);
         setError(error.message);
-        return false;
+        return;
       }
-      
+
       if (data.user) {
-        console.log('Registration successful, checking email confirmation...');
+        console.log('Registration successful, user data:', data.user);
         
-        // Check if email confirmation is required
+        // Check if email is confirmed
         if (data.user.email_confirmed_at) {
-          console.log('Email already confirmed, attempting auto-login...');
-          return await login(email, password);
+          // Email is confirmed, proceed with auto-login
+          setCurrentUser(data.user);
+          setLoading(false);
+          navigate('/');
         } else {
-          console.log('Email confirmation required');
-          setError('Registration successful! Please check your email to confirm your account before logging in.');
-          return false;
+          // Email not confirmed, show message to user
+          setError('Registration successful! Please check your email and click the verification link to confirm your account before logging in.');
+          setLoading(false);
         }
       }
-      
-      return false;
-    } catch (err) {
-      const errorMsg = err.message || 'Registration failed';
-      console.error("Registration error:", errorMsg);
-      setError(errorMsg);
-      return false;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [login]);
+  };
 
   // Logout function
   const logout = useCallback(async () => {
