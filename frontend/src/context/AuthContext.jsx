@@ -115,7 +115,20 @@ function AuthProvider({ children }) {
 
       if (error) {
         console.error('Supabase registration error:', error);
-        setError(error.message);
+        
+        // Handle specific error cases with user-friendly messages
+        if (error.message.includes('already registered') || 
+            error.message.includes('already exists') ||
+            error.message.includes('duplicate') ||
+            error.message.includes('User already registered')) {
+          setError('This email address is already registered. Please use a different email or try logging in instead.');
+        } else if (error.message.includes('Invalid email')) {
+          setError('Please enter a valid email address.');
+        } else if (error.message.includes('Password')) {
+          setError('Password does not meet requirements. Please ensure it has at least 8 characters.');
+        } else {
+          setError(error.message);
+        }
         return;
       }
 

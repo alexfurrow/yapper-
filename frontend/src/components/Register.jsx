@@ -197,6 +197,10 @@ function Register() {
         <div className="auth-link">
           Already have an account? <span onClick={() => navigate('/login')}>Login</span>
         </div>
+        
+        <div className="auth-note">
+          <p>If you're having trouble registering, you might already have an account. Try logging in instead!</p>
+        </div>
       </div>
     </div>
   );
