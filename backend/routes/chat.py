@@ -116,7 +116,7 @@ def debug_user_entries(current_user):
 
 print("DEBUG: Debug route defined")
 
-@chat_bp.route('/', methods=['POST'])
+@chat_bp.route('/chat', methods=['POST'])
 @supabase_auth_required
 def chat_with_database(current_user):
     """Chat endpoint with authentication"""
