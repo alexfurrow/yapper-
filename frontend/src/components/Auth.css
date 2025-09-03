@@ -89,22 +89,6 @@
   color: #7D8456; /* Olive leaf color */
 }
 
-.auth-note {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #FDF6E3;
-  border: 1px solid #D6C8A4;
-  border-radius: 4px;
-  text-align: center;
-}
-
-.auth-note p {
-  margin: 0;
-  font-size: 14px;
-  color: #4B286D;
-  font-style: italic;
-}
-
 /* Email Confirmation Styles */
 .loading-spinner {
   text-align: center;
