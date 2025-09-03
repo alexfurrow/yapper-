@@ -10,6 +10,7 @@ function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
   const { register, error } = useContext(AuthContext);
   const { navigate } = useContext(NavigationContext);
 
@@ -72,18 +73,35 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    console.log('Form submitted!');
+    console.log('Form data:', { username, email, password: '***', confirmPassword: '***' });
+    console.log('Password strength:', passwordStrength);
+    console.log('Passwords match:', password === confirmPassword);
+    
+    setLocalError('');
     
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setLocalError('Passwords do not match');
       return;
     }
     
+    if (passwordStrength.score < 5) {
+      setLocalError('Please meet all password requirements');
+      return;
+    }
+    
+    console.log('Starting registration...');
+    setIsSubmitting(true);
+    
     try {
-      const success = await register(username, email, password);
-      // Remove automatic navigation - let AuthContext handle the flow
+      await register(username, email, password);
+      console.log('Registration call completed');
+      // AuthContext will handle the flow and show appropriate messages
     } catch (error) {
-      setError('Registration failed. Please try again.');
+      console.error('Registration error:', error);
+      setLocalError('Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -91,7 +109,7 @@ function Register() {
     <div className="auth-container">
       <div className="auth-form-container">
         <h2>Create Account</h2>
-        {error && <div className="auth-error">{error}</div>}
+        {(localError || error) && <div className="auth-error">{localError || error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">Username</label>
@@ -169,7 +187,8 @@ function Register() {
           <button 
             type="submit" 
             className="auth-button"
-            disabled={isSubmitting || passwordStrength.score < 5 || password !== confirmPassword}
+            disabled={isSubmitting || password !== confirmPassword}
+            onClick={() => console.log('Button clicked!')}
           >
             {isSubmitting ? 'Creating Account...' : 'Create Account'}
           </button>
