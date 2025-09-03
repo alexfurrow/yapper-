@@ -33,6 +33,15 @@ print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY length: {len(os.environ.get('SUPABASE_S
 chat_bp = Blueprint('chat', __name__)
 print("DEBUG: Chat blueprint created")
 
+# Add a simple test route to debug routing
+@chat_bp.route('/hello', methods=['GET'])
+def hello():
+    """Simple test route to verify routing works"""
+    print("DEBUG: Hello route called")
+    return jsonify({'message': 'Hello from Railway!', 'status': 'ok'}), 200
+
+print("DEBUG: Hello route defined")
+
 print("DEBUG: About to define routes...")
 
 # Supabase auth decorator

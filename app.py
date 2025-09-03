@@ -122,7 +122,12 @@ def create_app(config_class=Config):
         print(f"  Routes after chat_bp registration:")
         for rule in app.url_map.iter_rules():
             if 'chat' in rule.endpoint:
-                print(f"    {rule.endpoint}: {rule.rule}")
+                print(f"    {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
+        
+        # Also check all routes to see what's actually registered
+        print(f"  All registered routes:")
+        for rule in app.url_map.iter_rules():
+            print(f"    {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
                 
     except Exception as e:
         print(f"  ✗ ERROR registering chat_bp: {str(e)}")
