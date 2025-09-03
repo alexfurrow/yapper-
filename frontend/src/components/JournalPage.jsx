@@ -42,6 +42,8 @@ function JournalPage() {
     try {
       console.log('Loading entries for user:', currentUser?.id);
       
+      // Use Supabase directly instead of backend API for now
+      // This avoids the URL routing issue
       const { data, error } = await supabase
         .from('entries')
         .select('*')
@@ -192,7 +194,11 @@ function JournalPage() {
       
       // First test the simple ping endpoint (no auth required)
       console.log('1. Testing ping endpoint (no auth)...');
-      const pingResponse = await fetch('/api/chat/ping', {
+      
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const pingUrl = `${backendUrl}/api/chat/ping`;
+      
+      const pingResponse = await fetch(pingUrl, {
         method: 'GET'
       });
       
@@ -223,7 +229,8 @@ function JournalPage() {
       console.log('   Token length:', accessToken.length);
       
       // Test the chat endpoint
-      const response = await fetch('/api/chat/test', {
+      const testUrl = `${backendUrl}/api/chat/test`;
+      const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -278,15 +285,20 @@ function JournalPage() {
       console.log('Sending chat request to backend...');
       console.log('User message:', chatInput);
       console.log('Access token (first 20 chars):', accessToken.substring(0, 20) + '...');
-      console.log('Request URL:', '/api/chat/');
+      
+      // Use the Railway backend URL instead of relative path
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const chatUrl = `${backendUrl}/api/chat/`;
+      
+      console.log('Request URL:', chatUrl);
       console.log('Request method:', 'POST');
       console.log('Request headers:', {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken.substring(0, 20)}...`
       });
       
-      // Make API call to your backend chat endpoint
-      const response = await fetch('/api/chat/', {
+      // Make API call to your Railway backend chat endpoint
+      const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
