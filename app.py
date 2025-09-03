@@ -50,26 +50,52 @@ def create_app(config_class=Config):
     print(f"--- INFO: All environment variables containing 'CORS': {[k for k in os.environ.keys() if 'CORS' in k.upper()]}")
     print(f"--- INFO: All environment variables containing 'ORIGIN': {[k for k in os.environ.keys() if 'ORIGIN' in k.upper()]}")
 
-    # Configure CORS more explicitly with additional options
-    cors.init_app(app, 
-        origins=allowed_origins,
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "Accept", "Origin"],
-        expose_headers=["Content-Type", "Authorization"],
-        supports_credentials=True,
-        max_age=3600
-    )
+    # Disable Flask-CORS to prevent conflicts with Railway
+    # We'll use manual CORS headers instead
+    print("--- INFO: Flask-CORS disabled, using manual CORS headers")
     
     # Add manual CORS headers to ensure they're set correctly
     @app.after_request
     def after_request(response):
         origin = request.headers.get('Origin')
+        print(f"--- DEBUG: Request origin: {origin}")
+        print(f"--- DEBUG: Allowed origins: {allowed_origins}")
+        
         if origin in allowed_origins:
             response.headers['Access-Control-Allow-Origin'] = origin
+            print(f"--- DEBUG: Set CORS origin to: {origin}")
+        else:
+            print(f"--- DEBUG: Origin {origin} not in allowed origins")
+            
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
         response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers['Access-Control-Max-Age'] = '3600'
+        
+        print(f"--- DEBUG: Final CORS headers: {dict(response.headers)}")
+        return response
+    
+    # Handle preflight OPTIONS requests
+    @app.route('/api/<path:path>', methods=['OPTIONS'])
+    def handle_preflight(path):
+        origin = request.headers.get('Origin')
+        print(f"--- DEBUG: Preflight request for path: {path}")
+        print(f"--- DEBUG: Preflight origin: {origin}")
+        
+        response = app.make_default_options_response()
+        
+        if origin in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            print(f"--- DEBUG: Preflight CORS origin set to: {origin}")
+        else:
+            print(f"--- DEBUG: Preflight origin {origin} not allowed")
+            
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        
+        print(f"--- DEBUG: Preflight response headers: {dict(response.headers)}")
         return response
     # scheduler.init_app(app) # Removed as per edit hint
 
