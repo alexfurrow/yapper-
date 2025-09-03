@@ -8,11 +8,16 @@ from backend.models.entries import entries
 from supabase import create_client, Client
 from functools import wraps
 
+print("DEBUG: Starting chat.py imports...")
+
 # Load environment variables
 load_dotenv(override=True)
 
+print("DEBUG: Environment variables loaded")
+
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+print("DEBUG: OpenAI client initialized")
 
 # Initialize Supabase client
 supabase: Client = create_client(
@@ -26,6 +31,9 @@ print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY exists: {'SUPABASE_SERVICE_ROLE_KEY' in
 print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
 
 chat_bp = Blueprint('chat', __name__)
+print("DEBUG: Chat blueprint created")
+
+print("DEBUG: About to define routes...")
 
 # Supabase auth decorator
 def supabase_auth_required(f):
