@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from extensions import db
 from backend.models.entries import entries
-# Remove this line: from backend.routes.auth import token_required
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
 import os

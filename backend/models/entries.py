@@ -7,7 +7,7 @@ class entries(db.Model):
     __tablename__ = 'entries'
     
     entry_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Allow null for existing records
+    user_id = db.Column(db.String, nullable=True)  # Supabase user ID (UUID string)
     user_entry_id = db.Column(db.Integer, nullable=True)  # User-specific entry number
     content = db.Column(db.Text, nullable=False)
     processed = db.Column(db.Text)
@@ -15,8 +15,8 @@ class entries(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Define relationship with User
-    user = db.relationship('users', backref=db.backref('entries', lazy=True))
+    # Note: User relationship handled through Supabase auth
+    # user_id field stores the Supabase user ID as a string
     
     def to_dict(self):
         return {

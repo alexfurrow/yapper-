@@ -3,9 +3,10 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from backend.services.embedding import search_by_text
-from backend.routes.auth import token_required
 from extensions import db
 from backend.models.entries import entries
+from supabase import create_client, Client
+from functools import wraps
 
 # Load environment variables
 load_dotenv(override=True)
@@ -13,7 +14,32 @@ load_dotenv(override=True)
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
+# Initialize Supabase client
+supabase: Client = create_client(
+    os.environ.get("SUPABASE_URL"),
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+)
+
 chat_bp = Blueprint('chat', __name__)
+
+# Supabase auth decorator
+def supabase_auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({"msg": "Authorization header missing"}), 401
+        
+        try:
+            token = auth_header.split(" ")[1]
+            user_response = supabase.auth.get_user(token)
+            if user_response.user:
+                return f(user_response.user, *args, **kwargs)
+            else:
+                return jsonify({"msg": "Invalid or expired token"}), 401
+        except Exception as e:
+            return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
+    return decorated_function
 
 @chat_bp.route('/chat/test', methods=['GET'])
 def test_chat_blueprint():
@@ -21,7 +47,7 @@ def test_chat_blueprint():
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
 
 @chat_bp.route('/chat/debug', methods=['GET'])
-@token_required
+@supabase_auth_required
 def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
     try:
@@ -50,7 +76,7 @@ def debug_user_entries(current_user):
         return jsonify({'error': str(e)}), 500
 
 @chat_bp.route('/chat/', methods=['POST'])
-@token_required
+@supabase_auth_required
 def chat_with_database(current_user):
     """Chat endpoint with authentication"""
     data = request.get_json()
