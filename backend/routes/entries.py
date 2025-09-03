@@ -6,6 +6,7 @@ from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
 import os
 from supabase import create_client, Client
+from functools import wraps
 
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
