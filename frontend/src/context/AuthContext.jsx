@@ -120,9 +120,17 @@ function AuthProvider({ children }) {
       }
       
       if (data.user) {
-        console.log('Registration successful, attempting auto-login...');
-        // Auto login after successful registration
-        return await login(email, password);
+        console.log('Registration successful, checking email confirmation...');
+        
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          console.log('Email already confirmed, attempting auto-login...');
+          return await login(email, password);
+        } else {
+          console.log('Email confirmation required');
+          setError('Registration successful! Please check your email to confirm your account before logging in.');
+          return false;
+        }
       }
       
       return false;

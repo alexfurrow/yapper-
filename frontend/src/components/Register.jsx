@@ -88,7 +88,9 @@ function Register() {
     setIsSubmitting(false);
     
     if (success) {
-      navigate('/verify-email');
+      // Registration successful but email confirmation required
+      // The error message will show the success info
+      // User can then go to login page
     }
   };
 
