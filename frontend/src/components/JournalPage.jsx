@@ -196,21 +196,57 @@ function JournalPage() {
     setIsChatLoading(true);
 
     try {
-      // For now, we'll add a simple AI response
-      // You can implement this later with your backend or OpenAI integration
-      setTimeout(() => {
-        const aiMessage = { 
-          type: 'ai', 
-          content: 'This is a placeholder response. Chat functionality will be implemented soon!' 
-        };
-        setChatMessages(prev => [...prev, aiMessage]);
-        setIsChatLoading(false);
-      }, 1000);
+      // Get the current user's access token from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
+      const accessToken = session.access_token;
+      
+      console.log('Sending chat request to backend...');
+      
+      // Make API call to your backend chat endpoint
+      const response = await fetch('/api/chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          message: chatInput,
+          limit: 3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Chat response received:', data);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const aiMessage = { 
+        type: 'ai', 
+        content: data.response,
+        sources: data.sources 
+      };
+      
+      setChatMessages(prev => [...prev, aiMessage]);
       
     } catch (error) {
       console.error('Chat error:', error);
-      const errorMessage = { type: 'ai', content: 'Sorry, I encountered an error. Please try again.' };
+      const errorMessage = { 
+        type: 'ai', 
+        content: `Sorry, I encountered an error: ${error.message}. Please try again.` 
+      };
       setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsChatLoading(false);
     }
   };
