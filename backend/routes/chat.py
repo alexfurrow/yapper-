@@ -76,10 +76,14 @@ def ping():
     print(f"DEBUG: Ping endpoint called with method: {request.method}")
     return jsonify({'message': 'Pong!', 'method': request.method, 'endpoint': 'ping'}), 200
 
+print("DEBUG: Ping route defined")
+
 @chat_bp.route('/test', methods=['GET'])
 def test_chat_blueprint():
     """Simple test endpoint to verify chat blueprint is working"""
     return jsonify({'message': 'Chat blueprint is working!', 'status': 'ok'}), 200
+
+print("DEBUG: Test route defined")
 
 @chat_bp.route('/debug', methods=['GET'])
 @supabase_auth_required
@@ -109,6 +113,8 @@ def debug_user_entries(current_user):
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+print("DEBUG: Debug route defined")
 
 @chat_bp.route('/', methods=['POST'])
 @supabase_auth_required
@@ -155,7 +161,6 @@ def chat_with_database(current_user):
                 {"role": "system", "content": 
                  """You are an AI assistant that answers questions based on the user's journal entries. 
                  You'll be provided with relevant entries from their journal database.
-                 Use this context to provide insightful, personalized responses.
                  If the context doesn't contain relevant information, acknowledge that and provide a general response.
                  Always maintain a conversational, helpful tone."""},
                 {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
@@ -172,4 +177,7 @@ def chat_with_database(current_user):
         
     except Exception as e:
         print(f"Error in chat endpoint: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+print("DEBUG: Main chat route defined")
+print("DEBUG: All routes in chat.py have been defined") 
