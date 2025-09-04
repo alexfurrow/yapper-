@@ -3,8 +3,8 @@ import numpy as np
 import os
 import pickle
 from flask import current_app
-from backend.models.entries import entries  # Updated import
-from extensions import db
+# SQLAlchemy references removed - using Supabase
+from supabase import create_client, Client
 
 class HNSWIndex:
     def __init__(self, dim=1536, ef_construction=200, M=16):
@@ -24,8 +24,15 @@ class HNSWIndex:
         
     def build_index(self):
         """Build HNSW index from all vectorized entries in the database"""
-        # Get all entries with vectors
-        all_entries = entries.query.filter(entries.vectors.isnot(None)).all()
+        # Initialize Supabase client
+        supabase = create_client(
+            os.environ.get("SUPABASE_URL"),
+            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        )
+        
+        # Get all entries with vectors from Supabase
+        response = supabase.table('entries').select('*').not_.is_('vectors', 'null').execute()
+        all_entries = response.data
         
         if not all_entries:
             print("No vectorized entries found in database")
@@ -43,10 +50,10 @@ class HNSWIndex:
         ids = []
         
         for i, entry in enumerate(all_entries):
-            vectors.append(entry.vectors)
+            vectors.append(entry['vectors'])
             ids.append(i)
-            self.id_to_entry_id[i] = entry.entry_id
-            self.entry_id_to_id[entry.entry_id] = i
+            self.id_to_entry_id[i] = entry['entry_id']
+            self.entry_id_to_id[entry['entry_id']] = i
             
         self.index.add_items(np.array(vectors), ids)
         

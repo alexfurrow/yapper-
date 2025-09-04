@@ -3,16 +3,14 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-# --- ADD DEBUG HERE ---
-print(f"--- DEBUG [app.py top level]: DATABASE_URL before load_environment: {os.environ.get('DATABASE_URL')}")
-# --- END DEBUG ---
+# SQLAlchemy database references removed - using Supabase
 
 from backend.config.environment import load_environment
 load_environment()
 
 from flask import Flask, request
 from config import Config
-from extensions import db, migrate, cors
+from extensions import cors
 from backend.routes.main import main_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
@@ -32,9 +30,7 @@ def create_app(config_class=Config):
     # app.config['SCHEDULER_API_ENABLED'] = True # Removed as per edit hint
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
-    # Initialize extensions
-    db.init_app(app)
-    migrate.init_app(app, db)
+    # Initialize extensions (SQLAlchemy removed - using Supabase)
     
     # Get Vercel URL from an environment variable for flexibility
     vercel_url = os.environ.get('FRONTEND_URL', None) # Example: Set FRONTEND_URL=https://my-yapper-frontend.vercel.app in Railway vars
@@ -142,13 +138,7 @@ def create_app(config_class=Config):
     # Start the scheduler
     # scheduler.start() # Removed as per edit hint
 
-    # Database configuration
-    db_url_from_env = os.environ.get('DATABASE_URL')
-    print(f"--- DEBUG: DATABASE_URL from os.environ AFTER load_dotenv: {db_url_from_env}")
-    if not db_url_from_env:
-        print("CRITICAL WARNING: DATABASE_URL is not set in environment!")
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url_from_env
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # Database configuration removed - using Supabase directly
 
     return app
 

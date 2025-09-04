@@ -1,5 +1,4 @@
-from flask_migrate import Migrate
 from flask_cors import CORS
 
-migrate = Migrate()
+# SQLAlchemy and Flask-Migrate removed - using Supabase
 cors = CORS() 

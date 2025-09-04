@@ -3,8 +3,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from backend.services.embedding import search_by_text
-from extensions import db
-from backend.models.entries import entries
+# SQLAlchemy references removed - using Supabase
 from supabase import create_client, Client
 from functools import wraps
 
@@ -99,12 +98,13 @@ print("DEBUG: Test route defined")
 def debug_user_entries(current_user):
     """Debug endpoint to check user's entries and embeddings"""
     try:
-        # Get all entries for the user
-        user_entries = entries.query.filter_by(user_id=current_user.id).all()
+        # Get all entries for the user from Supabase
+        response = supabase.table('entries').select('*').eq('user_id', current_user.id).execute()
+        user_entries = response.data
         
         # Count entries with and without embeddings
         total_entries = len(user_entries)
-        entries_with_embeddings = len([e for e in user_entries if e.vectors is not None])
+        entries_with_embeddings = len([e for e in user_entries if e.get('vectors') is not None])
         entries_without_embeddings = total_entries - entries_with_embeddings
         
         return jsonify({
@@ -114,9 +114,9 @@ def debug_user_entries(current_user):
             'entries_without_embeddings': entries_without_embeddings,
             'sample_entries': [
                 {
-                    'entry_id': e.entry_id,
-                    'has_embedding': e.vectors is not None,
-                    'content_preview': e.content[:100] + '...' if len(e.content) > 100 else e.content
+                    'entry_id': e['entry_id'],
+                    'has_embedding': e.get('vectors') is not None,
+                    'content_preview': e['content'][:100] + '...' if len(e['content']) > 100 else e['content']
                 } for e in user_entries[:5]  # Show first 5 entries
             ]
         }), 200
