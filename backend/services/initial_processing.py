@@ -11,7 +11,10 @@ load_dotenv(override=True)
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def process_text(content):
-    try:        
+    try:
+        print(f"Processing text with OpenAI API...")
+        print(f"OpenAI API key exists: {bool(os.environ.get('OPENAI_API_KEY'))}")
+        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             # response_format = {"type": "json_object"},
@@ -47,10 +50,12 @@ def process_text(content):
 
         )
         processed_text = response.choices[0].message.content
+        print(f"✓ Text processing successful: {processed_text[:100]}...")
         return processed_text  
 
     except Exception as e:
-        print(f"OpenAI API error: {str(e)}")
+        print(f"✗ OpenAI API error in process_text: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
         return None 
 
 

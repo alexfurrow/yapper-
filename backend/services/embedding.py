@@ -21,14 +21,20 @@ __all__ = ['search_by_text', 'generate_embedding', 'vectorize_all_entries']
 def generate_embedding(text):
     """Generate embedding for a single text using OpenAI API"""
     try:
+        print(f"Generating embedding for text: {text[:100]}...")
+        print(f"OpenAI API key exists: {bool(os.environ.get('OPENAI_API_KEY'))}")
+        
         response = client.embeddings.create(
             model="text-embedding-3-large",
             input=text,
             dimensions=1536  # Specify dimensions for the embedding
         )
-        return response.data[0].embedding
+        embedding = response.data[0].embedding
+        print(f"✓ Embedding generated successfully (length: {len(embedding)})")
+        return embedding
     except Exception as e:
-        print(f"Error generating embedding: {str(e)}")
+        print(f"✗ Error generating embedding: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
         return None
 
 def vectorize_all_entries():

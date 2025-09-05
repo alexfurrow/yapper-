@@ -187,6 +187,90 @@ function JournalPage() {
     }
   };
 
+  // Test vector search functionality
+  const testVectorSearch = async () => {
+    console.log('Testing vector search functionality...');
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No Supabase session found');
+        return;
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const testUrl = `${backendUrl}/api/chat/test-search`;
+      
+      console.log('Testing vector search with query: "test"');
+      
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          query: 'test'
+        })
+      });
+      
+      console.log('Vector search response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Vector search response data:', data);
+        console.log('✓ Vector search working!');
+      } else {
+        console.log('✗ Vector search failed');
+        const errorText = await response.text();
+        console.log('Error body:', errorText);
+      }
+    } catch (error) {
+      console.error('Error testing vector search:', error);
+    }
+  };
+
+  // Check database schema
+  const checkDatabaseSchema = async () => {
+    console.log('Checking database schema...');
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No Supabase session found');
+        return;
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const schemaUrl = `${backendUrl}/api/chat/check-schema`;
+      
+      console.log('Checking database schema...');
+      
+      const response = await fetch(schemaUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      console.log('Schema check response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Schema check response data:', data);
+        console.log('✓ Schema check complete!');
+      } else {
+        console.log('✗ Schema check failed');
+        const errorText = await response.text();
+        console.log('Error body:', errorText);
+      }
+    } catch (error) {
+      console.error('Error checking schema:', error);
+    }
+  };
+
   // Test backend connectivity
   const testBackendConnection = async () => {
     try {
@@ -464,13 +548,29 @@ function JournalPage() {
               <div className="chat-container">
                 <div className="chat-header">
                   <h2>Journal Assistant</h2>
-                  <button 
-                    onClick={testBackendConnection}
-                    className="test-button"
-                    title="Test backend connection"
-                  >
-                    🔧 Test
-                  </button>
+                  <div className="test-buttons">
+                    <button 
+                      onClick={testBackendConnection}
+                      className="test-button"
+                      title="Test backend connection"
+                    >
+                      🔧 Test
+                    </button>
+                    <button 
+                      onClick={testVectorSearch}
+                      className="test-button"
+                      title="Test vector search"
+                    >
+                      🔍 Search
+                    </button>
+                    <button 
+                      onClick={checkDatabaseSchema}
+                      className="test-button"
+                      title="Check database schema"
+                    >
+                      📊 Schema
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="messages-container">

@@ -294,6 +294,11 @@
   font-weight: 600;
 }
 
+.test-buttons {
+  display: flex;
+  gap: 5px;
+}
+
 .test-button {
   background: #7D8456;
   color: white;
@@ -302,7 +307,6 @@
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
-  margin-left: 10px;
 }
 
 .test-button:hover {

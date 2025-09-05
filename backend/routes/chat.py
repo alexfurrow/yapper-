@@ -125,6 +125,61 @@ def debug_user_entries(current_user):
 
 print("DEBUG: Debug route defined")
 
+@chat_bp.route('/chat/test-search', methods=['POST'])
+@supabase_auth_required
+def test_vector_search(current_user):
+    """Test endpoint to debug vector search functionality"""
+    try:
+        data = request.get_json()
+        test_query = data.get('query', 'test query')
+        
+        print(f"Testing vector search for user {current_user.id} with query: {test_query}")
+        
+        # Test the search function
+        results = search_by_text(test_query, limit=3, user_id=current_user.id)
+        
+        return jsonify({
+            'user_id': current_user.id,
+            'query': test_query,
+            'results_count': len(results),
+            'results': results
+        }), 200
+    except Exception as e:
+        print(f"Error in test_vector_search: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@chat_bp.route('/chat/check-schema', methods=['GET'])
+@supabase_auth_required
+def check_database_schema(current_user):
+    """Check if the database schema supports vector search"""
+    try:
+        # Get a sample entry to check the schema
+        response = supabase.table('entries').select('*').eq('user_id', current_user.id).limit(1).execute()
+        
+        if not response.data:
+            return jsonify({
+                'error': 'No entries found for user',
+                'user_id': current_user.id
+            }), 404
+        
+        sample_entry = response.data[0]
+        has_vectors_column = 'vectors' in sample_entry
+        
+        return jsonify({
+            'user_id': current_user.id,
+            'has_vectors_column': has_vectors_column,
+            'sample_entry_keys': list(sample_entry.keys()),
+            'sample_entry': {
+                'entry_id': sample_entry.get('entry_id'),
+                'has_vectors': sample_entry.get('vectors') is not None,
+                'content_length': len(sample_entry.get('content', '')),
+                'processed_length': len(sample_entry.get('processed', ''))
+            }
+        }), 200
+    except Exception as e:
+        print(f"Error checking schema: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @chat_bp.route('/chat/chat', methods=['POST'])
 @supabase_auth_required
 def chat_with_database(current_user):

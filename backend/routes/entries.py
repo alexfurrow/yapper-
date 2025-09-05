@@ -61,8 +61,13 @@ def create_entry(current_user):
     
     try:
         # Process content through OpenAI
+        print(f"Starting text processing for content: {data['content'][:100]}...")
         processed_content = process_text(data['content'])
-        print(f"Processed content: {processed_content}")
+        print(f"Text processing result: {processed_content}")
+        
+        if not processed_content:
+            print("WARNING: Text processing failed - processed_content is None")
+            processed_content = data['content']  # Fallback to original content
         
         # Get the next user entry ID
         user_entries_response = supabase.table('entries').select('user_entry_id').eq('user_id', current_user.id).execute()
@@ -78,13 +83,16 @@ def create_entry(current_user):
         }
         
         # Generate embedding immediately for real-time search
+        print(f"Starting embedding generation for processed content...")
         if processed_content:
             embedding = generate_embedding(processed_content)
             if embedding:
                 entry_data['vectors'] = embedding
-                print(f"Generated embedding for new entry")
+                print(f"✓ Generated embedding for new entry (length: {len(embedding)})")
             else:
-                print(f"Failed to generate embedding for new entry")
+                print(f"✗ Failed to generate embedding for new entry")
+        else:
+            print(f"✗ Skipping embedding generation - no processed content")
         
         # Create new entry in Supabase
         response = supabase.table('entries').insert(entry_data).execute()
