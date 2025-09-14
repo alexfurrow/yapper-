@@ -241,7 +241,7 @@ def chat_with_database(current_user):
         
     except Exception as e:
         print(f"Error in chat endpoint: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500 
 
 print("DEBUG: Main chat route defined")
 print("DEBUG: All routes in chat.py have been defined") 
