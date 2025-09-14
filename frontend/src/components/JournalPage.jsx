@@ -82,30 +82,41 @@ function JournalPage() {
       setMessage('Saving...');
       setIsLoading(true);
       
-      // Get the next user_entry_id
-      const { data: maxEntry } = await supabase
-        .from('entries')
-        .select('user_entry_id')
-        .eq('user_id', currentUser?.id)
-        .order('user_entry_id', { ascending: false })
-        .limit(1);
-
-      const nextUserEntryId = (maxEntry?.[0]?.user_entry_id || 0) + 1;
-      
-      const { data, error } = await supabase
-        .from('entries')
-        .insert([
-          { 
-        content: content,
-            user_id: currentUser?.id,
-            user_entry_id: nextUserEntryId
-          }
-        ])
-        .select();
-
-      if (error) {
-        throw new Error(error.message);
+      // Get Supabase session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
       }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const createUrl = `${backendUrl}/api/entries`;
+      
+      console.log('Creating entry via backend API...');
+      console.log('Backend URL:', createUrl);
+      console.log('Content:', content);
+      
+      const response = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          content: content
+        })
+      });
+
+      console.log('Create entry response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Entry created successfully:', data);
       
       setMessage('Entry saved successfully!');
       setContent('');
