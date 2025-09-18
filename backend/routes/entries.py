@@ -92,7 +92,13 @@ def create_entry(current_user):
             print(f"Processed content is falsy, skipping embedding generation")
         
         # Create new entry in Supabase
+        print(f"DEBUG: About to insert entry_data: {entry_data}")
+        print(f"DEBUG: Supabase client URL: {os.environ.get('SUPABASE_URL')}")
+        print(f"DEBUG: Service role key exists: {bool(os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))}")
+        print(f"DEBUG: Service role key length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
+        
         response = supabase.table('entries').insert(entry_data).execute()
+        print(f"DEBUG: Supabase response: {response}")
         new_entry = response.data[0] if response.data else None
         
         if not new_entry:
@@ -115,12 +121,12 @@ def create_entry(current_user):
 def get_entry(current_user, entry_id):
     """Get a specific entry by ID"""
     try:
-        response = supabase.table('entries').select('*').eq('entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         entry = response.data[0] if response.data else None
-        
-        if not entry:
-            return jsonify({'message': 'Entry not found'}), 404
-        
+    
+    if not entry:
+        return jsonify({'message': 'Entry not found'}), 404
+    
         return jsonify(entry), 200
     except Exception as e:
         print(f"Error getting entry: {str(e)}")
@@ -132,7 +138,7 @@ def update_entry(current_user, entry_id):
     """Update an existing entry"""
     try:
         # Check if entry exists and belongs to user
-        response = supabase.table('entries').select('*').eq('entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -152,7 +158,7 @@ def update_entry(current_user, entry_id):
             update_data['processed'] = processed_content
             
         # Update entry in Supabase
-        response = supabase.table('entries').update(update_data).eq('entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         updated_entry = response.data[0] if response.data else None
         
         if not updated_entry:
@@ -169,14 +175,14 @@ def delete_entry(current_user, entry_id):
     """Delete an entry"""
     try:
         # Check if entry exists and belongs to user
-        response = supabase.table('entries').select('*').eq('entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
         
         # Delete entry from Supabase
-        response = supabase.table('entries').delete().eq('entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = supabase.table('entries').delete().eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
@@ -204,4 +210,4 @@ def search_entries(current_user):
         }), 200
     except Exception as e:
         print(f"Error searching entries: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500 

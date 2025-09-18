@@ -202,13 +202,13 @@ def chat_with_database(current_user):
         
         # Debug: Print each entry found
         for i, entry in enumerate(similar_entries):
-            print(f"Entry {i+1}: ID={entry['entry_id']}, Similarity={entry['similarity']:.3f}")
-            print(f"  Content preview: {entry['processed'][:100]}...")
+            print(f"Entry {i+1}: ID={entry.get('user_entry_id', 'N/A')}, Similarity={entry['similarity']:.3f}")
+            print(f"  Content preview: {entry.get('processed', 'No processed content')[:100]}...")
         
         # Extract content from similar entries
         context = ""
         for entry in similar_entries:
-            context += f"Entry {entry['entry_id']} (similarity: {entry['similarity']:.2f}):\n{entry['processed']}\n\n"
+            context += f"Entry {entry.get('user_entry_id', 'N/A')} (similarity: {entry['similarity']:.2f}):\n{entry.get('processed', 'No processed content')}\n\n"
         
         print(f"Context length: {len(context)} characters")
         print(f"Context preview: {context[:200]}...")
@@ -236,7 +236,7 @@ def chat_with_database(current_user):
         
         return jsonify({
             'response': ai_response,
-            'sources': [{'entry_id': entry['entry_id'], 'similarity': entry['similarity']} for entry in similar_entries]
+            'sources': [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
         }), 200
         
     except Exception as e:
