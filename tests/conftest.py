@@ -12,19 +12,23 @@ load_dotenv(override=True)
 @pytest.fixture
 def test_app():
     """Create a test Flask application."""
-    from app import create_app
-    
-    # Set test environment variables
+    # Set test environment variables BEFORE importing app
     os.environ['FLASK_ENV'] = 'testing'
-    os.environ['SUPABASE_URL'] = os.environ.get('SUPABASE_URL', 'https://test.supabase.co')
-    os.environ['SUPABASE_SERVICE_ROLE_KEY'] = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', 'test-key')
-    os.environ['OPENAI_API_KEY'] = os.environ.get('OPENAI_API_KEY', 'test-openai-key')
+    os.environ['SUPABASE_URL'] = 'https://test.supabase.co'
+    os.environ['SUPABASE_SERVICE_ROLE_KEY'] = 'test-service-role-key'
+    os.environ['OPENAI_API_KEY'] = 'test-openai-key'
     
-    app = create_app()
-    app.config['TESTING'] = True
-    
-    with app.test_client() as client:
-        yield client
+    # Mock the Supabase client before importing app
+    with patch('backend.routes.entries.supabase') as mock_entries_supabase:
+        with patch('backend.routes.chat.supabase') as mock_chat_supabase:
+            with patch('backend.services.embedding.supabase') as mock_embedding_supabase:
+                from app import create_app
+                
+                app = create_app()
+                app.config['TESTING'] = True
+                
+                with app.test_client() as client:
+                    yield client
 
 @pytest.fixture
 def mock_supabase():

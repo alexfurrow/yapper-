@@ -57,3 +57,10 @@ backlog.txt
 
 #cursor
 cursor.md
+
+# Testing
+htmlcov/
+.coverage
+.pytest_cache/
+*.pyc
+__pycache__/

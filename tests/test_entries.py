@@ -57,7 +57,7 @@ class TestEntryCreation:
         
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'content' in data['error']
+        assert 'Content is required' in data['message']
     
     def test_create_entry_unauthorized(self, test_app):
         """Test entry creation without authentication."""
