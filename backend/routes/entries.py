@@ -123,10 +123,10 @@ def get_entry(current_user, entry_id):
     try:
         response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
         entry = response.data[0] if response.data else None
-    
-    if not entry:
-        return jsonify({'message': 'Entry not found'}), 404
-    
+        
+        if not entry:
+            return jsonify({'message': 'Entry not found'}), 404
+        
         return jsonify(entry), 200
     except Exception as e:
         print(f"Error getting entry: {str(e)}")
@@ -210,4 +210,4 @@ def search_entries(current_user):
         }), 200
     except Exception as e:
         print(f"Error searching entries: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
