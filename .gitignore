@@ -68,3 +68,6 @@ __pycache__/
 #local logs
 app.log
 errors.log
+
+#google SSO client secret
+google_sso.json

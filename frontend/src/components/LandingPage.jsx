@@ -21,7 +21,7 @@ function LandingPage() {
       <div className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title">
-            <span className="title-line">Your Personal</span>
+            <span className="title-line">Welcome to</span>
             <span className="title-line highlight">Yapper</span>
           </h1>
           
