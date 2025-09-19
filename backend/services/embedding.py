@@ -38,8 +38,6 @@ def vectorize_all_entries():
         response = supabase.table('entries').select('*').is_('vectors', 'null').not_.is_('processed', 'null').execute()
         vectorless = response.data
         
-        print(f"Found {len(vectorless)} entries to vectorize")
-        
         for entry in vectorless:
             if entry.get('processed'):
                 # Generate embedding for processed text
@@ -49,9 +47,6 @@ def vectorize_all_entries():
                     supabase.table('entries').update({
                         'vectors': embedding
                     }).eq('entry_id', entry['entry_id']).execute()
-                    print(f"Generated embedding for entry {entry['entry_id']}")
-            
-        print("Vectorization complete")
         return True
     except Exception as e:
         print(f"Error vectorizing entries: {str(e)}")
@@ -63,7 +58,6 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Generate embedding for query text
         query_embedding = generate_embedding(query_text)
         if not query_embedding:
-            print("Failed to generate embedding for query text")
             return []
         
         # Convert to numpy array for calculations
@@ -75,15 +69,12 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Add user_id filter if provided
         if user_id is not None:
             query = query.eq('user_id', user_id)
-            print(f"Filtering entries for user_id: {user_id}")
         
         # Get all matching entries
         response = query.execute()
         all_entries = response.data
-        print(f"Found {len(all_entries)} entries with vectors (user_id filter: {user_id is not None})")
         
         if not all_entries:
-            print("No entries found with vectors")
             return []
         
         # Calculate cosine similarity
@@ -103,7 +94,6 @@ def search_by_text(query_text, limit=5, user_id=None):
             entry['similarity'] = float(similarity)  # Add similarity score to the dictionary
             results.append(entry)
             
-        print(f"Returning {len(results)} results with similarities: {[r['similarity'] for r in results]}")
         return results
     except Exception as e:
         print(f"Error finding similar entries: {str(e)}")

@@ -11,7 +11,6 @@ load_dotenv(override=True)
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def process_text(content):
-    print(f"DEBUG: process_text called with content: '{content}'")
     try:        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -48,7 +47,6 @@ def process_text(content):
 
         )
         processed_text = response.choices[0].message.content
-        print(f"DEBUG: process_text returning: '{processed_text}'")
         return processed_text  
 
     except Exception as e:
