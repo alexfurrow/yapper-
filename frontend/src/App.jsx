@@ -6,6 +6,7 @@ import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
 import EmailConfirmation from './components/EmailConfirmation';
+import AuthCallback from './components/AuthCallback';
 import JournalPage from './components/JournalPage';
 import './App.css';
 
@@ -143,6 +144,16 @@ function CustomRouter() {
       <NavigationContext.Provider value={{ navigate }}>
         <div className="App">
           <EmailConfirmation />
+        </div>
+      </NavigationContext.Provider>
+    );
+  }
+
+  if (currentPath === '/auth/callback') {
+    return (
+      <NavigationContext.Provider value={{ navigate }}>
+        <div className="App">
+          <AuthCallback />
         </div>
       </NavigationContext.Provider>
     );

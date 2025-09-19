@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { NavigationContext } from '../App';
 import './Auth.css';
@@ -9,6 +9,16 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, loginWithGoogle, error } = useContext(AuthContext);
   const { navigate } = useContext(NavigationContext);
+
+  // Handle OAuth callback errors
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      console.error('OAuth callback error:', errorParam);
+      // You could set a local error state here if needed
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
