@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, g
 # SQLAlchemy references removed - using Supabase
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
@@ -42,8 +42,12 @@ def supabase_auth_required(f):
             # Create user-specific Supabase client
             user_supabase = create_user_supabase_client(token)
             
-            # Pass both user and user_supabase to the function
-            return f(user.user, user_supabase, *args, **kwargs)
+            # Store in Flask g for global access
+            g.current_user = user.user
+            g.user_supabase = user_supabase
+            
+            # Call the function with original args (no extra arguments)
+            return f(*args, **kwargs)
         except Exception as e:
             return jsonify({'message': 'Token verification error!'}), 401
     
@@ -52,10 +56,10 @@ def supabase_auth_required(f):
 # Update all your route decorators from @token_required to @supabase_auth_required
 @entries_bp.route('/entries', methods=['GET'])
 @supabase_auth_required
-def get_entries(current_user, user_supabase):
+def get_entries():
     """Get all entries for the current user"""
     try:
-        response = user_supabase.table('entries').select('*').order('created_at', desc=True).execute()
+        response = g.user_supabase.table('entries').select('*').order('created_at', desc=True).execute()
         all_entries = response.data
         return jsonify(all_entries), 200
     except Exception as e:
@@ -64,7 +68,7 @@ def get_entries(current_user, user_supabase):
 
 @entries_bp.route('/entries', methods=['POST'])
 @supabase_auth_required
-def create_entry(current_user, user_supabase):
+def create_entry():
     """Create a new entry with processed content and immediate embedding"""
     print("Received request:", request.get_json())  # Debug print
     data = request.get_json()
@@ -81,7 +85,7 @@ def create_entry(current_user, user_supabase):
         print(f"Processed content truthy: {bool(processed_content)}")
         
         # Get the next user entry ID using user context
-        user_entries_response = user_supabase.table('entries').select('user_entry_id').execute()
+        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
@@ -110,7 +114,7 @@ def create_entry(current_user, user_supabase):
         print(f"DEBUG: Service role key exists: {bool(os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))}")
         print(f"DEBUG: Service role key length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
         
-        response = user_supabase.table('entries').insert(entry_data).execute()
+        response = g.user_supabase.table('entries').insert(entry_data).execute()
         print(f"DEBUG: Supabase response: {response}")
         new_entry = response.data[0] if response.data else None
         
@@ -131,10 +135,10 @@ def create_entry(current_user, user_supabase):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
 @supabase_auth_required
-def get_entry(current_user, user_supabase, entry_id):
+def get_entry(entry_id):
     """Get a specific entry by ID"""
     try:
-        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -147,11 +151,11 @@ def get_entry(current_user, user_supabase, entry_id):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
 @supabase_auth_required
-def update_entry(current_user, user_supabase, entry_id):
+def update_entry(entry_id):
     """Update an existing entry"""
     try:
         # Check if entry exists and belongs to user
-        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -171,7 +175,7 @@ def update_entry(current_user, user_supabase, entry_id):
             update_data['processed'] = processed_content
             
         # Update entry in Supabase
-        response = user_supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).execute()
         updated_entry = response.data[0] if response.data else None
         
         if not updated_entry:
@@ -184,18 +188,18 @@ def update_entry(current_user, user_supabase, entry_id):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
 @supabase_auth_required
-def delete_entry(current_user, user_supabase, entry_id):
+def delete_entry(entry_id):
     """Delete an entry"""
     try:
         # Check if entry exists and belongs to user
-        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
         
         # Delete entry from Supabase
-        response = user_supabase.table('entries').delete().eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').delete().eq('user_entry_id', entry_id).execute()
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
@@ -204,7 +208,7 @@ def delete_entry(current_user, user_supabase, entry_id):
 
 @entries_bp.route('/entries/search', methods=['POST'])
 @supabase_auth_required
-def search_entries(current_user, user_supabase):
+def search_entries():
     """Search for similar entries using vector embeddings"""
     data = request.get_json()
     
@@ -216,7 +220,7 @@ def search_entries(current_user, user_supabase):
         
         limit = data.get('limit', 5)
         # Only search the current user's entries
-        similar_entries = search_by_text(data['query'], limit, user_id=current_user.id)
+        similar_entries = search_by_text(data['query'], limit, user_id=g.current_user.id)
         
         return jsonify({
             'results': similar_entries

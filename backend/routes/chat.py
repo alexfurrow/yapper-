@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -20,6 +20,15 @@ supabase: Client = create_client(
 
 chat_bp = Blueprint('chat', __name__)
 
+# Function to create user-specific Supabase client
+def create_user_supabase_client(user_token):
+    """Create a Supabase client that operates as the authenticated user"""
+    return create_client(
+        os.environ.get("SUPABASE_URL"),
+        os.environ.get("SUPABASE_ANON_KEY"),  # Use anon key, not service role
+        global_headers={"Authorization": f"Bearer {user_token}"}
+    )
+
 # Supabase auth decorator
 def supabase_auth_required(f):
     @wraps(f)
@@ -36,13 +45,15 @@ def supabase_auth_required(f):
             if not response.user:
                 return jsonify({"msg": "Invalid or expired token"}), 401
             
-            # Create a simple user object with the ID
-            class User:
-                def __init__(self, user_id):
-                    self.id = user_id
+            # Create user-specific Supabase client
+            user_supabase = create_user_supabase_client(token)
             
-            current_user = User(response.user.id)
-            return f(current_user, *args, **kwargs)
+            # Store in Flask g for global access
+            g.current_user = response.user
+            g.user_supabase = user_supabase
+            
+            # Call the function with original args (no extra arguments)
+            return f(*args, **kwargs)
             
         except Exception as e:
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
@@ -50,7 +61,7 @@ def supabase_auth_required(f):
 
 @chat_bp.route('/chat/chat', methods=['POST'])
 @supabase_auth_required
-def chat_with_database(current_user):
+def chat_with_database():
     """Chat endpoint with authentication"""
     data = request.get_json()
     
@@ -60,13 +71,13 @@ def chat_with_database(current_user):
     try:
         # Get user message
         user_message = data['message']
-        print(f"Chat request from user {current_user.id}: {user_message}")
+        print(f"Chat request from user {g.current_user.id}: {user_message}")
         
         # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
-        similar_entries = search_by_text(user_message, limit, user_id=current_user.id)
+        similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id)
         
-        print(f"Found {len(similar_entries)} similar entries for user {current_user.id}")
+        print(f"Found {len(similar_entries)} similar entries for user {g.current_user.id}")
         
         # Debug: Print each entry found
         for i, entry in enumerate(similar_entries):
