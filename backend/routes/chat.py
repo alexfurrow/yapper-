@@ -21,13 +21,15 @@ supabase: Client = create_client(
 chat_bp = Blueprint('chat', __name__)
 
 # Function to create user-specific Supabase client
-def create_user_supabase_client(user_token):
+def create_user_supabase_client(user_token: str):
     """Create a Supabase client that operates as the authenticated user"""
-    return create_client(
-        os.environ.get("SUPABASE_URL"),
-        os.environ.get("SUPABASE_ANON_KEY"),  # Use anon key, not service role
-        global_headers={"Authorization": f"Bearer {user_token}"}
+    client = create_client(
+        os.environ["SUPABASE_URL"],
+        os.environ["SUPABASE_ANON_KEY"]
     )
+    # v2 way: attach JWT to PostgREST
+    client.postgrest.auth(user_token)
+    return client
 
 # Supabase auth decorator
 def supabase_auth_required(f):
