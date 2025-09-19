@@ -4,12 +4,12 @@ from werkzeug.exceptions import InternalServerError
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
 import os
-import logging
 from supabase import create_client, Client
 from functools import wraps
+from backend.config.logging import get_logger
 
 # Set up logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [

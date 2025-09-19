@@ -6,7 +6,13 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 # SQLAlchemy database references removed - using Supabase
 
 from backend.config.environment import load_environment
+from backend.config.logging import setup_logging
+
+# Load environment first
 load_environment()
+
+# Setup logging with redaction
+setup_logging()
 
 from flask import Flask, request
 from config import Config
