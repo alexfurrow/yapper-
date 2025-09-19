@@ -2,10 +2,14 @@ from flask import Blueprint, request, jsonify, g
 from werkzeug.exceptions import InternalServerError
 from openai import OpenAI
 import os
+import logging
 from dotenv import load_dotenv
 from backend.services.embedding import search_by_text
 from supabase import create_client, Client
 from functools import wraps
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [
@@ -92,10 +96,12 @@ def chat_with_database():
     try:
         # Get user message
         user_message = data['message']
+        logger.info("Chat request received", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "message_length": len(user_message)})
         
         # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
         similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id)
+        logger.info("Similar entries found", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "count": len(similar_entries)})
         
         # Extract content from similar entries
         context = ""
@@ -121,6 +127,7 @@ def chat_with_database():
         )
         
         ai_response = response.choices[0].message.content
+        logger.info("Chat response generated", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "response_length": len(ai_response)})
         
         return jsonify({
             'response': ai_response,
@@ -128,4 +135,5 @@ def chat_with_database():
         }), 200
         
     except Exception as e:
+        logger.error("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
         return jsonify({'error': str(e)}), 500

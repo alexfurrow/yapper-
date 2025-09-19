@@ -4,8 +4,12 @@ from werkzeug.exceptions import InternalServerError
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
 import os
+import logging
 from supabase import create_client, Client
 from functools import wraps
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [
@@ -79,11 +83,13 @@ def supabase_auth_required(f):
 def get_entries():
     """Get all entries for the current user"""
     try:
+        logger.info("Fetching entries", extra={"route": "/entries", "method": "GET", "user_id": g.current_user.id})
         response = g.user_supabase.table('entries').select('*').order('created_at', desc=True).execute()
         all_entries = response.data
+        logger.info("Entries fetched successfully", extra={"route": "/entries", "method": "GET", "count": len(all_entries)})
         return jsonify(all_entries), 200
     except Exception as e:
-        print(f"Error getting entries: {str(e)}")
+        logger.error("Error getting entries", extra={"route": "/entries", "method": "GET", "error": str(e)})
         return jsonify({'message': f'Error getting entries: {str(e)}'}), 500
 
 @entries_bp.route('/entries', methods=['POST'])
@@ -93,9 +99,12 @@ def create_entry():
     data = request.get_json()
     
     if not data or not data.get('content'):
+        logger.warning("Create entry request missing content", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'message': 'Content is required'}), 400
     
     try:
+        logger.info("Creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "content_length": len(data['content'])})
+        
         # Process content through OpenAI
         processed_content = process_text(data['content'])
         
@@ -116,12 +125,14 @@ def create_entry():
             embedding = generate_embedding(processed_content)
             if embedding:
                 entry_data['vectors'] = embedding
+                logger.info("Embedding generated for entry", extra={"route": "/entries", "method": "POST", "user_entry_id": next_user_entry_id})
         
         # Create new entry in Supabase
         response = g.user_supabase.table('entries').insert(entry_data).execute()
         new_entry = response.data[0] if response.data else None
         
         if not new_entry:
+            logger.error("Failed to create entry - no data returned", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'message': 'Failed to create entry'}), 500
         
         # Uncomment if you want to add personality or story generation
@@ -131,9 +142,10 @@ def create_entry():
         # story = write_story_and_write_to_db(new_entry['entry_id'], processed_content)
         # new_entry['story'] = story
         
+        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
         return jsonify(new_entry), 201
     except Exception as e:
-        print(f"Error creating entry: {str(e)}")
+        logger.error("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
@@ -149,7 +161,7 @@ def get_entry(entry_id):
         
         return jsonify(entry), 200
     except Exception as e:
-        print(f"Error getting entry: {str(e)}")
+        logger.error("Error getting entry", extra={"route": "/entries/<int:entry_id>", "method": "GET", "entry_id": entry_id, "error": str(e)})
         return jsonify({'message': f'Error getting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
@@ -186,7 +198,7 @@ def update_entry(entry_id):
         
         return jsonify(updated_entry), 200
     except Exception as e:
-        print(f"Error updating entry: {str(e)}")
+        logger.error("Error updating entry", extra={"route": "/entries/<int:entry_id>", "method": "PUT", "entry_id": entry_id, "error": str(e)})
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
@@ -206,7 +218,7 @@ def delete_entry(entry_id):
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
-        print(f"Error deleting entry: {str(e)}")
+        logger.error("Error deleting entry", extra={"route": "/entries/<int:entry_id>", "method": "DELETE", "entry_id": entry_id, "error": str(e)})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/search', methods=['POST'])
@@ -229,5 +241,5 @@ def search_entries():
             'results': similar_entries
         }), 200
     except Exception as e:
-        print(f"Error searching entries: {str(e)}")
+        logger.error("Error searching entries", extra={"route": "/entries/search", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
         return jsonify({'error': str(e)}), 500
