@@ -188,34 +188,6 @@ function AuthProvider({ children }) {
     }
   }, []);
 
-  // GitHub SSO login
-  const loginWithGitHub = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/confirm-email`
-        }
-      });
-      
-      if (error) {
-        console.error('GitHub SSO error:', error);
-        setError(error.message);
-        return false;
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('GitHub SSO error:', err);
-      setError('GitHub sign-in failed. Please try again.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Logout function
   const logout = useCallback(async () => {
@@ -238,7 +210,6 @@ function AuthProvider({ children }) {
     register,
     logout,
     loginWithGoogle,
-    loginWithGitHub,
     loading,
     error
   };
