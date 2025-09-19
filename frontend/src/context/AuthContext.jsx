@@ -159,6 +159,64 @@ function AuthProvider({ children }) {
     }
   };
 
+  // Google SSO login
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/confirm-email`
+        }
+      });
+      
+      if (error) {
+        console.error('Google SSO error:', error);
+        setError(error.message);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Google SSO error:', err);
+      setError('Google sign-in failed. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // GitHub SSO login
+  const loginWithGitHub = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/confirm-email`
+        }
+      });
+      
+      if (error) {
+        console.error('GitHub SSO error:', error);
+        setError(error.message);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('GitHub SSO error:', err);
+      setError('GitHub sign-in failed. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Logout function
   const logout = useCallback(async () => {
     try {
@@ -179,6 +237,8 @@ function AuthProvider({ children }) {
     login,
     register,
     logout,
+    loginWithGoogle,
+    loginWithGitHub,
     loading,
     error
   };
