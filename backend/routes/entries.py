@@ -8,11 +8,20 @@ from functools import wraps
 
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
 
-# Initialize Supabase client
+# Initialize Supabase client for service operations
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 )
+
+# Function to create user-specific Supabase client
+def create_user_supabase_client(user_token):
+    """Create a Supabase client that operates as the authenticated user"""
+    return create_client(
+        os.environ.get("SUPABASE_URL"),
+        os.environ.get("SUPABASE_ANON_KEY"),  # Use anon key, not service role
+        global_headers={"Authorization": f"Bearer {user_token}"}
+    )
 
 # New Supabase auth decorator
 def supabase_auth_required(f):
@@ -29,7 +38,12 @@ def supabase_auth_required(f):
             user = supabase.auth.get_user(token)
             if not user.user:
                 return jsonify({'message': 'Invalid token!'}), 401
-            return f(user.user, *args, **kwargs)
+            
+            # Create user-specific Supabase client
+            user_supabase = create_user_supabase_client(token)
+            
+            # Pass both user and user_supabase to the function
+            return f(user.user, user_supabase, *args, **kwargs)
         except Exception as e:
             return jsonify({'message': 'Token verification error!'}), 401
     
@@ -38,10 +52,10 @@ def supabase_auth_required(f):
 # Update all your route decorators from @token_required to @supabase_auth_required
 @entries_bp.route('/entries', methods=['GET'])
 @supabase_auth_required
-def get_entries(current_user):
+def get_entries(current_user, user_supabase):
     """Get all entries for the current user"""
     try:
-        response = supabase.table('entries').select('*').eq('user_id', current_user.id).order('created_at', desc=True).execute()
+        response = user_supabase.table('entries').select('*').order('created_at', desc=True).execute()
         all_entries = response.data
         return jsonify(all_entries), 200
     except Exception as e:
@@ -50,7 +64,7 @@ def get_entries(current_user):
 
 @entries_bp.route('/entries', methods=['POST'])
 @supabase_auth_required
-def create_entry(current_user):
+def create_entry(current_user, user_supabase):
     """Create a new entry with processed content and immediate embedding"""
     print("Received request:", request.get_json())  # Debug print
     data = request.get_json()
@@ -66,14 +80,13 @@ def create_entry(current_user):
         print(f"Processed content type: {type(processed_content)}")
         print(f"Processed content truthy: {bool(processed_content)}")
         
-        # Get the next user entry ID
-        user_entries_response = supabase.table('entries').select('user_entry_id').eq('user_id', current_user.id).execute()
+        # Get the next user entry ID using user context
+        user_entries_response = user_supabase.table('entries').select('user_entry_id').execute()
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Prepare entry data
+        # Prepare entry data (don't include user_id - let RLS handle it)
         entry_data = {
-            'user_id': current_user.id,
             'user_entry_id': next_user_entry_id,
             'content': data['content'],
             'processed': processed_content
@@ -97,7 +110,7 @@ def create_entry(current_user):
         print(f"DEBUG: Service role key exists: {bool(os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))}")
         print(f"DEBUG: Service role key length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
         
-        response = supabase.table('entries').insert(entry_data).execute()
+        response = user_supabase.table('entries').insert(entry_data).execute()
         print(f"DEBUG: Supabase response: {response}")
         new_entry = response.data[0] if response.data else None
         
@@ -118,10 +131,10 @@ def create_entry(current_user):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
 @supabase_auth_required
-def get_entry(current_user, entry_id):
+def get_entry(current_user, user_supabase, entry_id):
     """Get a specific entry by ID"""
     try:
-        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -134,11 +147,11 @@ def get_entry(current_user, entry_id):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
 @supabase_auth_required
-def update_entry(current_user, entry_id):
+def update_entry(current_user, user_supabase, entry_id):
     """Update an existing entry"""
     try:
         # Check if entry exists and belongs to user
-        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -158,7 +171,7 @@ def update_entry(current_user, entry_id):
             update_data['processed'] = processed_content
             
         # Update entry in Supabase
-        response = supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = user_supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).execute()
         updated_entry = response.data[0] if response.data else None
         
         if not updated_entry:
@@ -171,18 +184,18 @@ def update_entry(current_user, entry_id):
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
 @supabase_auth_required
-def delete_entry(current_user, entry_id):
+def delete_entry(current_user, user_supabase, entry_id):
     """Delete an entry"""
     try:
         # Check if entry exists and belongs to user
-        response = supabase.table('entries').select('*').eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
         
         # Delete entry from Supabase
-        response = supabase.table('entries').delete().eq('user_entry_id', entry_id).eq('user_id', current_user.id).execute()
+        response = user_supabase.table('entries').delete().eq('user_entry_id', entry_id).execute()
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
@@ -191,7 +204,7 @@ def delete_entry(current_user, entry_id):
 
 @entries_bp.route('/entries/search', methods=['POST'])
 @supabase_auth_required
-def search_entries(current_user):
+def search_entries(current_user, user_supabase):
     """Search for similar entries using vector embeddings"""
     data = request.get_json()
     
