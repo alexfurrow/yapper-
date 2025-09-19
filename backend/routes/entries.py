@@ -89,7 +89,7 @@ def get_entries():
         logger.info("Entries fetched successfully", extra={"route": "/entries", "method": "GET", "count": len(all_entries)})
         return jsonify(all_entries), 200
     except Exception as e:
-        logger.error("Error getting entries", extra={"route": "/entries", "method": "GET", "error": str(e)})
+        logger.exception("Error getting entries", extra={"route": "/entries", "method": "GET"})
         return jsonify({'message': f'Error getting entries: {str(e)}'}), 500
 
 @entries_bp.route('/entries', methods=['POST'])
@@ -145,7 +145,7 @@ def create_entry():
         logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
         return jsonify(new_entry), 201
     except Exception as e:
-        logger.error("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
+        logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
@@ -161,7 +161,7 @@ def get_entry(entry_id):
         
         return jsonify(entry), 200
     except Exception as e:
-        logger.error("Error getting entry", extra={"route": "/entries/<int:entry_id>", "method": "GET", "entry_id": entry_id, "error": str(e)})
+        logger.exception("Error getting entry", extra={"route": "/entries/<int:entry_id>", "method": "GET", "entry_id": entry_id})
         return jsonify({'message': f'Error getting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
@@ -198,7 +198,7 @@ def update_entry(entry_id):
         
         return jsonify(updated_entry), 200
     except Exception as e:
-        logger.error("Error updating entry", extra={"route": "/entries/<int:entry_id>", "method": "PUT", "entry_id": entry_id, "error": str(e)})
+        logger.exception("Error updating entry", extra={"route": "/entries/<int:entry_id>", "method": "PUT", "entry_id": entry_id})
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
@@ -218,7 +218,7 @@ def delete_entry(entry_id):
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
-        logger.error("Error deleting entry", extra={"route": "/entries/<int:entry_id>", "method": "DELETE", "entry_id": entry_id, "error": str(e)})
+        logger.exception("Error deleting entry", extra={"route": "/entries/<int:entry_id>", "method": "DELETE", "entry_id": entry_id})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/search', methods=['POST'])
@@ -241,5 +241,5 @@ def search_entries():
             'results': similar_entries
         }), 200
     except Exception as e:
-        logger.error("Error searching entries", extra={"route": "/entries/search", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
+        logger.exception("Error searching entries", extra={"route": "/entries/search", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'error': str(e)}), 500

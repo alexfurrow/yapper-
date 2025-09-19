@@ -135,5 +135,5 @@ def chat_with_database():
         }), 200
         
     except Exception as e:
-        logger.error("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "error": str(e)})
+        logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'error': str(e)}), 500

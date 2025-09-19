@@ -14,7 +14,8 @@ load_environment()
 # Setup logging with redaction
 setup_logging()
 
-from flask import Flask, request
+from flask import Flask, request, g
+import uuid
 from config import Config
 from extensions import cors
 from backend.routes.main import main_bp
@@ -51,6 +52,11 @@ def create_app(config_class=Config):
     print(f"--- INFO: All environment variables containing 'FRONTEND': {[k for k in os.environ.keys() if 'FRONTEND' in k.upper()]}")
     print(f"--- INFO: All environment variables containing 'CORS': {[k for k in os.environ.keys() if 'CORS' in k.upper()]}")
     print(f"--- INFO: All environment variables containing 'ORIGIN': {[k for k in os.environ.keys() if 'ORIGIN' in k.upper()]}")
+
+    # Add request ID middleware
+    @app.before_request
+    def add_request_id():
+        g.request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
     # Disable Flask-CORS to prevent conflicts with Railway
     # We'll use manual CORS headers instead
