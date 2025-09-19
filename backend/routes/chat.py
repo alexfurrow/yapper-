@@ -100,7 +100,7 @@ def chat_with_database():
         
         # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
-        similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id)
+        similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id, user_client=g.user_supabase)
         logger.info("Similar entries found", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "count": len(similar_entries)})
         
         # Extract content from similar entries
