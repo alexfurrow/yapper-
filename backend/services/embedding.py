@@ -52,7 +52,7 @@ def vectorize_all_entries():
         print(f"Error vectorizing entries: {str(e)}")
         return False
 
-def search_by_text(query_text, limit=5, user_id=None):
+def search_by_text(query_text, limit=5, user_id=None, user_client=None):
     """Find entries with similar content to the query text"""
     try:
         # Generate embedding for query text
@@ -63,8 +63,11 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Convert to numpy array for calculations
         query_vector = np.array(query_embedding)
         
+        # Use user client if provided, otherwise fall back to service client
+        client = user_client if user_client else supabase
+        
         # Build Supabase query with proper filtering
-        query = supabase.table('entries').select('*').not_.is_('vectors', 'null')
+        query = client.table('entries').select('*').not_.is_('vectors', 'null')
         
         # Add user_id filter if provided
         if user_id is not None:
@@ -73,6 +76,12 @@ def search_by_text(query_text, limit=5, user_id=None):
         # Get all matching entries
         response = query.execute()
         all_entries = response.data
+        
+        # Debug logging
+        print(f"DEBUG: search_by_text found {len(all_entries) if all_entries else 0} entries for user_id={user_id}")
+        if all_entries:
+            print(f"DEBUG: First entry keys: {list(all_entries[0].keys())}")
+            print(f"DEBUG: First entry user_id: {all_entries[0].get('user_id')}")
         
         if not all_entries:
             return []
