@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, g
+from werkzeug.exceptions import InternalServerError
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -6,8 +7,26 @@ from backend.services.embedding import search_by_text
 from supabase import create_client, Client
 from functools import wraps
 
+# Required environment variables
+REQUIRED_ENV = [
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OPENAI_API_KEY"
+]
+
+def validate_env():
+    """Validate that all required environment variables are present"""
+    missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+    if missing:
+        # Log only the variable names, not values
+        raise InternalServerError(f"Missing required environment variables: {', '.join(missing)}")
+
 # Load environment variables
 load_dotenv(override=True)
+
+# Validate environment variables
+validate_env()
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
@@ -73,30 +92,18 @@ def chat_with_database():
     try:
         # Get user message
         user_message = data['message']
-        print(f"Chat request from user {g.current_user.id}: {user_message}")
         
         # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
         similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id)
-        
-        print(f"Found {len(similar_entries)} similar entries for user {g.current_user.id}")
-        
-        # Debug: Print each entry found
-        for i, entry in enumerate(similar_entries):
-            print(f"Entry {i+1}: ID={entry.get('user_entry_id', 'N/A')}, Similarity={entry['similarity']:.3f}")
-            print(f"  Content preview: {entry.get('processed', 'No processed content')[:100]}...")
         
         # Extract content from similar entries
         context = ""
         for entry in similar_entries:
             context += f"Entry {entry.get('user_entry_id', 'N/A')} (similarity: {entry['similarity']:.2f}):\n{entry.get('processed', 'No processed content')}\n\n"
         
-        print(f"Context length: {len(context)} characters")
-        print(f"Context preview: {context[:200]}...")
-        
         # If no context found, let the AI know
         if not context.strip():
-            print("WARNING: No context found - no similar entries or empty processed content")
             context = "No relevant journal entries found for this query."
         
         # Generate response using OpenAI
@@ -121,5 +128,4 @@ def chat_with_database():
         }), 200
         
     except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")
         return jsonify({'error': str(e)}), 500

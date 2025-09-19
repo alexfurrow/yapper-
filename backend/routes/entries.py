@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app, g
+from werkzeug.exceptions import InternalServerError
 # SQLAlchemy references removed - using Supabase
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
@@ -6,7 +7,24 @@ import os
 from supabase import create_client, Client
 from functools import wraps
 
+# Required environment variables
+REQUIRED_ENV = [
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+]
+
+def validate_env():
+    """Validate that all required environment variables are present"""
+    missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+    if missing:
+        # Log only the variable names, not values
+        raise InternalServerError(f"Missing required environment variables: {', '.join(missing)}")
+
 entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
+
+# Validate environment variables
+validate_env()
 
 # Initialize Supabase client for service operations
 supabase: Client = create_client(
@@ -72,19 +90,14 @@ def get_entries():
 @supabase_auth_required
 def create_entry():
     """Create a new entry with processed content and immediate embedding"""
-    print("Received request:", request.get_json())  # Debug print
     data = request.get_json()
     
     if not data or not data.get('content'):
-        print("Invalid data received")  # Debug print
         return jsonify({'message': 'Content is required'}), 400
     
     try:
         # Process content through OpenAI
         processed_content = process_text(data['content'])
-        print(f"Processed content: {processed_content}")
-        print(f"Processed content type: {type(processed_content)}")
-        print(f"Processed content truthy: {bool(processed_content)}")
         
         # Get the next user entry ID using user context
         user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
@@ -100,24 +113,12 @@ def create_entry():
         
         # Generate embedding immediately for real-time search
         if processed_content:
-            print(f"Processing content is truthy, generating embedding...")
             embedding = generate_embedding(processed_content)
             if embedding:
                 entry_data['vectors'] = embedding
-                print(f"Generated embedding for new entry")
-            else:
-                print(f"Failed to generate embedding for new entry")
-        else:
-            print(f"Processed content is falsy, skipping embedding generation")
         
         # Create new entry in Supabase
-        print(f"DEBUG: About to insert entry_data: {entry_data}")
-        print(f"DEBUG: Supabase client URL: {os.environ.get('SUPABASE_URL')}")
-        print(f"DEBUG: Service role key exists: {bool(os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))}")
-        print(f"DEBUG: Service role key length: {len(os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''))}")
-        
         response = g.user_supabase.table('entries').insert(entry_data).execute()
-        print(f"DEBUG: Supabase response: {response}")
         new_entry = response.data[0] if response.data else None
         
         if not new_entry:
