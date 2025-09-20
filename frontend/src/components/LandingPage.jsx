@@ -88,15 +88,6 @@ function LandingPage() {
           </div>
         </div>
       </div>
-
-      {/* Social Proof */}
-      <div className="social-proof">
-        <p className="trust-text">Trusted by thousands of thinkers worldwide</p>
-        <div className="testimonial">
-          <div className="quote">"Yapper has transformed how I capture and reflect on my thoughts. It's like having a conversation with my future self."</div>
-          <div className="author">- Alex M., Creative Thinker</div>
-        </div>
-      </div>
     </div>
   );
 }
