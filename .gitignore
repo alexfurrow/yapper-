@@ -1,5 +1,9 @@
 #env
-.env*
+.env
+.env.local
+.env.production
+# Keep .env.development template in git
+!.env.development.template
 
 # Python
 __pycache__/
