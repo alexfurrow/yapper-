@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import { supabase } from '../context/supabase.js';
 import './JournalEntryForm.css';
 import SharedLayout from './SharedLayout';
 import NavigationTabs from './NavigationTabs';
@@ -77,31 +78,60 @@ function JournalEntryForm({ journalToggleButton }) {
   const uploadAudio = async (blob) => {
     try {
       setIsLoading(true);
+      setMessage('Processing audio...');
+      
+      // Get Supabase session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const audioUrl = `${backendUrl}/api/audio`;
+      
+      console.log('Processing audio via backend API...');
+      console.log('Backend URL:', audioUrl);
+      
       const formData = new FormData();
       formData.append('audio', blob, 'recording.wav');
-
-      const response = await axios.post('/api/audio', formData, {
+      
+      const response = await fetch(audioUrl, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${accessToken}`
         },
+        body: formData
       });
 
-      if (response.data.transcription) {
-        setContent(response.data.transcription);
-        // Make the API call here
-        const entryResponse = await axios.post('/api/entries', {
-          content: response.data.transcription
-        });
-        
-        setMessage('Entry saved successfully!');
-        // Notify parent component to refresh entries
-        if (window.refreshEntries) {
-          window.refreshEntries();
-        }
+      console.log('Audio processing response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log('Audio processed successfully:', data);
+      
+      // Set the transcription in the content field for user to review/edit
+      setContent(data.transcription);
+      setMessage('Audio processed! Review and save your entry.');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage('');
+      }, 3000);
+      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error processing audio:', error);
       setMessage('Error processing audio: ' + error.message);
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setMessage('');
+      }, 5000);
     } finally {
       setIsLoading(false);
     }

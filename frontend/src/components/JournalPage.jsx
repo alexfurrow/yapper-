@@ -181,11 +181,47 @@ function JournalPage() {
       setIsLoading(true);
       setMessage('Processing audio...');
       
-      // For now, we'll skip audio processing since we don't have the backend endpoint
-      // You can implement this later with your backend or a third-party service
-      setMessage('Audio recording feature coming soon!');
+      // Get Supabase session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const audioUrl = `${backendUrl}/api/audio`;
       
-      // Clear the message after 3 seconds
+      console.log('Processing audio via backend API...');
+      console.log('Backend URL:', audioUrl);
+      
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.wav');
+      
+      const response = await fetch(audioUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: formData
+      });
+
+      console.log('Audio processing response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Audio processed successfully:', data);
+      
+      setMessage('Audio processed and journal entry created!');
+      
+      // Refresh entries list
+      loadEntries();
+      
+      // Clear success message after 3 seconds
       setTimeout(() => {
         setMessage('');
       }, 3000);
@@ -193,6 +229,11 @@ function JournalPage() {
     } catch (error) {
       console.error('Error processing audio:', error);
       setMessage('Error processing audio: ' + error.message);
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setMessage('');
+      }, 5000);
     } finally {
       setIsLoading(false);
     }
