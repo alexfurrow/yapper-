@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import requests
 import json
 from dotenv import load_dotenv
-from backend.services.embedding import generate_embedding, process_text
+from backend.services.embedding import generate_embedding
 from backend.config.logging import get_logger
 from backend.routes.entries import supabase_auth_required
 

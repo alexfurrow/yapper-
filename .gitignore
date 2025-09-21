@@ -1,7 +1,9 @@
 #env
+.env*
 .env
 .env.local
 .env.production
+.env.development
 # Keep .env.development template in git
 !.env.development.template
 
@@ -59,9 +61,6 @@ media.txt
 understanding.txt
 backlog.txt
 
-#cursor
-cursor.md
-
 # Testing
 htmlcov/
 .coverage
@@ -75,3 +74,7 @@ errors.log
 
 #google SSO client secret
 google_sso.json
+
+#notes and stuff
+cursor_rules_prototype.md
+cursor_rules_prototype.md*
