@@ -4,8 +4,6 @@
 .env.local
 .env.production
 .env.development
-# Keep .env.development template in git
-!.env.development.template
 
 # Python
 __pycache__/
