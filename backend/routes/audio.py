@@ -5,6 +5,7 @@ import requests
 import json
 from dotenv import load_dotenv
 from backend.services.embedding import generate_embedding
+from backend.services.initial_processing  import process_text
 from backend.config.logging import get_logger
 from backend.routes.entries import supabase_auth_required
 
