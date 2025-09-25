@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, Response, stream_template
 from werkzeug.exceptions import InternalServerError
 from openai import OpenAI
 import os
@@ -112,27 +112,41 @@ def chat_with_database():
         if not context.strip():
             context = "No relevant journal entries found for this query."
         
-        # Generate response using OpenAI
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": 
-                 """You are an AI assistant that answers questions based on the user's journal entries. 
-                 You'll be provided with relevant entries from their journal database.
-                 If the context doesn't contain relevant information, acknowledge that and provide a general response.
-                 Always maintain a conversational, helpful tone."""},
-                {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
-            ],
-            temperature=0.7
-        )
+        # Generate streaming response using OpenAI
+        def generate_stream():
+            try:
+                stream = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": 
+                         """You are an AI assistant that answers questions based on the user's journal entries. 
+                         You'll be provided with relevant entries from their journal database.
+                         If the context doesn't contain relevant information, acknowledge that and provide a general response.
+                         Always maintain a conversational, helpful tone."""},
+                        {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
+                    ],
+                    temperature=0.7,
+                    stream=True
+                )
+                
+                # Send sources first
+                sources_data = [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
+                yield f"data: {jsonify({'type': 'sources', 'sources': sources_data}).get_json()}\n\n"
+                
+                # Stream the AI response
+                for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        content = chunk.choices[0].delta.content
+                        yield f"data: {jsonify({'type': 'content', 'content': content}).get_json()}\n\n"
+                
+                # Send completion signal
+                yield f"data: {jsonify({'type': 'done'}).get_json()}\n\n"
+                
+            except Exception as e:
+                logger.exception("Error in streaming chat", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id})
+                yield f"data: {jsonify({'type': 'error', 'error': str(e)}).get_json()}\n\n"
         
-        ai_response = response.choices[0].message.content
-        logger.info("Chat response generated", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "response_length": len(ai_response)})
-        
-        return jsonify({
-            'response': ai_response,
-            'sources': [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
-        }), 200
+        return Response(generate_stream(), mimetype='text/plain')
         
     except Exception as e:
         logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id})

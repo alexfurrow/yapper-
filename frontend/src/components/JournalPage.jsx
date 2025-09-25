@@ -277,7 +277,7 @@ function JournalPage() {
         'Authorization': `Bearer ${accessToken.substring(0, 20)}...`
       });
       
-      // Make API call to your Railway backend chat endpoint
+      // Make streaming API call to your Railway backend chat endpoint
       const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
@@ -302,20 +302,58 @@ function JournalPage() {
       }
 
       const data = await response.json();
-      console.log('Chat response received:', data);
+      // Handle streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessage = { type: 'ai', content: '', sources: [] };
+      let isFirstChunk = true;
+            // Add the AI message to chat immediately (empty content)
+            setChatMessages(prev => [...prev, aiMessage]);
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const aiMessage = { 
-        type: 'ai', 
-        content: data.response,
-        sources: data.sources 
-      };
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
       
-      setChatMessages(prev => [...prev, aiMessage]);
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
       
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const data = JSON.parse(line.slice(6));
+                      
+                      if (data.type === 'sources') {
+                        aiMessage.sources = data.sources;
+                        // Update the message with sources
+                        setChatMessages(prev => 
+                          prev.map(msg => 
+                            msg === aiMessage ? { ...msg, sources: data.sources } : msg
+                          )
+                        );
+                      } else if (data.type === 'content') {
+                        aiMessage.content += data.content;
+                        // Update the message content
+                        setChatMessages(prev => 
+                          prev.map(msg => 
+                            msg === aiMessage ? { ...msg, content: aiMessage.content } : msg
+                          )
+                        );
+                      } else if (data.type === 'error') {
+                        throw new Error(data.error);
+                      } else if (data.type === 'done') {
+                        console.log('Streaming completed');
+                      }
+                    } catch (parseError) {
+                      console.warn('Failed to parse streaming data:', parseError);
+                    }
+                  }
+                }
+              }
+            } finally {
+              reader.releaseLock();
+            }
+            
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage = { 

@@ -75,3 +75,6 @@ google_sso.json
 
 #notes and stuff
 Cursor.md
+
+#shell scripts
+*.sh
