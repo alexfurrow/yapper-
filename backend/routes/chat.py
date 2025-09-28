@@ -143,11 +143,11 @@ def chat_with_database():
                 yield f"data: {jsonify({'type': 'done'}).get_json()}\n\n"
                 
             except Exception as e:
-                logger.exception("Error in streaming chat", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id})
+                logger.exception("Error in streaming chat", extra={"route": "/chat/chat", "method": "POST", "user_id": "unknown"})
                 yield f"data: {jsonify({'type': 'error', 'error': str(e)}).get_json()}\n\n"
         
         return Response(generate_stream(), mimetype='text/plain')
         
     except Exception as e:
-        logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id})
+        logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": "unknown"})
         return jsonify({'error': str(e)}), 500
