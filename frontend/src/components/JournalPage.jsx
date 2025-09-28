@@ -3,6 +3,144 @@ import { supabase } from '../context/supabase.js';
 import { AuthContext } from '../context/AuthContext';
 import './JournalPage.css';
 
+// Chat message component with typewriter effect
+const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showSources, setShowSources] = useState(false);
+  const startTime = useRef(null);
+  const pausedAt = useRef(0);
+  const rafId = useRef(null);
+  const hasStartedAnimating = useRef(false);
+  const lastContentLength = useRef(0);
+  
+  useEffect(() => {
+    // Only apply typewriter effect to AI messages
+    if (message.type !== 'ai') {
+      setDisplayedText(message.content || '');
+      setIsTyping(false);
+      setShowSources(true); // Show sources immediately for non-AI messages
+      return;
+    }
+    
+    if (!message.content) {
+      setDisplayedText('');
+      setIsTyping(false);
+      setShowSources(false);
+      hasStartedAnimating.current = false;
+      lastContentLength.current = 0;
+      return;
+    }
+    
+    // Start animation if we haven't started yet and have enough content
+    const contentLength = message.content.length;
+    const shouldStartAnimation = !hasStartedAnimating.current && contentLength > 10;
+    
+    if (shouldStartAnimation) {
+      // Start animation for the first time
+      hasStartedAnimating.current = true;
+      setIsTyping(true);
+      setShowSources(false);
+      setDisplayedText('');
+      startTime.current = null;
+      pausedAt.current = 0;
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      
+      lastContentLength.current = contentLength;
+    }
+    
+    // Always run the animation step if we have content and animation has started
+    if (hasStartedAnimating.current && message.content) {
+      const cps = 140; // characters per second (7ms per character = ~140 cps)
+      
+      const step = (t) => {
+        if (startTime.current === null) startTime.current = t;
+        const elapsed = t - startTime.current + pausedAt.current; // total ms including hidden time
+        const chars = Math.min(message.content.length, Math.floor((elapsed / 1000) * cps));
+        console.log('Step function called, elapsed:', elapsed, 'chars:', chars, 'content length:', message.content.length);
+        setDisplayedText(message.content.slice(0, chars));
+        
+        // Continue animation if we haven't reached the current content length
+        if (chars < message.content.length) {
+          rafId.current = requestAnimationFrame(step);
+        } else {
+          // Only finish if we've reached the full content
+          setIsTyping(false);
+          setShowSources(true);
+        }
+      };
+      
+      // Start the animation if we don't have one running
+      if (!rafId.current) {
+        console.log('Starting animation for content length:', message.content.length);
+        rafId.current = requestAnimationFrame(step);
+      }
+      
+      // If content has grown significantly, restart the animation
+      if (message.content.length > lastContentLength.current + 10) {
+        console.log('Content grew significantly, restarting animation');
+        lastContentLength.current = message.content.length;
+        if (rafId.current) {
+          cancelAnimationFrame(rafId.current);
+          rafId.current = null;
+        }
+        rafId.current = requestAnimationFrame(step);
+      }
+    }
+    
+    const onVisibilityChange = () => {
+      const cps = 140; // characters per second (7ms per character = ~140 cps)
+      // When hidden, fast-forward to completion
+      if (document.hidden) {
+        pausedAt.current = (message.content.length / cps) * 1000; // jump to done
+      } else {
+        // When returning to tab, check if we should skip animation entirely
+        // If the stream is complete and we're returning from hidden state, show instantly
+        if (pausedAt.current > 0) {
+          // Stream was complete while hidden, show instantly
+          setDisplayedText(message.content);
+          setIsTyping(false);
+          setShowSources(true);
+          if (rafId.current) {
+            cancelAnimationFrame(rafId.current);
+            rafId.current = null;
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [message.content, message.type]);
+  
+  return (
+    <div className={`chat-message ${message.type} ${isTyping ? 'typing' : ''}`}>
+      <div className="message-content">
+        {displayedText}
+        {isTyping && isLastMessage && message.type === 'ai' && <span className="typing-cursor">|</span>}
+      </div>
+      {message.sources && message.sources.length > 0 && showSources && (
+        <div className="message-sources fade-in">
+          <span className="sources-label">Sources:</span>
+          {(message.sources || []).map((source, idx) => (
+            <button 
+              key={idx} 
+              className="source-link"
+              onClick={() => onSourceClick(source.entry_id)}
+            >
+              Entry #{source.entry_id}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function JournalPage() {
   const [activeTab, setActiveTab] = useState('journal');
   const [content, setContent] = useState('');
@@ -196,7 +334,7 @@ function JournalPage() {
       
       const formData = new FormData();
       formData.append('audio', blob, 'recording.wav');
-      
+
       const response = await fetch(audioUrl, {
         method: 'POST',
         headers: {
@@ -247,10 +385,13 @@ function JournalPage() {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
+    console.log('Starting chat submission, isChatLoading:', isChatLoading);
     const userMessage = { type: 'user', content: chatInput };
     setChatMessages([...chatMessages, userMessage]);
     setChatInput('');
-    setIsChatLoading(true);
+    
+    // Add empty AI message bubble immediately for visual feedback
+    setChatMessages(prev => [...prev, { type: 'ai', content: '', sources: [] }]);
 
     try {
       // Get the current user's access token from Supabase
@@ -262,20 +403,14 @@ function JournalPage() {
 
       const accessToken = session.access_token;
       
-      console.log('Sending chat request to backend...');
+      console.log('Sending streaming chat request to backend...');
       console.log('User message:', chatInput);
-      console.log('Access token (first 20 chars):', accessToken.substring(0, 20) + '...');
       
       // Use the Railway backend URL instead of relative path
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
-      const chatUrl = `${backendUrl}/api/chat/chat`;
+      const chatUrl = `${backendUrl}/api/chat/stream`;
       
       console.log('Request URL:', chatUrl);
-      console.log('Request method:', 'POST');
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken.substring(0, 20)}...`
-      });
       
       // Make streaming API call to your Railway backend chat endpoint
       const response = await fetch(chatUrl, {
@@ -291,9 +426,6 @@ function JournalPage() {
       });
 
       console.log('Response status:', response.status);
-      console.log('Response status text:', response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      console.log('Response URL:', response.url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -301,59 +433,76 @@ function JournalPage() {
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      const data = await response.json();
       // Handle streaming response
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let aiMessage = { type: 'ai', content: '', sources: [] };
-      let isFirstChunk = true;
-            // Add the AI message to chat immediately (empty content)
-            setChatMessages(prev => [...prev, aiMessage]);
+      
+      // Don't create a separate AI message - we'll stream directly
 
-            try {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-      
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-      
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    try {
-                      const data = JSON.parse(line.slice(6));
-                      
-                      if (data.type === 'sources') {
-                        aiMessage.sources = data.sources;
-                        // Update the message with sources
-                        setChatMessages(prev => 
-                          prev.map(msg => 
-                            msg === aiMessage ? { ...msg, sources: data.sources } : msg
-                          )
-                        );
-                      } else if (data.type === 'content') {
-                        aiMessage.content += data.content;
-                        // Update the message content
-                        setChatMessages(prev => 
-                          prev.map(msg => 
-                            msg === aiMessage ? { ...msg, content: aiMessage.content } : msg
-                          )
-                        );
-                      } else if (data.type === 'error') {
-                        throw new Error(data.error);
-                      } else if (data.type === 'done') {
-                        console.log('Streaming completed');
-                      }
-                    } catch (parseError) {
-                      console.warn('Failed to parse streaming data:', parseError);
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'sources') {
+                  // Update sources
+                  console.log('Received sources:', data.data);
+                  console.log('Sources type:', typeof data.data, 'Length:', data.data?.length);
+                  setChatMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage && lastMessage.type === 'ai') {
+                      newMessages[newMessages.length - 1] = {
+                        ...lastMessage,
+                        sources: data.data
+                      };
+                      console.log('Updated sources in message:', newMessages[newMessages.length - 1].sources);
+                      console.log('Full message after sources update:', newMessages[newMessages.length - 1]);
                     }
-                  }
+                    return newMessages;
+                  });
+                } else if (data.type === 'content') {
+                  // Stream content with typewriter effect
+                  console.log('Received content chunk:', data.data);
+                  setChatMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage && lastMessage.type === 'ai') {
+                      // Add new content with a slight delay for smooth reading
+                      const newContent = lastMessage.content + data.data;
+                      newMessages[newMessages.length - 1] = {
+                        ...lastMessage,
+                        content: newContent
+                      };
+                      console.log('Updated content length:', newMessages[newMessages.length - 1].content.length);
+                    }
+                    return newMessages;
+                  });
+                } else if (data.type === 'done') {
+                  console.log('Streaming completed - waiting for sources...');
+                } else if (data.type === 'error') {
+                  throw new Error(data.data);
                 }
+              } catch (parseError) {
+                console.warn('Failed to parse streaming data:', parseError);
               }
-            } finally {
-              reader.releaseLock();
             }
-            
+          }
+        }
+      } finally {
+        reader.releaseLock();
+        // No loading state to reset
+      }
+      
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage = { 
@@ -362,7 +511,7 @@ function JournalPage() {
       };
       setChatMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsChatLoading(false);
+      // No loading state to reset
     }
   };
 
@@ -492,35 +641,12 @@ function JournalPage() {
                       <p>I can help you reflect on your entries, find patterns, or answer questions about your thoughts.</p>
                     </div>
                   ) : (
-                    (chatMessages || []).map((msg, index) => (
-                      <div key={index} className={`chat-message ${msg.type}`}>
-                        <div className="message-content">{msg.content}</div>
-                        {msg.sources && (
-                          <div className="message-sources">
-                            <span className="sources-label">Sources:</span>
-                            {(msg.sources || []).map((source, idx) => (
-                              <button 
-                                key={idx} 
-                                className="source-link"
-                                onClick={() => handleSourceClick(source.entry_id)}
-                              >
-                                Entry #{source.entry_id}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))
+                    (chatMessages || []).map((msg, index) => {
+                      const isLastMessage = index === chatMessages.length - 1;
+                      return <ChatMessage key={index} message={msg} isLastMessage={isLastMessage} onSourceClick={handleSourceClick} />;
+                    })
                   )}
-                  {isChatLoading && (
-                    <div className="chat-message ai loading">
-                      <div className="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Removed loading animation for ChatGPT-style interface */}
                   <div ref={messagesEndRef} />
                 </div>
                 
@@ -530,12 +656,11 @@ function JournalPage() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask about your journal entries..."
-                    disabled={isChatLoading}
                     className="chat-input"
                   />
                   <button 
                     type="submit" 
-                    disabled={isChatLoading || !chatInput.trim()}
+                    disabled={!chatInput.trim()}
                     className="send-button"
                   >
                     <span className="button-icon">📤</span>
