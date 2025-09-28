@@ -46,15 +46,7 @@ class RedactSecretsFilter(logging.Filter):
 class RequestIdFilter(logging.Filter):
     """Filter to add request ID to log records"""
     def filter(self, record):
-        try:
-            from flask import has_app_context, g
-            if has_app_context() and hasattr(g, 'request_id'):
-                record.request_id = getattr(g, "request_id", "-")
-            else:
-                record.request_id = "-"
-        except (RuntimeError, ImportError, AttributeError):
-            # Working outside of application context (e.g., during startup)
-            record.request_id = "-"
+        record.request_id = getattr(g, "request_id", "-")
         return True
 
 def setup_logging():
