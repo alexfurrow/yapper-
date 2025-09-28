@@ -270,6 +270,9 @@ function JournalPage() {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
       const chatUrl = `${backendUrl}/api/chat/chat`;
       
+      console.log('Environment check:');
+      console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+      console.log('Backend URL used:', backendUrl);
       console.log('Request URL:', chatUrl);
       console.log('Request method:', 'POST');
       console.log('Request headers:', {
