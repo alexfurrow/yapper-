@@ -4,6 +4,12 @@ import os
 import uuid
 from logging.handlers import RotatingFileHandler
 from flask import g
+try:
+    # Only available inside a Flask app context
+    from flask import has_request_context
+except Exception:  # pragma: no cover
+    def has_request_context():  # type: ignore
+        return False
 
 class RedactSecretsFilter(logging.Filter):
     """Filter to redact sensitive information from log messages"""
@@ -46,7 +52,14 @@ class RedactSecretsFilter(logging.Filter):
 class RequestIdFilter(logging.Filter):
     """Filter to add request ID to log records"""
     def filter(self, record):
-        record.request_id = getattr(g, "request_id", "-")
+        try:
+            if has_request_context():
+                record.request_id = getattr(g, "request_id", "-")
+            else:
+                record.request_id = "-"
+        except Exception:
+            # Safe fallback outside any context
+            record.request_id = "-"
         return True
 
 def setup_logging():

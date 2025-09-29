@@ -129,10 +129,6 @@ def chat_with_database():
         
         # Generate streaming response using OpenAI
         def generate_stream():
-            logger.info("=== STREAMING FUNCTION DEBUG START ===")
-            logger.info("About to call OpenAI API")
-            logger.info("Context length: " + str(len(context)))
-            logger.info("User message: " + user_message)
             try:
                 stream = client.chat.completions.create(
             model="gpt-4o",
@@ -154,14 +150,11 @@ def chat_with_database():
                         content = chunk.choices[0].delta.content
                         yield f"data: {json.dumps({'type': 'content', 'data': content})}\n\n"
                 # Send completion signal
-                logger.info("Streaming completed, sending done signal", extra={"route": "/chat/stream", "method": "POST"})
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
                 # Send sources after completion
                 sources_data = [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
-                logger.info("Sending sources", extra={"route": "/chat/stream", "method": "POST", "sources_count": len(sources_data)})
                 yield f"data: {json.dumps({'type': 'sources', 'data': sources_data})}\n\n"
-                logger.info("Sources sent successfully", extra={"route": "/chat/stream", "method": "POST"})
                 
             except Exception as e:
                 logger.exception("Error in streaming chat", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
