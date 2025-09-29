@@ -348,10 +348,17 @@ function JournalPage() {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const userMessage = { type: 'user', content: chatInput };
-    setChatMessages([...chatMessages, userMessage]);
+    const userContent = chatInput;
     setChatInput('');
-    setIsChatLoading(true);
+
+    // Append user + empty AI bubble atomically
+    const userMsgId = generateId();
+    const aiMsgId = generateId();
+    setChatMessages(prev => [
+      ...prev,
+      { id: userMsgId, type: 'user', content: userContent },
+      { id: aiMsgId, type: 'ai', content: '', sources: [] }
+    ]);
 
     try {
       // Get the current user's access token from Supabase
@@ -395,9 +402,6 @@ function JournalPage() {
       });
 
       console.log('Response status:', response.status);
-      console.log('Response status text:', response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      console.log('Response URL:', response.url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -405,58 +409,61 @@ function JournalPage() {
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      const data = await response.json();
-      // Handle streaming response
+      // Handle streaming response (SSE)
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let aiMessage = { type: 'ai', content: '', sources: [] };
-      let isFirstChunk = true;
-            // Add the AI message to chat immediately (empty content)
-            setChatMessages(prev => [...prev, aiMessage]);
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
 
-            try {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-      
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-      
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    try {
-                      const data = JSON.parse(line.slice(6));
-                      
-                      if (data.type === 'sources') {
-                        aiMessage.sources = data.sources;
-                        // Update the message with sources
-                        setChatMessages(prev => 
-                          prev.map(msg => 
-                            msg === aiMessage ? { ...msg, sources: data.sources } : msg
-                          )
-                        );
-                      } else if (data.type === 'content') {
-                        aiMessage.content += data.content;
-                        // Update the message content
-                        setChatMessages(prev => 
-                          prev.map(msg => 
-                            msg === aiMessage ? { ...msg, content: aiMessage.content } : msg
-                          )
-                        );
-                      } else if (data.type === 'error') {
-                        throw new Error(data.error);
-                      } else if (data.type === 'done') {
-                        console.log('Streaming completed');
-                      }
-                    } catch (parseError) {
-                      console.warn('Failed to parse streaming data:', parseError);
+          let sep;
+          while ((sep = buffer.indexOf('\n\n')) !== -1) {
+            const block = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            const lines = block.split('\n');
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const evt = JSON.parse(line.slice(6));
+                if (evt.type === 'content') {
+                  setChatMessages(prev => {
+                    const newMessages = [...prev];
+                    const last = newMessages[newMessages.length - 1];
+                    if (last && last.type === 'ai') {
+                      newMessages[newMessages.length - 1] = {
+                        ...last,
+                        content: (last.content || '') + (evt.data || '')
+                      };
                     }
-                  }
+                    return newMessages;
+                  });
+                } else if (evt.type === 'sources') {
+                  setChatMessages(prev => {
+                    const newMessages = [...prev];
+                    const last = newMessages[newMessages.length - 1];
+                    if (last && last.type === 'ai') {
+                      newMessages[newMessages.length - 1] = {
+                        ...last,
+                        sources: evt.data || []
+                      };
+                    }
+                    return newMessages;
+                  });
+                } else if (evt.type === 'error') {
+                  throw new Error(evt.data || 'Streaming error');
                 }
+              } catch (e) {
+                console.warn('Failed to parse streaming data:', e);
               }
-            } finally {
-              reader.releaseLock();
             }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
             
     } catch (error) {
       console.error('Chat error:', error);
@@ -466,7 +473,7 @@ function JournalPage() {
       };
       setChatMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsChatLoading(false);
+      // no-op
     }
   };
 
@@ -596,34 +603,17 @@ function JournalPage() {
                       <p>I can help you reflect on your entries, find patterns, or answer questions about your thoughts.</p>
                     </div>
                   ) : (
-                    (chatMessages || []).map((msg, index) => (
-                      <div key={index} className={`chat-message ${msg.type}`}>
-                        <div className="message-content">{msg.content}</div>
-                        {msg.sources && (
-                          <div className="message-sources">
-                            <span className="sources-label">Sources:</span>
-                            {(msg.sources || []).map((source, idx) => (
-                              <button 
-                                key={idx} 
-                                className="source-link"
-                                onClick={() => handleSourceClick(source.entry_id)}
-                              >
-                                Entry #{source.entry_id}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                  {isChatLoading && (
-                    <div className="chat-message ai loading">
-                      <div className="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </div>
+                    (chatMessages || []).map((msg, index) => {
+                      const isLastMessage = index === chatMessages.length - 1;
+                      return (
+                        <ChatMessage
+                          key={msg.id || index}
+                          message={msg}
+                          isLastMessage={isLastMessage}
+                          onSourceClick={handleSourceClick}
+                        />
+                      );
+                    })
                   )}
                   <div ref={messagesEndRef} />
                 </div>
