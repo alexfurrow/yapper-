@@ -115,6 +115,15 @@ function JournalPage() {
   const messagesEndRef = useRef(null);
   const { currentUser } = useContext(AuthContext);
 
+  const generateId = () => {
+    try {
+      if (crypto && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch (_) {}
+    return `m_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  };
+
   // Auto-scroll to bottom of chat messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
