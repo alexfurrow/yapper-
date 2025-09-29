@@ -3,6 +3,98 @@ import { supabase } from '../context/supabase.js';
 import { AuthContext } from '../context/AuthContext';
 import './JournalPage.css';
 
+// Chat message component with typewriter effect (simplified)
+const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showSources, setShowSources] = useState(false);
+  const intervalId = useRef(null);
+  const currentIndex = useRef(0);
+
+  useEffect(() => {
+    // Non-AI messages render instantly
+    if (message.type !== 'ai') {
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
+      currentIndex.current = (message.content || '').length;
+      setDisplayedText(message.content || '');
+      setIsTyping(false);
+      setShowSources(true);
+      return;
+    }
+
+    const content = message.content || '';
+
+    // Reset state when empty
+    if (content.length === 0) {
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
+      currentIndex.current = 0;
+      setDisplayedText('');
+      setIsTyping(false);
+      setShowSources(false);
+      return;
+    }
+
+    // If our index is ahead of current content (rare), clamp it
+    if (currentIndex.current > content.length) {
+      currentIndex.current = content.length;
+    }
+
+    // Start a simple interval-based typewriter when needed
+    if (!intervalId.current && currentIndex.current < content.length) {
+      setIsTyping(true);
+      const delayMs = 7; // ~140 cps
+      intervalId.current = setInterval(() => {
+        const target = content.length;
+        if (currentIndex.current < target) {
+          currentIndex.current += 1;
+          setDisplayedText(content.slice(0, currentIndex.current));
+        } else {
+          // Finished animating current content
+          clearInterval(intervalId.current);
+          intervalId.current = null;
+          setIsTyping(false);
+          setShowSources(true);
+        }
+      }, delayMs);
+    }
+
+    return () => {
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
+    };
+  }, [message.content, message.type]);
+  
+  return (
+    <div className={`chat-message ${message.type} ${isTyping ? 'typing' : ''}`}>
+      <div className="message-content">
+        {displayedText}
+        {isTyping && isLastMessage && message.type === 'ai' && <span className="typing-cursor">|</span>}
+      </div>
+      {message.sources && message.sources.length > 0 && showSources && (
+        <div className="message-sources fade-in">
+          <span className="sources-label">Sources:</span>
+          {(message.sources || []).map((source, idx) => (
+            <button 
+              key={`${source.entry_id}-${idx}`} 
+              className="source-link"
+              onClick={() => onSourceClick(source.entry_id)}
+            >
+              Entry #{source.entry_id}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 function JournalPage() {
   const [activeTab, setActiveTab] = useState('journal');
   const [content, setContent] = useState('');
@@ -21,6 +113,15 @@ function JournalPage() {
   const chunksRef = useRef([]);
   const messagesEndRef = useRef(null);
   const { currentUser } = useContext(AuthContext);
+
+  const generateId = () => {
+    try {
+      if (crypto && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch (_) {}
+    return `m_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  };
 
   // Auto-scroll to bottom of chat messages
   const scrollToBottom = () => {
