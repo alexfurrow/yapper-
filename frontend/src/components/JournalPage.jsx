@@ -76,15 +76,9 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
         rafId.current = requestAnimationFrame(step);
       }
       
-      // If content has grown significantly, restart the animation
-      if (message.content.length > lastContentLength.current + 10) {
-        console.log('Content grew significantly, restarting animation');
+      // Update the last content length to track growth
+      if (message.content.length > lastContentLength.current) {
         lastContentLength.current = message.content.length;
-        if (rafId.current) {
-          cancelAnimationFrame(rafId.current);
-          rafId.current = null;
-        }
-        rafId.current = requestAnimationFrame(step);
       }
     }
     
@@ -128,7 +122,7 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
           <span className="sources-label">Sources:</span>
           {(message.sources || []).map((source, idx) => (
             <button 
-              key={idx} 
+              key={`${source.entry_id}-${idx}`} 
               className="source-link"
               onClick={() => onSourceClick(source.entry_id)}
             >
