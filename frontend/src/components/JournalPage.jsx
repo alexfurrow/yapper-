@@ -369,7 +369,7 @@ function JournalPage() {
       
       // Use the Railway backend URL instead of relative path
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
-      const chatUrl = `${backendUrl}/api/chat/chat`;
+      const chatUrl = `${backendUrl}/api/chat/stream`;
       
       console.log('Environment check:');
       console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
