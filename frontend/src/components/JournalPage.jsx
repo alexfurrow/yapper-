@@ -3,111 +3,72 @@ import { supabase } from '../context/supabase.js';
 import { AuthContext } from '../context/AuthContext';
 import './JournalPage.css';
 
-// Chat message component with typewriter effect
+// Chat message component with typewriter effect (simplified)
 const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showSources, setShowSources] = useState(false);
-  const startTime = useRef(null);
-  const pausedAt = useRef(0);
-  const rafId = useRef(null);
-  const hasStartedAnimating = useRef(false);
-  const lastContentLength = useRef(0);
-  
+  const intervalId = useRef(null);
+  const currentIndex = useRef(0);
+
   useEffect(() => {
-    // Only apply typewriter effect to AI messages
+    // Non-AI messages render instantly
     if (message.type !== 'ai') {
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
+      currentIndex.current = (message.content || '').length;
       setDisplayedText(message.content || '');
       setIsTyping(false);
-      setShowSources(true); // Show sources immediately for non-AI messages
+      setShowSources(true);
       return;
     }
-    
-    if (!message.content) {
+
+    const content = message.content || '';
+
+    // Reset state when empty
+    if (content.length === 0) {
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
+      currentIndex.current = 0;
       setDisplayedText('');
       setIsTyping(false);
       setShowSources(false);
-      hasStartedAnimating.current = false;
-      lastContentLength.current = 0;
       return;
     }
-    
-    // Start animation if we haven't started yet and have enough content
-    const contentLength = message.content.length;
-    const shouldStartAnimation = !hasStartedAnimating.current && contentLength > 10;
-    
-    if (shouldStartAnimation) {
-      // Start animation for the first time
-      hasStartedAnimating.current = true;
+
+    // If our index is ahead of current content (rare), clamp it
+    if (currentIndex.current > content.length) {
+      currentIndex.current = content.length;
+    }
+
+    // Start a simple interval-based typewriter when needed
+    if (!intervalId.current && currentIndex.current < content.length) {
       setIsTyping(true);
-      setShowSources(false);
-      setDisplayedText('');
-      startTime.current = null;
-      pausedAt.current = 0;
-      if (rafId.current) cancelAnimationFrame(rafId.current);
-      
-      lastContentLength.current = contentLength;
-    }
-    
-    // Always run the animation step if we have content and animation has started
-    if (hasStartedAnimating.current && message.content) {
-      const cps = 140; // characters per second (7ms per character = ~140 cps)
-      
-      const step = (t) => {
-        if (startTime.current === null) startTime.current = t;
-        const elapsed = t - startTime.current + pausedAt.current; // total ms including hidden time
-        const chars = Math.min(message.content.length, Math.floor((elapsed / 1000) * cps));
-        console.log('Step function called, elapsed:', elapsed, 'chars:', chars, 'content length:', message.content.length);
-        setDisplayedText(message.content.slice(0, chars));
-        
-        // Continue animation if we haven't reached the current content length
-        if (chars < message.content.length) {
-          rafId.current = requestAnimationFrame(step);
+      const delayMs = 7; // ~140 cps
+      intervalId.current = setInterval(() => {
+        const target = content.length;
+        if (currentIndex.current < target) {
+          currentIndex.current += 1;
+          setDisplayedText(content.slice(0, currentIndex.current));
         } else {
-          // Only finish if we've reached the full content
+          // Finished animating current content
+          clearInterval(intervalId.current);
+          intervalId.current = null;
           setIsTyping(false);
           setShowSources(true);
         }
-      };
-      
-      // Start the animation if we don't have one running
-      if (!rafId.current) {
-        console.log('Starting animation for content length:', message.content.length);
-        rafId.current = requestAnimationFrame(step);
-      }
-      
-      // Update the last content length to track growth
-      if (message.content.length > lastContentLength.current) {
-        lastContentLength.current = message.content.length;
-      }
+      }, delayMs);
     }
-    
-    const onVisibilityChange = () => {
-      const cps = 140; // characters per second (7ms per character = ~140 cps)
-      // When hidden, fast-forward to completion
-      if (document.hidden) {
-        pausedAt.current = (message.content.length / cps) * 1000; // jump to done
-      } else {
-        // When returning to tab, check if we should skip animation entirely
-        // If the stream is complete and we're returning from hidden state, show instantly
-        if (pausedAt.current > 0) {
-          // Stream was complete while hidden, show instantly
-          setDisplayedText(message.content);
-          setIsTyping(false);
-          setShowSources(true);
-          if (rafId.current) {
-            cancelAnimationFrame(rafId.current);
-            rafId.current = null;
-          }
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    
+
     return () => {
-      if (rafId.current) cancelAnimationFrame(rafId.current);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (intervalId.current) {
+        clearInterval(intervalId.current);
+        intervalId.current = null;
+      }
     };
   }, [message.content, message.type]);
   
