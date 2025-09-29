@@ -80,7 +80,7 @@ def supabase_auth_required(f):
             # Call the function with original args (no extra arguments)
             return f(*args, **kwargs)
             
-        except Exception as e:
+    except Exception as e:
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
     return decorated_function
 
@@ -88,12 +88,26 @@ def supabase_auth_required(f):
 @supabase_auth_required
 def chat_with_database():
     """Chat endpoint with authentication"""
+    logger.info("=== CHAT ENDPOINT DEBUG START ===")
+    logger.info("Request method: POST")
+    logger.info("Request headers: " + str(dict(request.headers)))
+    logger.info("Request data: " + str(request.get_data()))
+    
     data = request.get_json()
+    logger.info("Parsed JSON data: " + str(data))
     
     if not data or 'message' not in data:
+        logger.error("Missing message in request data")
         return jsonify({'error': 'Message is required'}), 400
     
     try:
+        # Debug environment variables
+        logger.info("=== ENVIRONMENT DEBUG ===")
+        logger.info("OPENAI_API_KEY exists: " + str(bool(os.environ.get('OPENAI_API_KEY'))))
+        logger.info("OPENAI_API_KEY length: " + str(len(os.environ.get('OPENAI_API_KEY', ''))))
+        logger.info("SUPABASE_URL: " + str(os.environ.get('SUPABASE_URL', 'NOT_SET')))
+        logger.info("SUPABASE_ANON_KEY exists: " + str(bool(os.environ.get('SUPABASE_ANON_KEY'))))
+        
         # Get user message
         user_message = data['message']
         logger.info("Chat request received", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "message_length": len(user_message)})
@@ -114,17 +128,21 @@ def chat_with_database():
         
         # Generate streaming response using OpenAI
         def generate_stream():
+            logger.info("=== STREAMING FUNCTION DEBUG START ===")
+            logger.info("About to call OpenAI API")
+            logger.info("Context length: " + str(len(context)))
+            logger.info("User message: " + user_message)
             try:
                 stream = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": 
-                         """You are an AI assistant that answers questions based on the user's journal entries. 
-                         You'll be provided with relevant entries from their journal database.
-                         If the context doesn't contain relevant information, acknowledge that and provide a general response.
-                         Always maintain a conversational, helpful tone."""},
-                        {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
-                    ],
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": 
+                 """You are an AI assistant that answers questions based on the user's journal entries. 
+                 You'll be provided with relevant entries from their journal database.
+                 If the context doesn't contain relevant information, acknowledge that and provide a general response.
+                 Always maintain a conversational, helpful tone."""},
+                {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
+            ],
                     temperature=0.7,
                     stream=True
                 )
@@ -150,4 +168,4 @@ def chat_with_database():
         
     except Exception as e:
         logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": "unknown"})
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500 
