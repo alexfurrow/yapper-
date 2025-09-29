@@ -79,8 +79,8 @@ def supabase_auth_required(f):
             
             # Call the function with original args (no extra arguments)
             return f(*args, **kwargs)
-            
-    except Exception as e:
+            s
+        except Exception as e:
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
     return decorated_function
 
