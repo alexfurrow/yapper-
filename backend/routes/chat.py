@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g, Response, stream_template
 from werkzeug.exceptions import InternalServerError
 from openai import OpenAI
 import os
+import json
 from dotenv import load_dotenv
 from backend.services.embedding import search_by_text
 from supabase import create_client, Client
@@ -84,7 +85,7 @@ def supabase_auth_required(f):
             return jsonify({"msg": "Invalid or expired token", "error": str(e)}), 401
     return decorated_function
 
-@chat_bp.route('/chat/chat', methods=['POST'])
+@chat_bp.route('/chat/stream', methods=['POST'])
 @supabase_auth_required
 def chat_with_database():
     """Chat endpoint with authentication"""
@@ -110,12 +111,12 @@ def chat_with_database():
         
         # Get user message
         user_message = data['message']
-        logger.info("Chat request received", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "message_length": len(user_message)})
+        logger.info("Chat request received", extra={"route": "/chat/stream", "method": "POST", "user_id": g.current_user.id, "message_length": len(user_message)})
         
         # Search for relevant entries (only for current user)
         limit = data.get('limit', 3)  # Default to 3 most relevant entries
         similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id, user_client=g.user_supabase)
-        logger.info("Similar entries found", extra={"route": "/chat/chat", "method": "POST", "user_id": g.current_user.id, "count": len(similar_entries)})
+        logger.info("Similar entries found", extra={"route": "/chat/stream", "method": "POST", "user_id": g.current_user.id, "count": len(similar_entries)})
         
         # Extract content from similar entries
         context = ""
@@ -146,26 +147,28 @@ def chat_with_database():
                     temperature=0.7,
                     stream=True
                 )
-                
-                # Send sources first
-                sources_data = [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
-                yield f"data: {jsonify({'type': 'sources', 'sources': sources_data}).get_json()}\n\n"
-                
                 # Stream the AI response
                 for chunk in stream:
                     if chunk.choices[0].delta.content is not None:
                         content = chunk.choices[0].delta.content
-                        yield f"data: {jsonify({'type': 'content', 'content': content}).get_json()}\n\n"
+                        yield f"data: {json.dumps({'type': 'content', 'data': content})}\n\n"
                 
                 # Send completion signal
-                yield f"data: {jsonify({'type': 'done'}).get_json()}\n\n"
+                logger.info("Streaming completed, sending done signal", extra={"route": "/chat/stream", "method": "POST"})
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+                # Send sources after completion
+                sources_data = [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
+                logger.info("Sending sources", extra={"route": "/chat/stream", "method": "POST", "sources_count": len(sources_data)})
+                yield f"data: {json.dumps({'type': 'sources', 'data': sources_data})}\n\n"
+                logger.info("Sources sent successfully", extra={"route": "/chat/stream", "method": "POST"})
                 
             except Exception as e:
-                logger.exception("Error in streaming chat", extra={"route": "/chat/chat", "method": "POST", "user_id": "unknown"})
-                yield f"data: {jsonify({'type': 'error', 'error': str(e)}).get_json()}\n\n"
+                logger.exception("Error in streaming chat", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
+                yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
         
         return Response(generate_stream(), mimetype='text/plain')
         
     except Exception as e:
-        logger.exception("Error in chat endpoint", extra={"route": "/chat/chat", "method": "POST", "user_id": "unknown"})
+        logger.exception("Error in chat endpoint", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
         return jsonify({'error': str(e)}), 500 
