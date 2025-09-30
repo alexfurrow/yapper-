@@ -131,7 +131,7 @@ def chat_with_database():
         def generate_stream():
             try:
                 stream = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=[
                 {"role": "system", "content": 
                  """You are an AI assistant that answers questions based on the user's journal entries. 
@@ -165,3 +165,77 @@ def chat_with_database():
     except Exception as e:
         logger.exception("Error in chat endpoint", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
         return jsonify({'error': str(e)}), 500 
+
+
+@chat_bp.route('/chat/yap_intro', methods=['GET'])
+@supabase_auth_required
+def yap_intro():
+    """Return an opening prompt and ranked topics based on recent user entries.
+    Response: { opening: str, topics: [str, ...] }
+    """
+    try:
+        # Fetch recent entries for the user
+        res = supabase.table('entries').select('content, created_at, user_entry_id').eq('user_id', g.current_user.id).order('created_at', desc=True).limit(100).execute()
+        entries = res.data or []
+
+        if len(entries) == 0:
+            return jsonify({
+                'opening': "what's on your mind? talk as long as you want",
+                'topics': []
+            })
+
+        # Build context: start with 10, then add 5 until >= 3000 chars or exhausted
+        collected = []
+        total_len = 0
+        take = 10
+        idx = 0
+        while idx < len(entries):
+            batch = entries[idx: idx + take]
+            for e in batch:
+                text = (e.get('content') or '').strip()
+                if not text:
+                    continue
+                collected.append(f"Entry {e.get('user_entry_id','N/A')}: {text}")
+                total_len += len(text) + 20
+            if total_len >= 3000 or (idx + take) >= len(entries):
+                break
+            idx += take
+            take = 5
+
+        context = "\n\n".join(collected)
+
+        system_prompt = (
+            "You are a warm journaling companion. Given the user's recent journal text, "
+            "identify 3 to 7 concise subjects that are especially interesting, emotionally salient, or important. "
+            "Rank them in descending order of salience. Then propose a short, inviting opening line for today's conversation. "
+            "Respond strictly as JSON with keys 'topics' (array of strings) and 'opening' (string)."
+        )
+
+        user_prompt = (
+            f"User's recent entries (most recent first):\n\n{context}\n\n"
+            "Return JSON only."
+        )
+
+        resp = client.chat.completions.create(
+            model="gpt-5",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7
+        )
+
+        content = resp.choices[0].message.content if resp.choices else '{}'
+        try:
+            data = json.loads(content)
+        except Exception:
+            # Fallback naive parse
+            data = { 'opening': "Let's talk about your day. What stood out?", 'topics': [] }
+
+        opening = data.get('opening') or "Let's talk about your day. What stood out?"
+        topics = data.get('topics') or []
+        return jsonify({ 'opening': opening, 'topics': topics })
+
+    except Exception as e:
+        logger.exception("Error in yap_intro", extra={"route": "/chat/yap_intro", "method": "GET", "user_id": "unknown"})
+        return jsonify({'error': str(e)}), 500

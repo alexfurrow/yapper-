@@ -154,9 +154,27 @@ function JournalPage() {
   // Seed Yap with an opening AI prompt the first time the tab is opened
   useEffect(() => {
     if (activeTab === 'yap' && yapMessages.length === 0) {
-      setYapMessages([
-        { id: generateId(), type: 'ai', content: "Let's talk about your day. What stood out? Any moments worth remembering or revisiting later?" }
-      ]);
+      (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error('no session');
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+          const introUrl = `${backendUrl}/api/chat/yap_intro`;
+          const res = await fetch(introUrl, { headers: { Authorization: `Bearer ${session.access_token}` } });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const payload = await res.json();
+          const opening = payload.opening || "what's on your mind? talk as long as you want";
+          const topics = Array.isArray(payload.topics) ? payload.topics : [];
+          setYapMessages([
+            { id: generateId(), type: 'ai', content: opening },
+            ...(topics.length > 0 ? [{ id: generateId(), type: 'ai', content: `You can pick a topic: ${topics.map(t => `“${t}”`).join(', ')}, or choose “Something new”.` }] : [])
+          ]);
+        } catch (_) {
+          setYapMessages([
+            { id: generateId(), type: 'ai', content: "what's on your mind? talk as long as you want" }
+          ]);
+        }
+      })();
     }
   }, [activeTab]);
 
