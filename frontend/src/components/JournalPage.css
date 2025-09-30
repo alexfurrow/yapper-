@@ -370,6 +370,34 @@
   background: #FDF6E3; /* Parchment base background */
 }
 
+/* Voice record button (Converse mode) */
+.voice-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 101;
+}
+
+.voice-button {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #B5694E;
+  border: none;
+  box-shadow: 0 10px 24px rgba(75,40,109,0.18);
+  cursor: pointer;
+}
+
+.voice-button.recording {
+  animation: throb 1.6s ease-in-out infinite;
+}
+
+@keyframes throb {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(181,105,78,0.4); }
+  50%      { box-shadow: 0 0 0 16px rgba(181,105,78,0.0); }
+}
+
 .empty-chat {
   text-align: center;
   padding: 60px 24px;

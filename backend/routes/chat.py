@@ -180,7 +180,7 @@ def yap_intro():
 
         if len(entries) == 0:
             return jsonify({
-                'opening': "what's on your mind? talk as long as you want",
+                'opening': "What's on your mind? Talk as long as you want.",
                 'topics': []
             })
 

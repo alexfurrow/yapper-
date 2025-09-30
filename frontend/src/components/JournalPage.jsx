@@ -163,7 +163,7 @@ function JournalPage() {
           const res = await fetch(introUrl, { headers: { Authorization: `Bearer ${session.access_token}` } });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const payload = await res.json();
-          const opening = payload.opening || "what's on your mind? talk as long as you want";
+          const opening = payload.opening || "What's on your mind? Talk as long as you want.";
           const topics = Array.isArray(payload.topics) ? payload.topics : [];
           setYapMessages([
             { id: generateId(), type: 'ai', content: opening },
@@ -171,7 +171,7 @@ function JournalPage() {
           ]);
         } catch (_) {
           setYapMessages([
-            { id: generateId(), type: 'ai', content: "what's on your mind? talk as long as you want" }
+            { id: generateId(), type: 'ai', content: "What's on your mind? Talk as long as you want." }
           ]);
         }
       })();
@@ -728,7 +728,7 @@ function JournalPage() {
                 <div className="textarea-wrapper">
                   <div className="mode-toggle">
                     <button className={`mode-option ${yapMode === 'guided' ? 'active' : ''}`} onClick={() => setYapMode('guided')}>Converse</button>
-                    <button className={`mode-option ${yapMode === 'free' ? 'active' : ''}`} onClick={() => setYapMode('free')}>Free Entry</button>
+                    <button className={`mode-option ${yapMode === 'free' ? 'active' : ''}`} onClick={() => setYapMode('free')}>Free Hand</button>
                   </div>
                   {yapMode === 'guided' ? (
                     <div className="messages-container">
@@ -798,6 +798,16 @@ function JournalPage() {
                     </button>
                   )}
                 </div>
+                {yapMode === 'guided' && (
+                  <div className="voice-controls">
+                    <button
+                      type="button"
+                      className={`voice-button ${isRecording ? 'recording' : ''}`}
+                      onClick={isRecording ? stopRecording : startRecording}
+                      title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
