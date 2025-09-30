@@ -96,7 +96,7 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
   );
 };
 function JournalPage() {
-  const [activeTab, setActiveTab] = useState('journal');
+  const [activeTab, setActiveTab] = useState('yap');
   const [content, setContent] = useState('');
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -108,6 +108,13 @@ function JournalPage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  // Yap (guided conversation) state
+  const [yapMessages, setYapMessages] = useState([]);
+  const [yapInput, setYapInput] = useState('');
+  const [isYapLoading, setIsYapLoading] = useState(false);
+  const [isYapSaved, setIsYapSaved] = useState(false);
+  const yapEndRef = useRef(null);
+  const [yapMode, setYapMode] = useState('guided'); // 'guided' | 'free'
   
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -132,12 +139,26 @@ function JournalPage() {
     scrollToBottom();
   }, [chatMessages]);
 
+  // Auto-scroll Yap
+  useEffect(() => {
+    yapEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [yapMessages]);
+
   // Load entries on component mount
   useEffect(() => {
     if (currentUser) {
     loadEntries();
     }
   }, [currentUser]);
+
+  // Seed Yap with an opening AI prompt the first time the tab is opened
+  useEffect(() => {
+    if (activeTab === 'yap' && yapMessages.length === 0) {
+      setYapMessages([
+        { id: generateId(), type: 'ai', content: "Let's talk about your day. What stood out? Any moments worth remembering or revisiting later?" }
+      ]);
+    }
+  }, [activeTab]);
 
   const loadEntries = async () => {
     try {
@@ -508,6 +529,158 @@ function JournalPage() {
     return formatDate(date);
   };
 
+  const YAP_SYSTEM_PROMPT = `You are a warm, concise journaling companion. Help the user capture their day.
+- Encourage specifics about factual events and feelings
+- Ask follow-up questions sparingly
+- Invite notes/reminders for later follow-up
+- Keep responses brief and friendly`;
+
+  const assembleYapTranscript = (msgs) => {
+    try {
+      return (msgs || [])
+        .filter(m => (m.content || '').trim().length > 0)
+        .map(m => `${m.type === 'user' ? '#user:' : '#AI:'} ${m.content.trim()}`)
+        .join(' ');
+    } catch (_) { return ''; }
+  };
+
+  const saveYapEntry = async (opts = { keepalive: false }) => {
+    const transcript = assembleYapTranscript(yapMessages);
+    if (!transcript || transcript.trim().length === 0) return;
+
+    // Optimistic placeholder in history list
+    try {
+      const optimisticId = `temp_${Date.now()}`;
+      setEntries(prev => {
+        const nextNumber = (prev && prev.length > 0)
+          ? ((prev[0].user_entry_id || 0) + 1)
+          : 1;
+        const optimisticEntry = {
+          entry_id: optimisticId,
+          user_entry_id: nextNumber,
+          content: transcript,
+          created_at: new Date().toISOString(),
+          __optimistic: true
+        };
+        return [optimisticEntry, ...(prev || [])];
+      });
+
+      // Clear Yap UI immediately for a snappy feel
+      setYapMessages([]);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const createUrl = `${backendUrl}/api/entries`;
+      const res = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ content: transcript }),
+        keepalive: !!opts.keepalive
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setIsYapSaved(true);
+      // Replace optimistic with server data by reloading
+      loadEntries();
+    } catch (e) {
+      console.warn('Yap save failed:', e.message);
+    }
+  };
+
+  // Autosave on page hide/navigation if there is unsaved Yap content
+  useEffect(() => {
+    const onPageHide = () => {
+      if (!isYapSaved && (yapMessages || []).some(m => m.type === 'user')) {
+        saveYapEntry({ keepalive: true });
+      }
+    };
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
+  }, [yapMessages, isYapSaved]);
+
+  const handleYapSubmit = async (e) => {
+    e.preventDefault();
+    if (!yapInput.trim()) return;
+    const userText = yapInput;
+    setYapInput('');
+
+    const userMsgId = generateId();
+    const aiMsgId = generateId();
+    setYapMessages(prev => ([
+      ...prev,
+      { id: userMsgId, type: 'user', content: userText },
+      { id: aiMsgId, type: 'ai', content: '' }
+    ]));
+
+    try {
+      setIsYapLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const chatUrl = `${backendUrl}/api/chat/stream`;
+      const response = await fetch(chatUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          message: `${YAP_SYSTEM_PROMPT}\n\nUser: ${userText}`,
+          limit: 3
+        })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let sep;
+          while ((sep = buffer.indexOf('\n\n')) !== -1) {
+            const block = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            const lines = block.split('\n');
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const evt = JSON.parse(line.slice(6));
+                if (evt.type === 'content') {
+                  setYapMessages(prev => {
+                    const m = [...prev];
+                    const last = m[m.length - 1];
+                    if (last && last.type === 'ai') {
+                      m[m.length - 1] = { ...last, content: (last.content || '') + (evt.data || '') };
+                    }
+                    return m;
+                  });
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (err) {
+      console.error('Yap chat error:', err);
+      setYapMessages(prev => ([...prev, { type: 'ai', content: 'Sorry, I ran into an error. Please try again.' }]));
+    } finally {
+      setIsYapLoading(false);
+      setIsYapSaved(false);
+    }
+  };
+
   return (
     <div className="journal-page">
       {/* Main Content Area */}
@@ -515,23 +688,101 @@ function JournalPage() {
         {/* Tab Navigation */}
         <div className="tab-navigation">
           <button 
-            className={`tab-button ${activeTab === 'journal' ? 'active' : ''}`}
-            onClick={() => setActiveTab('journal')}
+            className={`tab-button ${activeTab === 'yap' ? 'active' : ''}`}
+            onClick={() => setActiveTab('yap')}
           >
-            <span className="tab-icon">✍️</span>
-            Journal Entry
+            Yap
           </button>
           <button 
             className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
             <span className="tab-icon">💬</span>
-            Chat Assistant
+            Journal Chat
           </button>
         </div>
 
         {/* Tab Content */}
         <div className="tab-content">
+          {activeTab === 'yap' && (
+            <div className="journal-tab">
+              <div className="journal-form">
+                <div className="textarea-wrapper">
+                  <div className="mode-toggle">
+                    <button className={`mode-option ${yapMode === 'guided' ? 'active' : ''}`} onClick={() => setYapMode('guided')}>Converse</button>
+                    <button className={`mode-option ${yapMode === 'free' ? 'active' : ''}`} onClick={() => setYapMode('free')}>Free Entry</button>
+                  </div>
+                  {yapMode === 'guided' ? (
+                    <div className="messages-container">
+                      {(yapMessages || []).map((msg, idx) => (
+                        <div key={msg.id || idx} className={`chat-message ${msg.type}`}>
+                          <div className="message-content">{msg.content}</div>
+                        </div>
+                      ))}
+                      <div ref={yapEndRef} />
+                    </div>
+                  ) : (
+                    <textarea
+                      value={content}
+                      onChange={handleContentChange}
+                      placeholder="What's on your mind today?"
+                      rows="12"
+                      disabled={isLoading}
+                      className="journal-textarea"
+                    />
+                  )}
+                </div>
+                <div className="form-actions">
+                  <div className="left-actions">
+                    {yapMode === 'guided' ? (
+                      <form onSubmit={handleYapSubmit} style={{ display: 'flex', gap: '12px', width: '100%' }}>
+                        <input
+                          type="text"
+                          value={yapInput}
+                          onChange={(e) => setYapInput(e.target.value)}
+                          placeholder="Talk it out..."
+                          className="chat-input"
+                          disabled={isYapLoading}
+                          style={{ flex: 1 }}
+                        />
+                        <button type="submit" className="send-button" disabled={isYapLoading || !yapInput.trim()}>
+                          <span className="button-icon">📤</span>
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={`record-button ${isRecording ? 'recording' : ''}`}
+                        disabled={isLoading}
+                      >
+                        <span className="button-icon">
+                          {isRecording ? '⏹️' : '🎤'}
+                        </span>
+                        {isRecording ? 'Stop Recording' : 'Start Recording'}
+                      </button>
+                    )}
+                  </div>
+                  {yapMode === 'guided' ? (
+                    <button type="button" className="save-button" onClick={() => saveYapEntry()} disabled={yapMessages.length === 0}>
+                      <span className="button-icon">💾</span>
+                      Save Entry
+                    </button>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={(e) => handleSubmit(e)}
+                      disabled={!content.trim()}
+                      className="save-button"
+                    >
+                      <span className="button-icon">💾</span>
+                      Save Entry
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === 'journal' && (
             <div className="journal-tab">
               {message && (
@@ -592,15 +843,14 @@ function JournalPage() {
             <div className="chat-tab">
               <div className="chat-container">
                 <div className="chat-header">
-                  <h2>Journal Assistant</h2>
+                  <h2>Journal Chat</h2>
                 </div>
                 
                 <div className="messages-container">
                   {(!chatMessages || chatMessages.length === 0) ? (
                     <div className="empty-chat">
-                      <div className="empty-icon">🤖</div>
-                      <h3>Ask me anything about your journal</h3>
-                      <p>I can help you reflect on your entries, find patterns, or answer questions about your thoughts.</p>
+                      <h3>Ask about your journal</h3>
+                      <p>I can help you reflect on entries, find patterns, or answer questions.</p>
                     </div>
                   ) : (
                     (chatMessages || []).map((msg, index) => {
@@ -664,7 +914,7 @@ function JournalPage() {
             (entries || []).map((entry) => (
               <div 
                 key={entry.entry_id}
-                className={`entry-item ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
+                className={`entry-item ${entry.__optimistic ? '__optimistic' : ''} ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
                 onClick={() => setSelectedEntry(entry)}
               >
                 <div className="entry-header">

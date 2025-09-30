@@ -5,12 +5,18 @@
   right: 0;
   margin: 0;
   padding: 0;
-  border-bottom: 1px solid #E6D8B4;
-  background-color: #FDF6E3;
+  border-bottom: 1px solid var(--parchment-border);
+  background-color: var(--parchment-50);
+  background-image:
+    radial-gradient(rgba(58, 31, 86, 0.03) 1px, transparent 1.5px),
+    radial-gradient(rgba(58, 31, 86, 0.025) 1px, transparent 1px);
+  background-size: 7px 7px, 12px 12px;
+  background-position: 0 0, 3px 3px;
   z-index: 1000;
   height: 60px;
   display: flex;
   align-items: center;
+  box-shadow: 0 2px 8px rgba(75, 40, 109, 0.03);
 }
 
 .header-content {

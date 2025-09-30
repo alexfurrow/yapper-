@@ -1,7 +1,13 @@
 .journal-page {
   display: flex;
   height: calc(100vh - 60px);
-  background: #FDF6E3; /* Parchment base background */
+  background: var(--parchment-50);
+  /* Subtle paper texture */
+  background-image:
+    radial-gradient(rgba(58, 31, 86, 0.038) 1px, transparent 1.5px),
+    radial-gradient(rgba(58, 31, 86, 0.03) 1px, transparent 1px);
+  background-size: 7px 7px, 12px 12px;
+  background-position: 0 0, 3px 3px;
   overflow: hidden;
 }
 
@@ -21,10 +27,10 @@
 .tab-navigation {
   display: flex;
   justify-content: center;
-  background: white;
-  border-bottom: 1px solid #E6D8B4; /* Aged scroll color */
+  background: var(--parchment-50);
+  border-bottom: 1px solid var(--parchment-border);
   padding: 0 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(75, 40, 109, 0.05);
 }
 
 .tab-button {
@@ -35,7 +41,7 @@
   background: none;
   border: none;
   border-bottom: 3px solid transparent;
-  color: #64748b;
+  color: #4B286D; /* royal ink text */
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -44,18 +50,42 @@
 }
 
 .tab-button:hover {
-  color: #334155;
-  background: #f1f5f9;
+  color: #4B286D;
+  background: #EFE5CC; /* light parchment hover */
 }
 
 .tab-button.active {
-  color: #4B286D; /* Royal ink text color */
-  border-bottom-color: #7D8456; /* Olive leaf color */
-  background: #FDF6E3; /* Parchment base background */
+  color: #FFFFFF;
+  border-bottom-color: transparent;
+  background: linear-gradient(135deg, #4B286D, #3A1F56);
+  box-shadow: 0 2px 0 #F7F0DD inset, 0 4px 12px rgba(58, 31, 86, 0.15);
 }
 
 .tab-icon {
   font-size: 18px;
+}
+
+/* Yap mode toggle */
+.mode-toggle {
+  display: inline-flex;
+  background: var(--parchment-50);
+  border: 1px solid var(--parchment-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.mode-option {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  color: var(--ink-royal);
+  cursor: pointer;
+}
+
+.mode-option.active {
+  background: var(--parchment-300);
 }
 
 /* Tab Content */
@@ -63,11 +93,17 @@
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background: #FDF6E3; /* Parchment base background */
+  background: var(--parchment-50);
 }
 
 /* Journal Tab */
 .journal-tab {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Mirror journal entry width for chat tab */
+.chat-tab {
   max-width: 800px;
   margin: 0 auto;
 }
@@ -92,11 +128,22 @@
 }
 
 .journal-form {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--parchment-200); /* parchment card */
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(75, 40, 109, 0.06);
   overflow: hidden;
-  border: 1px solid #E6D8B4; /* Aged scroll color */
+  border: 1px solid var(--parchment-border);
+  position: relative;
+}
+
+/* Subtle vignette around the edges of the journal card */
+.journal-form::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 60px rgba(58, 31, 86, 0.07);
 }
 
 .textarea-wrapper {
@@ -108,20 +155,22 @@
   width: 100%;
   min-height: 300px;
   padding: 16px;
-  border: 2px solid #E6D8B4; /* Aged scroll color */
-  border-radius: 8px;
+  border: 2px solid var(--parchment-border); /* Aged scroll color */
+  border-radius: 10px;
   font-size: 16px;
   font-family: inherit;
   line-height: 1.6;
   resize: vertical;
-  transition: border-color 0.2s ease;
-  background: #FDF6E3; /* Parchment base background */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--parchment-200); /* parchment */
+  box-shadow: inset 0 0 0 1px rgba(75, 40, 109, 0.05);
 }
 
 .journal-textarea:focus {
   outline: none;
   border-color: #7D8456; /* Olive leaf color */
-  background: white;
+  box-shadow: 0 0 0 4px rgba(125, 132, 86, 0.15);
+  background: var(--parchment-200);
 }
 
 .journal-textarea::placeholder {
@@ -168,8 +217,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: #E6D8B4; /* Aged scroll color */
-  border-top: 1px solid #D6C8A4;
+  background: var(--parchment-300); /* mid parchment band */
+  border-top: 1px solid var(--parchment-border);
 }
 
 .left-actions {
@@ -210,8 +259,9 @@
 }
 
 .save-button {
-  background: #4B286D; /* Royal ink color */
+  background: linear-gradient(135deg, #4B286D, #3A1F56);
   color: white;
+  box-shadow: 0 6px 14px rgba(75, 40, 109, 0.25);
 }
 
 .save-button:hover:not(:disabled) {
@@ -274,17 +324,17 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--parchment-200); /* parchment */
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(75, 40, 109, 0.06);
   overflow: hidden;
-  border: 1px solid #E6D8B4; /* Aged scroll color */
+  border: 1px solid var(--parchment-border);
 }
 
 .chat-header {
   padding: 20px 24px;
-  border-bottom: 1px solid #E6D8B4; /* Aged scroll color */
-  background: #FDF6E3; /* Parchment base background */
+  border-bottom: 1px solid var(--parchment-border);
+  background: var(--parchment-300); /* slightly darker parchment header */
 }
 
 .chat-header h2 {
@@ -505,7 +555,7 @@
   top: 60px;
   width: 400px;
   height: calc(100vh - 60px);
-  background: white;
+  background: #FFFCF8; /* same near-white as content */
   border-left: 1px solid #E6D8B4; /* Aged scroll color */
   display: flex;
   flex-direction: column;
@@ -522,8 +572,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #E6D8B4; /* Aged scroll color */
-  background: #E6D8B4; /* Aged scroll color */
+  border-bottom: 1px solid #D6C8A4; /* parchment divider */
+  background: #EFE5CC; /* darker parchment to match journal */
 }
 
 .sidebar-header h3 {
@@ -559,7 +609,12 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: #FDF6E3; /* Parchment base background */
+  background: var(--parchment-50); /* Parchment base background */
+}
+
+.entry-item.__optimistic {
+  opacity: 0.9;
+  border-style: dashed;
 }
 
 .empty-entries {
@@ -590,14 +645,14 @@
   transition: all 0.2s ease;
   border: 1px solid transparent;
   margin-bottom: 8px;
-  background: white;
+  background: var(--parchment-200); /* parchment same as textarea */
 }
 
 .entry-item:hover {
   background: #EFE5CC; /* Slightly lighter aged scroll */
   border-color: #E6D8B4; /* Aged scroll color */
 }
-
+  
 .entry-item.selected {
   background: #EFE5CC; /* Slightly lighter aged scroll */
   border-color: #7D8456; /* Olive leaf color */

@@ -122,7 +122,7 @@ function CustomRouter() {
   if (currentPath === '/login') {
     return (
       <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
+        <div className="App auth-page">
           <Login />
         </div>
       </NavigationContext.Provider>
@@ -132,7 +132,7 @@ function CustomRouter() {
   if (currentPath === '/register') {
     return (
       <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
+        <div className="App auth-page">
           <Register />
         </div>
       </NavigationContext.Provider>
@@ -142,7 +142,7 @@ function CustomRouter() {
   if (currentPath === '/confirm-email') {
     return (
       <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
+        <div className="App auth-page">
           <EmailConfirmation />
         </div>
       </NavigationContext.Provider>
@@ -152,7 +152,7 @@ function CustomRouter() {
   if (currentPath === '/auth/callback') {
     return (
       <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
+        <div className="App auth-page">
           <AuthCallback />
         </div>
       </NavigationContext.Provider>
@@ -163,7 +163,7 @@ function CustomRouter() {
   if (currentUser) {
     return (
       <NavigationContext.Provider value={{ navigate }}>
-        <div className="App">
+        <div className="App has-header">
           <Header />
           <JournalPage />
         </div>

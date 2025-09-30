@@ -10,6 +10,14 @@ body, html {
   min-height: 100vh;
 }
 
+:root{
+  --parchment-50:  #FFFBF2;  /* page + tab row + header */
+  --parchment-200: #F6ECD1;  /* textarea, chat container, entry cards */
+  --parchment-300: #EEDDB5;  /* action bars/section headers */
+  --parchment-border:#D9C99B;
+  --ink-royal:     #4B286D;
+}
+
 #root {
   min-height: 100vh;
 }
