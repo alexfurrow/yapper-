@@ -1,3 +1,8 @@
+.chat-input-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+}
 .journal-page {
   display: flex;
   height: calc(100vh - 60px);
@@ -224,6 +229,8 @@
 .left-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
+  flex: 1; /* allow input row to expand up to Save button */
 }
 
 .record-button, .save-button {
@@ -380,13 +387,16 @@
 }
 
 .voice-button {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #B5694E;
   border: none;
   box-shadow: 0 10px 24px rgba(75,40,109,0.18);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .voice-button.recording {
@@ -396,6 +406,11 @@
 @keyframes throb {
   0%, 100% { box-shadow: 0 0 0 0 rgba(181,105,78,0.4); }
   50%      { box-shadow: 0 0 0 16px rgba(181,105,78,0.0); }
+}
+
+.voice-button .mic-icon {
+  font-size: 18px;
+  color: #ffffff;
 }
 
 .empty-chat {
@@ -536,7 +551,7 @@
 }
 
 .chat-input {
-  flex: 1;
+  flex: 1 1 auto;
   padding: 12px 16px; /* Increased padding */
   border: 2px solid #E6D8B4; /* Aged scroll color */
   border-radius: 8px;
@@ -544,6 +559,42 @@
   transition: border-color 0.2s ease;
   background: #FDF6E3; /* Parchment base background */
 }
+
+/* Auto-expanding textarea used in Converse mode */
+.chat-textarea {
+  flex: 1 1 auto;
+  padding: 12px 16px;
+  border: 2px solid #E6D8B4;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  background: #FDF6E3;
+  min-height: 44px;
+  max-height: 240px;
+  line-height: 1.4;
+  overflow-y: auto;
+  resize: none; /* growth via JS */
+  padding-right: 52px; /* space for inline send button */
+}
+
+.send-inline {
+  position: absolute;
+  right: 8px;
+  bottom: 8px; /* default bottom-right when multi-line */
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #667eea; /* blue send, matches highlight */
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(75,40,109,0.25);
+}
+
+.send-inline:hover { background: #5563d6; }
 
 .chat-input:focus {
   outline: none;
@@ -563,6 +614,21 @@
   align-items: center;
   justify-content: center;
   min-width: 48px;
+}
+
+.compose-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #7D8456; /* olive */
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(125,132,86,0.25);
+  margin-right: 16px; /* buffer before Save button */
 }
 
 .send-button:hover {
@@ -680,7 +746,7 @@
   background: #EFE5CC; /* Slightly lighter aged scroll */
   border-color: #E6D8B4; /* Aged scroll color */
 }
-  
+
 .entry-item.selected {
   background: #EFE5CC; /* Slightly lighter aged scroll */
   border-color: #7D8456; /* Olive leaf color */

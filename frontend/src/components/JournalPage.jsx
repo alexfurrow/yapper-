@@ -115,6 +115,7 @@ function JournalPage() {
   const [isYapSaved, setIsYapSaved] = useState(false);
   const yapEndRef = useRef(null);
   const [yapMode, setYapMode] = useState('guided'); // 'guided' | 'free'
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
   
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -716,7 +717,7 @@ function JournalPage() {
             onClick={() => setActiveTab('chat')}
           >
             <span className="tab-icon">💬</span>
-            Journal Chat
+            History Chat
           </button>
         </div>
 
@@ -753,18 +754,73 @@ function JournalPage() {
                 <div className="form-actions">
                   <div className="left-actions">
                     {yapMode === 'guided' ? (
-                      <form onSubmit={handleYapSubmit} style={{ display: 'flex', gap: '12px', width: '100%' }}>
-                        <input
-                          type="text"
-                          value={yapInput}
-                          onChange={(e) => setYapInput(e.target.value)}
-                          placeholder="Talk it out..."
-                          className="chat-input"
-                          disabled={isYapLoading}
-                          style={{ flex: 1 }}
-                        />
-                        <button type="submit" className="send-button" disabled={isYapLoading || !yapInput.trim()}>
-                          <span className="button-icon">📤</span>
+                      <form onSubmit={handleYapSubmit} style={{ display: 'flex', gap: '12px', width: '100%', alignItems: 'center', flex: 1 }}>
+                        <button
+                          type="button"
+                          className={`voice-button ${isRecording ? 'recording' : ''}`}
+                          onClick={isRecording ? stopRecording : startRecording}
+                          title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                        >
+                          <span className="mic-icon">🎤</span>
+                        </button>
+                        {isComposeOpen && (
+                          <div className="chat-input-wrapper">
+                            <textarea
+                              value={yapInput}
+                              onChange={(e) => setYapInput(e.target.value)}
+                              placeholder="Type your reply..."
+                              className="chat-textarea"
+                              disabled={isYapLoading}
+                              rows={1}
+                              onKeyDown={(e) => {
+                                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (yapInput.trim()) handleYapSubmit(e);
+                                }
+                              }}
+                              ref={(el) => {
+                                if (!el) return;
+                                el.style.height = 'auto';
+                                const h = Math.min(el.scrollHeight, 240);
+                                el.style.height = h + 'px';
+                                const btn = el.parentElement && el.parentElement.querySelector('.send-inline');
+                                if (btn) {
+                                  if (h <= 56) {
+                                    btn.style.top = '8px';
+                                    btn.style.height = (h - 16) + 'px';
+                                  } else {
+                                    btn.style.top = '';
+                                    btn.style.height = '36px';
+                                  }
+                                }
+                              }}
+                              onInput={(e) => {
+                                const el = e.currentTarget;
+                                el.style.height = 'auto';
+                                const h = Math.min(el.scrollHeight, 240);
+                                el.style.height = h + 'px';
+                                const btn = el.parentElement && el.parentElement.querySelector('.send-inline');
+                                if (btn) {
+                                  if (h <= 56) {
+                                    btn.style.top = '8px';
+                                    btn.style.height = (h - 16) + 'px';
+                                  } else {
+                                    btn.style.top = '';
+                                    btn.style.height = '36px';
+                                  }
+                                }
+                              }}
+                            />
+                            <button type="submit" className="send-inline" disabled={isYapLoading || !yapInput.trim()} title="Send (Cmd/Ctrl+Enter)">↑</button>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="compose-button"
+                          onClick={() => setIsComposeOpen(prev => !prev)}
+                          title={isComposeOpen ? 'Close typing' : 'Type instead'}
+                        >
+                          ✏️
                         </button>
                       </form>
                     ) : (
@@ -782,10 +838,9 @@ function JournalPage() {
                     )}
                   </div>
                   {yapMode === 'guided' ? (
-                    <button type="button" className="save-button" onClick={() => saveYapEntry()} disabled={yapMessages.length === 0}>
-                      <span className="button-icon">💾</span>
-                      Save Entry
-                    </button>
+                  <button type="button" className="save-button" onClick={() => saveYapEntry()} disabled={yapMessages.length === 0}>
+                    Save Entry
+                  </button>
                   ) : (
                     <button 
                       type="button" 
@@ -798,16 +853,7 @@ function JournalPage() {
                     </button>
                   )}
                 </div>
-                {yapMode === 'guided' && (
-                  <div className="voice-controls">
-                    <button
-                      type="button"
-                      className={`voice-button ${isRecording ? 'recording' : ''}`}
-                      onClick={isRecording ? stopRecording : startRecording}
-                      title={isRecording ? 'Stop Recording' : 'Start Recording'}
-                    />
-                  </div>
-                )}
+                {false && <div></div>}
               </div>
             </div>
           )}
@@ -852,7 +898,6 @@ function JournalPage() {
                     disabled={!content.trim()}
                     className="save-button"
                   >
-                    <span className="button-icon">💾</span>
                     Save Entry
                   </button>
                 </div>
@@ -871,7 +916,7 @@ function JournalPage() {
             <div className="chat-tab">
               <div className="chat-container">
                 <div className="chat-header">
-                  <h2>Journal Chat</h2>
+                  <h2>History Chat</h2>
                 </div>
                 
                 <div className="messages-container">
@@ -922,7 +967,7 @@ function JournalPage() {
       {/* Sidebar */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h3>Journal History</h3>
+          <h3>Yap History</h3>
           <button 
             className="sidebar-toggle"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
