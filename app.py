@@ -21,6 +21,7 @@ from extensions import cors
 from backend.routes.main import main_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
+from backend.routes.converse import converse_bp
 # from backend.routes.files import files_bp
 from backend.routes.entries import entries_bp
 from backend.commands import vectorize_pages_command
@@ -115,6 +116,8 @@ def create_app(config_class=Config):
     print("  ✓ entries_bp registered with /api prefix")
     app.register_blueprint(audio_bp, url_prefix='/api')
     print("  ✓ audio_bp registered with /api prefix")
+    app.register_blueprint(converse_bp, url_prefix='/api')
+    print("  ✓ converse_bp registered with /api prefix")
     
     try:
         print(f"  Attempting to register chat_bp...")
