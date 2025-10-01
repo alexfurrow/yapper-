@@ -226,6 +226,8 @@
   border-top: 1px solid var(--parchment-border);
 }
 
+.form-actions .save-button { margin-left: 16px; }
+
 .left-actions {
   display: flex;
   gap: 12px;

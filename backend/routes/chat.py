@@ -20,6 +20,7 @@ REQUIRED_ENV = [
     "OPENAI_API_KEY"
 ]
 
+
 def validate_env():
     """Validate that all required environment variables are present"""
     missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
@@ -88,7 +89,7 @@ def supabase_auth_required(f):
 @chat_bp.route('/chat/stream', methods=['POST'])
 @supabase_auth_required
 def chat_with_database():
-    """Chat endpoint with authentication"""
+    """Chat endpoint with authentication (messages array required)"""
     logger.info("=== CHAT ENDPOINT DEBUG START ===")
     logger.info("Request method: POST")
     logger.info("Request headers: " + str(dict(request.headers)))
@@ -97,71 +98,36 @@ def chat_with_database():
     data = request.get_json()
     logger.info("Parsed JSON data: " + str(data))
     
-    if not data or 'message' not in data:
-        logger.error("Missing message in request data")
-        return jsonify({'error': 'Message is required'}), 400
-    
+    # Require messages array
+    if not data or 'messages' not in data or not isinstance(data['messages'], list) or len(data['messages']) == 0:
+        logger.error("Missing or invalid 'messages' array in request data")
+        return jsonify({'error': "'messages' array is required"}), 400
+
+    messages = data['messages']
+
     try:
-        # Debug environment variables
-        logger.info("=== ENVIRONMENT DEBUG ===")
-        logger.info("OPENAI_API_KEY exists: " + str(bool(os.environ.get('OPENAI_API_KEY'))))
-        logger.info("OPENAI_API_KEY length: " + str(len(os.environ.get('OPENAI_API_KEY', ''))))
-        logger.info("SUPABASE_URL: " + str(os.environ.get('SUPABASE_URL', 'NOT_SET')))
-        logger.info("SUPABASE_ANON_KEY exists: " + str(bool(os.environ.get('SUPABASE_ANON_KEY'))))
-        
-        # Get user message
-        user_message = data['message']
-        logger.info("Chat request received", extra={"route": "/chat/stream", "method": "POST", "user_id": g.current_user.id, "message_length": len(user_message)})
-        
-        # Search for relevant entries (only for current user)
-        limit = data.get('limit', 3)  # Default to 3 most relevant entries
-        similar_entries = search_by_text(user_message, limit, user_id=g.current_user.id, user_client=g.user_supabase)
-        logger.info("Similar entries found", extra={"route": "/chat/stream", "method": "POST", "user_id": g.current_user.id, "count": len(similar_entries)})
-        
-        # Extract content from similar entries
-        context = ""
-        for entry in similar_entries:
-            context += f"Entry {entry.get('user_entry_id', 'N/A')} (similarity: {entry['similarity']:.2f}):\n{entry.get('processed', 'No processed content')}\n\n"
-        
-        # If no context found, let the AI know
-        if not context.strip():
-            context = "No relevant journal entries found for this query."
-        
-        # Generate streaming response using OpenAI
+        logger.info("Chat request with conversation messages", extra={"route": "/chat/stream", "method": "POST", "user_id": g.current_user.id, "turns": len(messages)})
+
         def generate_stream():
             try:
+                # Use GPT-4o for streaming (doesn't require organization verification)
                 stream = client.chat.completions.create(
-            model="gpt-5",
-            messages=[
-                {"role": "system", "content": 
-                 """You are an AI assistant that answers questions based on the user's journal entries. 
-                 You'll be provided with relevant entries from their journal database.
-                 If the context doesn't contain relevant information, acknowledge that and provide a general response.
-                 Always maintain a conversational, helpful tone."""},
-                {"role": "user", "content": f"Context from journal entries:\n\n{context}\n\nUser question: {user_message}"}
-            ],
+                    model="gpt-4o",
+                    messages=messages,
                     temperature=0.7,
                     stream=True
                 )
-
-                # Stream the AI response
+                
                 for chunk in stream:
                     if chunk.choices[0].delta.content is not None:
                         content = chunk.choices[0].delta.content
                         yield f"data: {json.dumps({'type': 'content', 'data': content})}\n\n"
-                # Send completion signal
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-                # Send sources after completion
-                sources_data = [{'entry_id': entry.get('user_entry_id', 'N/A'), 'similarity': entry['similarity']} for entry in similar_entries]
-                yield f"data: {json.dumps({'type': 'sources', 'data': sources_data})}\n\n"
-                
             except Exception as e:
-                logger.exception("Error in streaming chat", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
+                logger.exception("Error in streaming chat (messages mode)", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
                 yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
         
         return Response(generate_stream(), mimetype='text/plain')
-        
     except Exception as e:
         logger.exception("Error in chat endpoint", extra={"route": "/chat/stream", "method": "POST", "user_id": "unknown"})
         return jsonify({'error': str(e)}), 500 
@@ -217,7 +183,7 @@ def yap_intro():
         )
 
         resp = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
