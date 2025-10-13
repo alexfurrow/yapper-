@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
 import { supabase } from '../context/supabase.js';
+import ReactMarkdown from 'react-markdown';
 import { AuthContext } from '../context/AuthContext';
 import './JournalPage.css';
 
@@ -75,7 +76,7 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
   return (
     <div className={`chat-message ${message.type} ${isTyping ? 'typing' : ''}`}>
       <div className="message-content">
-        {displayedText}
+        <ReactMarkdown>{displayedText}</ReactMarkdown>
         {isTyping && isLastMessage && message.type === 'ai' && <span className="typing-cursor">|</span>}
       </div>
       {message.sources && message.sources.length > 0 && showSources && (
@@ -774,7 +775,9 @@ function JournalPage() {
                     <div className="messages-container">
                       {(yapMessages || []).map((msg, idx) => (
                         <div key={msg.id} className={`chat-message ${msg.type}`}>
-                          <div className="message-content">{msg.content}</div>
+                          <div className="message-content">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
                         </div>
                       ))}
                       <div ref={yapEndRef} />
