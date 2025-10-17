@@ -82,7 +82,7 @@
 
 .mode-option {
   appearance: none;
-  background: transparent;
+  background: var(--parchment-300);
   border: none;
   padding: 8px 14px;
   color: var(--ink-royal);
@@ -90,7 +90,7 @@
 }
 
 .mode-option.active {
-  background: var(--parchment-300);
+  background: transparent;
 }
 
 /* Tab Content */
