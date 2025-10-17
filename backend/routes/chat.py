@@ -196,9 +196,9 @@ def yap_intro():
             data = json.loads(content)
         except Exception:
             # Fallback naive parse
-            data = { 'opening': "Let's talk about your day. What stood out?", 'topics': [] }
+            data = { 'opening': "What's on your mind?", 'topics': [] }
 
-        opening = data.get('opening') or "Let's talk about your day. What stood out?"
+        opening = data.get('opening') or "What's on your mind?"
         topics = data.get('topics') or []
         return jsonify({ 'opening': opening, 'topics': topics })
 

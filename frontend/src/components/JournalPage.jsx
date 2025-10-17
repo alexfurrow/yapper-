@@ -84,11 +84,11 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
           <span className="sources-label">Sources:</span>
           {(message.sources || []).map((source, idx) => (
             <button 
-              key={`${source.entry_id ?? 'na'}-${idx}`} 
+              key={`${source.user_entry_id ?? 'na'}-${idx}`} 
               className="source-link"
               onClick={() => onSourceClick(source.entry_id)}
             >
-              Entry #{source.entry_id}
+              Entry #{source.user_entry_id}
             </button>
           ))}
         </div>
@@ -418,7 +418,7 @@ function JournalPage() {
       
       // Use the Railway backend URL instead of relative path
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
-      const chatUrl = `${backendUrl}/api/chat/stream`;
+      const chatUrl = `${backendUrl}/api/converse/stream`;
       
       console.log('Environment check:');
       console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
@@ -430,23 +430,23 @@ function JournalPage() {
         'Authorization': `Bearer ${accessToken.substring(0, 20)}...`
       });
       
-      // Build conversation messages from current chat state
-      const chatSystem = { role: 'system', content: 'You are a helpful assistant that answers questions about the user\'s journal.' };
-      const chatTurns = (chatMessages || []).flatMap(m => {
-        if (m.type === 'user') return [{ role: 'user', content: m.content || '' }];
-        if (m.type === 'ai') return [{ role: 'assistant', content: m.content || '' }];
-        return [];
-      });
-      const chatPayload = [chatSystem, ...chatTurns, { role: 'user', content: userContent }];
+      // Build conversation messages for converse endpoint
+      const yapMessages = (chatMessages || []).map(m => ({
+        type: m.type,
+        content: m.content || ''
+      }));
 
-      // Make streaming API call to your Railway backend chat endpoint
+      // Make streaming API call to converse endpoint with RAG
       const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ messages: chatPayload })
+        body: JSON.stringify({ 
+          messages: yapMessages,
+          user_input: userContent
+        })
       });
 
       console.log('Response status:', response.status);

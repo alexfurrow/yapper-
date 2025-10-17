@@ -25,34 +25,27 @@ YAP_SYSTEM_PROMPT = """You are a warm, insightful journaling companion. Today is
 Your role is to help users explore their thoughts, feelings, and experiences through guided conversation. 
 
 ## Response Style
-- Use clear structure with headers, bullet points, and numbered lists
-- Format responses like a thoughtful advisor, not a casual chat
-- Avoid emojis - rely on clear, engaging language instead
-- Break up long responses with subheadings and organized sections
-- Use markdown formatting for better readability
+- Be conversational and natural, like talking to a friend
+- Keep responses concise and focused
+- Use simple, clear language
+- Avoid excessive formatting, headers, or bullet points
+- Write in a flowing, natural style
 
 ## Conversation Approach
 - Ask thoughtful, open-ended questions that encourage reflection
 - Be genuinely curious about their experiences and perspectives  
 - Help them process emotions and find meaning in their experiences
-- Suggest they explore topics they might not have considered
 - Be supportive and non-judgmental
 - Keep conversations flowing naturally
 
-## Direction & Options
-- Regularly offer clear paths forward: "Would you like to go deeper into that, or explore alternatives?"
-- Present 2-3 specific options for where the conversation could go next
-- Help them choose their own direction: "What feels most important to you right now?"
-- Guide without pushing: "I'm curious about X, but what's calling to you?"
-
-Remember: You're having a real conversation. Share insights, make connections, and help them see their experiences from new angles. Structure your responses to be both helpful and easy to follow."""
+Remember: You're having a real conversation. Be helpful, insightful, and conversational without over-formatting your responses."""
 
 def get_today_string():
     """Get today's date as a string for the system prompt."""
     from datetime import datetime
     return datetime.now().strftime("%B %d, %Y")
 
-def build_conversation_messages(yap_messages, user_input):
+def build_conversation_messages(yap_messages, user_input, context=""):
     """
     Build the messages array for OpenAI API call.
     Converts frontend message format to OpenAI format.
@@ -61,6 +54,11 @@ def build_conversation_messages(yap_messages, user_input):
     
     # Add system prompt with today's date
     system_prompt = YAP_SYSTEM_PROMPT.format(TODAY=get_today_string())
+    
+    # If we have context, add it to the system prompt
+    if context:
+        system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
+    
     messages.append({"role": "system", "content": system_prompt})
     
     # Convert yap_messages to OpenAI format
@@ -75,7 +73,7 @@ def build_conversation_messages(yap_messages, user_input):
     
     return messages
 
-def get_user_context(user_id, user_supabase, limit=3):
+def get_user_context(user_id, user_supabase, limit=15):
     """
     Get relevant context from user's journal entries for the conversation.
     """
@@ -87,11 +85,14 @@ def get_user_context(user_id, user_supabase, limit=3):
         if not entries:
             return ""
         
-        # Build context from recent entries
+        # Build context from recent entries with better formatting
         context_parts = []
-        for entry in entries[:10]:  # Use last 10 entries
+        for entry in entries[:limit]:  # Use specified limit
             content = entry.get('content', '').strip()
             if content:
+                # Truncate very long entries to keep context manageable
+                if len(content) > 500:
+                    content = content[:500] + "..."
                 context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
         
         return "\n\n".join(context_parts)
@@ -122,11 +123,32 @@ def converse_stream():
         
         logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
         
-        # Build conversation messages for OpenAI
-        messages = build_conversation_messages(yap_messages, user_input)
+        # Use RAG pipeline to find relevant entries
+        from backend.services.embedding import search_by_text
+        relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
         
-        # Get user context for enhanced responses
-        context = get_user_context(g.current_user.id, g.user_supabase)
+        # Build context from relevant entries
+        context_parts = []
+        sources = []
+        for entry in relevant_entries:
+            content = entry.get('content', '').strip()
+            if content:
+                # Truncate very long entries
+                if len(content) > 300:
+                    content = content[:300] + "..."
+                context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
+                # Add to sources for frontend
+                sources.append({
+                    'entry_id': entry.get('entry_id'),
+                    'user_entry_id': entry.get('user_entry_id'),
+                    'content': content,
+                    'similarity': entry.get('similarity', 0)
+                })
+        
+        context = "\n\n".join(context_parts)
+        
+        # Build conversation messages for OpenAI with context
+        messages = build_conversation_messages(yap_messages, user_input, context)
         
         def generate_stream():
             try:
@@ -142,6 +164,11 @@ def converse_stream():
                     if chunk.choices[0].delta.content is not None:
                         content = chunk.choices[0].delta.content
                         yield f"data: {json.dumps({'type': 'content', 'data': content})}\n\n"
+                
+                # Send sources after content is done
+                if sources:
+                    yield f"data: {json.dumps({'type': 'sources', 'data': sources})}\n\n"
+                
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
                 
             except Exception as e:

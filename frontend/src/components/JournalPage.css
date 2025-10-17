@@ -480,7 +480,7 @@
 }
 
 .message-content li {
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .message-content h1, .message-content h2, .message-content h3 {
@@ -509,7 +509,7 @@
 }
 
 .message-content p {
-  margin: 8px 0;
+  margin: 4px 0;
 }
 
 .message-content p:first-child {
