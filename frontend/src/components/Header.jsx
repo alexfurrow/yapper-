@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { NavigationContext } from '../App';
 import './Header.css';
@@ -6,11 +6,37 @@ import './Header.css';
 function Header() {
   const { currentUser, logout } = useContext(AuthContext);
   const { navigate } = useContext(NavigationContext);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  const handleBulkUpload = () => {
+    navigate('/bulk-upload');
+    setShowDropdown(false);
+  };
+
+  const handleBackToJournal = () => {
+    navigate('/');
+    setShowDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   return (
     <header className="app-header">
@@ -19,8 +45,39 @@ function Header() {
         
         {currentUser ? (
           <div className="user-controls">
-            <span className="username">Hello, {currentUser.username}</span>
-            <button className="logout-button" onClick={handleLogout}>Logout</button>
+            <div className="user-menu" ref={dropdownRef}>
+              <button 
+                className="user-menu-button"
+                onClick={() => setShowDropdown(!showDropdown)}
+              >
+                <span className="username">Hello, {currentUser.username}</span>
+                <span className="dropdown-arrow">▼</span>
+              </button>
+              
+              {showDropdown && (
+                <div className="user-dropdown">
+                  <button 
+                    className="dropdown-item"
+                    onClick={handleBackToJournal}
+                  >
+                    📝 Journal
+                  </button>
+                  <button 
+                    className="dropdown-item"
+                    onClick={handleBulkUpload}
+                  >
+                    📁 Bulk Upload
+                  </button>
+                  <div className="dropdown-divider"></div>
+                  <button 
+                    className="dropdown-item logout-item"
+                    onClick={handleLogout}
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="auth-buttons">

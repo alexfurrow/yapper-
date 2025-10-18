@@ -8,6 +8,7 @@ import Register from './components/Register';
 import EmailConfirmation from './components/EmailConfirmation';
 import AuthCallback from './components/AuthCallback';
 import JournalPage from './components/JournalPage';
+import BulkUploadPage from './components/BulkUploadPage';
 import './App.css';
 
 // Simple error boundary component
@@ -161,6 +162,19 @@ function CustomRouter() {
 
   // For authenticated users, show the main page with header
   if (currentUser) {
+    // Check for bulk upload route
+    if (currentPath === '/bulk-upload') {
+      return (
+        <NavigationContext.Provider value={{ navigate }}>
+          <div className="App has-header">
+            <Header />
+            <BulkUploadPage />
+          </div>
+        </NavigationContext.Provider>
+      );
+    }
+    
+    // Default journal page
     return (
       <NavigationContext.Provider value={{ navigate }}>
         <div className="App has-header">
