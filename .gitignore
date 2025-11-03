@@ -33,6 +33,7 @@ ENV/
 
 #CORE
 CORE_*
+Core/ 
 
 # Flask
 instance/
