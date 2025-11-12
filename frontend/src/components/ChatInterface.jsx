@@ -152,9 +152,9 @@ function ChatInterface({ journalToggleButton }) {
                         <span 
                           key={idx} 
                           className="source-badge clickable"
-                          onClick={() => handleSourceClick(source.entry_id)}
+                          onClick={() => handleSourceClick(source.user_and_entry_id || source.entry_id)}
                         >
-                          Entry #{source.entry_id}
+                          Entry #{source.user_entry_id || source.user_and_entry_id || source.entry_id}
                         </span>
                       ))}
                     </div>

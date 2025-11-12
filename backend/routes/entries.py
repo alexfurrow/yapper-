@@ -3,6 +3,7 @@ from werkzeug.exceptions import InternalServerError
 # SQLAlchemy references removed - using Supabase
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
+from datetime import datetime
 import os
 from supabase import create_client, Client
 from functools import wraps
@@ -108,14 +109,22 @@ def create_entry():
         # Process content through OpenAI
         processed_content = process_text(data['content'])
         
-        # Get the next user entry ID using user context
+        # Get the next user entry ID using user context (keep as integer)
         user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
+        # Format entry date as "Month DD, YYYY" for title_date (using current date)
+        title_date = datetime.now().strftime("%B %d, %Y").replace(' 0', ' ')
+        
+        # Create composite primary key: user_id + user_entry_id
+        user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
+        
         # Prepare entry data (don't include user_id - let RLS handle it)
         entry_data = {
+            'user_and_entry_id': user_and_entry_id,
             'user_entry_id': next_user_entry_id,
+            'title_date': title_date,
             'content': data['content'],
             'processed': processed_content
         }
@@ -142,18 +151,18 @@ def create_entry():
         # story = write_story_and_write_to_db(new_entry['entry_id'], processed_content)
         # new_entry['story'] = story
         
-        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
+        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
         return jsonify(new_entry), 201
     except Exception as e:
         logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
+@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['GET'])
 @supabase_auth_required
-def get_entry(entry_id):
+def get_entry(user_and_entry_id):
     """Get a specific entry by ID"""
     try:
-        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -161,16 +170,16 @@ def get_entry(entry_id):
         
         return jsonify(entry), 200
     except Exception as e:
-        logger.exception("Error getting entry", extra={"route": "/entries/<int:entry_id>", "method": "GET", "entry_id": entry_id})
+        logger.exception("Error getting entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "GET", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error getting entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
+@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['PUT'])
 @supabase_auth_required
-def update_entry(entry_id):
+def update_entry(user_and_entry_id):
     """Update an existing entry"""
     try:
         # Check if entry exists and belongs to user
-        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
@@ -190,7 +199,7 @@ def update_entry(entry_id):
             update_data['processed'] = processed_content
             
         # Update entry in Supabase
-        response = g.user_supabase.table('entries').update(update_data).eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').update(update_data).eq('user_and_entry_id', user_and_entry_id).execute()
         updated_entry = response.data[0] if response.data else None
         
         if not updated_entry:
@@ -198,27 +207,27 @@ def update_entry(entry_id):
         
         return jsonify(updated_entry), 200
     except Exception as e:
-        logger.exception("Error updating entry", extra={"route": "/entries/<int:entry_id>", "method": "PUT", "entry_id": entry_id})
+        logger.exception("Error updating entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "PUT", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
+@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['DELETE'])
 @supabase_auth_required
-def delete_entry(entry_id):
+def delete_entry(user_and_entry_id):
     """Delete an entry"""
     try:
         # Check if entry exists and belongs to user
-        response = g.user_supabase.table('entries').select('*').eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
         entry = response.data[0] if response.data else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
         
         # Delete entry from Supabase
-        response = g.user_supabase.table('entries').delete().eq('user_entry_id', entry_id).execute()
+        response = g.user_supabase.table('entries').delete().eq('user_and_entry_id', user_and_entry_id).execute()
         
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
-        logger.exception("Error deleting entry", extra={"route": "/entries/<int:entry_id>", "method": "DELETE", "entry_id": entry_id})
+        logger.exception("Error deleting entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "DELETE", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/search', methods=['POST'])

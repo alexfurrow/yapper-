@@ -8,6 +8,9 @@ import json
 import logging
 from backend.services.embedding import search_by_text
 from backend.routes.entries import supabase_auth_required
+from backend.services.initial_processing import process_text
+from backend.services.embedding import generate_embedding
+from datetime import datetime
 from openai import OpenAI
 import os
 
@@ -200,19 +203,46 @@ def save_conversation():
         if not conversation_text:
             return jsonify({'error': 'Conversation cannot be empty'}), 400
         
-        # Save to database
-        response = g.user_supabase.table('entries').insert({
-            'user_id': g.current_user.id,
+        # Process content through OpenAI
+        processed_content = process_text(conversation_text)
+        
+        # Get the next user entry ID using user context (keep as integer)
+        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
+        user_entry_count = len(user_entries_response.data)
+        next_user_entry_id = user_entry_count + 1
+        
+        # Format entry date as "Month DD, YYYY" for title_date (using current date)
+        title_date = datetime.now().strftime("%B %d, %Y").replace(' 0', ' ')
+        
+        # Create composite primary key: user_id + user_entry_id
+        user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
+        
+        # Generate embedding
+        embedding = None
+        if processed_content:
+            embedding = generate_embedding(processed_content)
+        
+        # Prepare entry data
+        entry_data = {
+            'user_and_entry_id': user_and_entry_id,
+            'user_entry_id': next_user_entry_id,
+            'title_date': title_date,
             'content': conversation_text,
-            'created_at': 'now()'
-        }).execute()
+            'processed': processed_content
+        }
+        
+        if embedding:
+            entry_data['vectors'] = embedding
+        
+        # Save to database
+        response = g.user_supabase.table('entries').insert(entry_data).execute()
         
         if response.data:
-            entry_id = response.data[0].get('entry_id')
-            logger.info(f"Saved conversation as entry {entry_id}")
+            user_and_entry_id = response.data[0].get('user_and_entry_id')
+            logger.info(f"Saved conversation as entry {user_and_entry_id}")
             return jsonify({
                 'success': True,
-                'entry_id': entry_id,
+                'user_and_entry_id': user_and_entry_id,
                 'message': 'Conversation saved successfully'
             })
         else:
@@ -236,7 +266,7 @@ def get_conversation_intro():
         
         if not entries:
             return jsonify({
-                'opening': "What's on your mind? Talk as long as you want.",
+                'opening': "What's on your mind?",
                 'topics': []
             })
         
@@ -252,7 +282,10 @@ def get_conversation_intro():
         system_prompt = (
             "You are a warm journaling companion. Given the user's recent journal text, "
             "identify 3 to 7 concise subjects that are especially interesting, emotionally salient, or important. "
-            "Rank them in descending order of salience. Then propose a short, inviting opening line for today's conversation. "
+            "Rank them in descending order of salience. "
+            "Then propose a single, inviting question (ONE sentence only) to start today's conversation. "
+            "The opening should be a single question that invites reflection, like 'What's on your mind?' or 'What stood out about today?'. "
+            "Keep it to one sentence - no follow-up statements or explanations. "
             "Respond strictly as JSON with keys 'topics' (array of strings) and 'opening' (string)."
         )
         
@@ -274,9 +307,9 @@ def get_conversation_intro():
             data = json.loads(content)
         except Exception:
             # Fallback if JSON parsing fails
-            data = {'opening': "Let's talk about your day. What stood out?", 'topics': []}
+            data = {'opening': "What stood out about today?", 'topics': []}
         
-        opening = data.get('opening') or "Let's talk about your day. What stood out?"
+        opening = data.get('opening') or "What stood out about today?"
         topics = data.get('topics') or []
         
         return jsonify({'opening': opening, 'topics': topics})
@@ -284,6 +317,6 @@ def get_conversation_intro():
     except Exception as e:
         logger.exception("Error generating conversation intro")
         return jsonify({
-            'opening': "What's on your mind? Talk as long as you want.",
+            'opening': "What's on your mind?",
             'topics': []
         })

@@ -6,9 +6,10 @@ from sqlalchemy.dialects.postgresql import ARRAY, FLOAT
 class entries(db.Model):
     __tablename__ = 'entries'
     
-    entry_id = db.Column(db.Integer, primary_key=True)
+    user_and_entry_id = db.Column(db.String, primary_key=True)  # Composite key: user_id + user_entry_id
     user_id = db.Column(db.String, nullable=True)  # Supabase user ID (UUID string)
-    user_entry_id = db.Column(db.Integer, nullable=True)  # User-specific entry number
+    user_entry_id = db.Column(db.Integer, nullable=True)  # User-specific entry number (integer)
+    title_date = db.Column(db.String, nullable=True)  # Entry title in "Month DD, YYYY" format (e.g., "November 12, 2025")
     content = db.Column(db.Text, nullable=False)
     processed = db.Column(db.Text)
     vectors = db.Column(ARRAY(FLOAT))  # Store embeddings as array of floats
@@ -20,8 +21,9 @@ class entries(db.Model):
     
     def to_dict(self):
         return {
-            'entry_id': self.entry_id,
-            'user_entry_id': self.user_entry_id,  # Use this for display
+            'user_and_entry_id': self.user_and_entry_id,
+            'user_entry_id': self.user_entry_id,
+            'title_date': self.title_date,  # Use this for display
             'user_id': self.user_id,
             'content': self.content,
             'processed': self.processed,

@@ -86,7 +86,7 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
             <button 
               key={`${source.user_entry_id ?? 'na'}-${idx}`} 
               className="source-link"
-              onClick={() => onSourceClick(source.entry_id)}
+              onClick={() => onSourceClick(source.user_and_entry_id || source.entry_id)}
             >
               Entry #{source.user_entry_id}
             </button>
@@ -527,7 +527,7 @@ function JournalPage() {
   };
 
   const handleSourceClick = (entryId) => {
-    const entry = entries.find(e => e.entry_id === entryId);
+    const entry = entries.find(e => e.user_and_entry_id === entryId || e.entry_id === entryId);
     if (entry) {
       setSelectedEntry(entry);
     }
@@ -579,7 +579,7 @@ function JournalPage() {
           ? ((prev[0].user_entry_id || 0) + 1)
           : 1;
         const optimisticEntry = {
-          entry_id: optimisticId,
+          user_and_entry_id: optimisticId,
           user_entry_id: nextNumber,
           content: transcript,
           created_at: new Date().toISOString(),
@@ -1020,12 +1020,12 @@ function JournalPage() {
           ) : (
             (entries || []).map((entry) => (
               <div 
-                key={entry.entry_id ?? `tmp-${entry.created_at}-${Math.random()}`}
-                className={`entry-item ${entry.__optimistic ? '__optimistic' : ''} ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
+                key={entry.user_and_entry_id ?? entry.entry_id ?? `tmp-${entry.created_at}-${Math.random()}`}
+                className={`entry-item ${entry.__optimistic ? '__optimistic' : ''} ${selectedEntry?.user_and_entry_id === entry.user_and_entry_id || selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
                 onClick={() => setSelectedEntry(entry)}
               >
                 <div className="entry-header">
-                  <span className="entry-id">#{entry.user_entry_id || entry.entry_id}</span>
+                  <span className="entry-id">{entry.title_date || `#${entry.user_entry_id || entry.user_and_entry_id || entry.entry_id}`}</span>
                   <span className="entry-date">{formatDate(entry.created_at)}</span>
                 </div>
                 <div className="entry-preview">
@@ -1041,7 +1041,7 @@ function JournalPage() {
         {selectedEntry && (
           <div className="entry-detail">
             <div className="detail-header">
-              <h4>Entry #{selectedEntry.user_entry_id || selectedEntry.entry_id}</h4>
+              <h4>{selectedEntry.title_date || `Entry #${selectedEntry.user_entry_id || selectedEntry.user_and_entry_id || selectedEntry.entry_id}`}</h4>
               <span className="detail-date">{formatDate(selectedEntry.created_at)}</span>
             </div>
             <div className="detail-content">{selectedEntry.content}</div>

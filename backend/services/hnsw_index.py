@@ -19,8 +19,8 @@ class HNSWIndex:
         self.ef_construction = ef_construction
         self.M = M
         self.index = None
-        self.id_to_entry_id = {}  # Maps HNSW internal IDs to database entry_ids
-        self.entry_id_to_id = {}  # Maps database entry_ids to HNSW internal IDs
+        self.id_to_user_and_entry_id = {}  # Maps HNSW internal IDs to database user_and_entry_id
+        self.user_and_entry_id_to_id = {}  # Maps database user_and_entry_id to HNSW internal IDs
         
     def build_index(self):
         """Build HNSW index from all vectorized entries in the database"""
@@ -52,8 +52,9 @@ class HNSWIndex:
         for i, entry in enumerate(all_entries):
             vectors.append(entry['vectors'])
             ids.append(i)
-            self.id_to_entry_id[i] = entry['entry_id']
-            self.entry_id_to_id[entry['entry_id']] = i
+            user_and_entry_id = entry.get('user_and_entry_id') or entry.get('entry_id')  # Fallback for migration
+            self.id_to_user_and_entry_id[i] = user_and_entry_id
+            self.user_and_entry_id_to_id[user_and_entry_id] = i
             
         self.index.add_items(np.array(vectors), ids)
         
@@ -71,7 +72,7 @@ class HNSWIndex:
             k: Number of nearest neighbors to return
             
         Returns:
-            List of dictionaries with entry_id and distance
+            List of dictionaries with user_and_entry_id and distance
         """
         if self.index is None:
             print("Index not built yet")
@@ -81,16 +82,16 @@ class HNSWIndex:
         query_vector = np.array(query_vector)
         
         # Search index
-        labels, distances = self.index.knn_query(query_vector, k=min(k, len(self.id_to_entry_id)))
+        labels, distances = self.index.knn_query(query_vector, k=min(k, len(self.id_to_user_and_entry_id)))
         
         # Convert to list of dictionaries
         results = []
         for i in range(len(labels[0])):
             internal_id = labels[0][i]
-            entry_id = self.id_to_entry_id[internal_id]
+            user_and_entry_id = self.id_to_user_and_entry_id[internal_id]
             distance = distances[0][i]
             results.append({
-                'entry_id': entry_id,
+                'user_and_entry_id': user_and_entry_id,
                 'distance': float(distance)  # Convert numpy float to Python float for JSON serialization
             })
             
@@ -111,8 +112,8 @@ class HNSWIndex:
         # Save mappings
         with open(f"{path}_mappings.pkl", 'wb') as f:
             pickle.dump({
-                'id_to_entry_id': self.id_to_entry_id,
-                'entry_id_to_id': self.entry_id_to_id
+                'id_to_user_and_entry_id': self.id_to_user_and_entry_id,
+                'user_and_entry_id_to_id': self.user_and_entry_id_to_id
             }, f)
             
         return True
@@ -126,11 +127,17 @@ class HNSWIndex:
             # Load index
             self.index.load_index(f"{path}.bin")
             
-            # Load mappings
+            # Load mappings (with backward compatibility for old format)
             with open(f"{path}_mappings.pkl", 'rb') as f:
                 mappings = pickle.load(f)
-                self.id_to_entry_id = mappings['id_to_entry_id']
-                self.entry_id_to_id = mappings['entry_id_to_id']
+                # Handle both old and new format
+                if 'id_to_user_and_entry_id' in mappings:
+                    self.id_to_user_and_entry_id = mappings['id_to_user_and_entry_id']
+                    self.user_and_entry_id_to_id = mappings['user_and_entry_id_to_id']
+                else:
+                    # Backward compatibility: convert old entry_id mappings
+                    self.id_to_user_and_entry_id = mappings.get('id_to_entry_id', {})
+                    self.user_and_entry_id_to_id = mappings.get('entry_id_to_id', {})
                 
             # Set search parameters
             self.index.set_ef(50)

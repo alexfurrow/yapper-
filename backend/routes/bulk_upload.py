@@ -92,7 +92,7 @@ def create_bulk_entries():
         for entry_data in entries_data:
             try:
                 # Validate required fields
-                if not all(key in entry_data for key in ['content', 'entry_date', 'date_string']):
+                if not all(key in entry_data for key in ['content', 'entry_date', 'date_string', 'title_date']):
                     failed_entries.append({
                         'error': 'Missing required fields',
                         'data': entry_data
@@ -107,12 +107,31 @@ def create_bulk_entries():
                 if processed_content:
                     embedding = generate_embedding(processed_content)
                 
+                # Get the next user entry ID using user context (keep as integer)
+                user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
+                user_entry_count = len(user_entries_response.data)
+                next_user_entry_id = user_entry_count + 1
+                
+                # Create composite primary key: user_id + user_entry_id
+                user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
+                
+                # Handle date - could be string (from frontend) or date object
+                entry_date = entry_data['entry_date']
+                if isinstance(entry_date, str):
+                    # Already a string, use directly
+                    created_at = entry_date
+                else:
+                    # Date object, convert to ISO string
+                    created_at = entry_date.isoformat()
+                
                 # Prepare entry data
                 entry_record = {
-                    'user_entry_id': entry_data['date_string'],  # Use date as entry ID
+                    'user_and_entry_id': user_and_entry_id,  # Composite primary key
+                    'user_entry_id': next_user_entry_id,  # Keep as integer
+                    'title_date': entry_data['title_date'],  # Use "Month DD, YYYY" format
                     'content': entry_data['content'],
                     'processed': processed_content,
-                    'created_at': entry_data['entry_date'].isoformat(),
+                    'created_at': created_at,
                     'vectors': embedding
                 }
                 
@@ -121,8 +140,10 @@ def create_bulk_entries():
                 
                 if response.data:
                     created_entries.append({
-                        'entry_id': response.data[0].get('entry_id'),
-                        'user_entry_id': entry_data['date_string'],
+                        'user_and_entry_id': response.data[0].get('user_and_entry_id'),
+                        'user_entry_id': next_user_entry_id,
+                        'title_date': entry_data['title_date'],
+                        'date_string': entry_data['date_string'],  # For display
                         'date_source': entry_data.get('date_source', 'unknown'),
                         'filename': entry_data.get('filename', 'unknown')
                     })
@@ -183,6 +204,11 @@ def preview_bulk_upload():
             
             # Process files for preview
             results = bulk_upload_service.process_multiple_files(file_paths, g.current_user.id)
+            
+            # Serialize date objects to strings for JSON
+            for entry in results['successful']:
+                if 'entry_date' in entry and entry['entry_date']:
+                    entry['entry_date'] = entry['entry_date'].isoformat()
             
             # Return preview data (without creating entries)
             return jsonify({

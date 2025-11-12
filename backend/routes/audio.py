@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 from backend.services.embedding import generate_embedding
 from backend.services.initial_processing  import process_text
+from datetime import datetime
 from backend.config.logging import get_logger
 from backend.routes.entries import supabase_auth_required
 
@@ -87,15 +88,23 @@ def upload_audio_api():
             # Process content through OpenAI for better journal entry
             processed_content = process_text(transcription)
             
-            # Get the next user entry ID
+            # Get the next user entry ID using user context (keep as integer)
             user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
             user_entry_count = len(user_entries_response.data)
             next_user_entry_id = user_entry_count + 1
+            
+            # Format entry date as "Month DD, YYYY" for title_date (using current date)
+            title_date = datetime.now().strftime("%B %d, %Y").replace(' 0', ' ')
+            
+            # Create composite primary key: user_id + user_entry_id
+            user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
 
             # Prepare entry data
             entry_data = {
+                'user_and_entry_id': user_and_entry_id,
                 'user_id': g.current_user.id,
                 'user_entry_id': next_user_entry_id,
+                'title_date': title_date,
                 'content': transcription,
                 'processed': processed_content
             }
@@ -115,7 +124,7 @@ def upload_audio_api():
                 logger.error("Failed to create audio entry in database", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
                 return jsonify({'error': 'Failed to save journal entry'}), 500
 
-            logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
+            logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
 
             return jsonify({
                 'message': 'Audio processed and journal entry created successfully',

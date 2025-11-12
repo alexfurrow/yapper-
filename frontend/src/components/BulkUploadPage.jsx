@@ -134,7 +134,7 @@ const BulkUploadPage = () => {
     <div className="bulk-upload-page">
       <div className="bulk-upload-container">
         <div className="bulk-upload-header">
-          <h1>Bulk Upload Journal Entries</h1>
+          <h1>Upload Your Past Journal</h1>
           <p>Upload multiple text files to create journal entries in bulk. The system will automatically detect dates from filenames or content.</p>
         </div>
 
@@ -267,7 +267,7 @@ const BulkUploadPage = () => {
                 <h3>Created Entries</h3>
                 {results.created_entries.map((entry, index) => (
                   <div key={index} className="created-entry">
-                    Entry #{entry.user_entry_id} (from {entry.filename})
+                    {entry.title_date || entry.date_string || `Entry #${entry.user_entry_id}`} (from {entry.filename})
                   </div>
                 ))}
               </div>

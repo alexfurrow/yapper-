@@ -46,7 +46,7 @@ def vectorize_all_entries():
                     # Store embedding in Supabase
                     supabase.table('entries').update({
                         'vectors': embedding
-                    }).eq('entry_id', entry['entry_id']).execute()
+                    }).eq('user_and_entry_id', entry['user_and_entry_id']).execute()
         return True
     except Exception as e:
         print(f"Error vectorizing entries: {str(e)}")

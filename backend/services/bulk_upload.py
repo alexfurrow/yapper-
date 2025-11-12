@@ -180,15 +180,22 @@ class BulkUploadService:
                     'content_preview': content[:100] + '...' if len(content) > 100 else content
                 }
             
-            # Format date as entry identifier
-            date_str = entry_date.strftime('%m/%d/%Y')
+            # Format date as title_date in "Month DD, YYYY" format
+            # Convert date to datetime if needed, then format
+            if isinstance(entry_date, date) and not isinstance(entry_date, datetime):
+                entry_date_dt = datetime.combine(entry_date, datetime.min.time())
+            else:
+                entry_date_dt = entry_date
+            title_date = entry_date_dt.strftime("%B %d, %Y").replace(' 0', ' ')
+            date_str = entry_date.strftime('%m/%d/%Y')  # Keep for display purposes
             
             return {
                 'success': True,
                 'filename': Path(file_path).name,
                 'content': content,
                 'entry_date': entry_date,
-                'date_string': date_str,
+                'date_string': date_str,  # For display (MM/DD/YYYY)
+                'title_date': title_date,  # For database (Month DD, YYYY format)
                 'date_source': date_source,
                 'content_length': len(content)
             }

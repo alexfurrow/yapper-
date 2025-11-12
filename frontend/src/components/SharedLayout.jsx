@@ -38,11 +38,14 @@ function SharedLayout({ children, activeTab }) {
       if (prevEntriesRef.current.length > 0 && newEntries.length > prevEntriesRef.current.length) {
         // Find the new entry (the one that wasn't in the previous list)
         const newEntry = newEntries.find(entry => 
-          !prevEntriesRef.current.some(prevEntry => prevEntry.entry_id === entry.entry_id)
+          !prevEntriesRef.current.some(prevEntry => 
+            prevEntry.user_and_entry_id === entry.user_and_entry_id || 
+            prevEntry.entry_id === entry.entry_id
+          )
         );
         
         if (newEntry) {
-          setNewEntryId(newEntry.entry_id);
+          setNewEntryId(newEntry.user_and_entry_id || newEntry.entry_id);
           // Clear the new entry ID after animation duration
           setTimeout(() => {
             setNewEntryId(null);
@@ -205,13 +208,13 @@ function SharedLayout({ children, activeTab }) {
           ) : (
             entries.map((entry) => (
               <div 
-                id={`entry-${entry.entry_id}`}
-                key={entry.entry_id} 
-                className={`entry-item ${selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''} ${newEntryId === entry.entry_id ? 'new-entry' : ''}`}
+                id={`entry-${entry.user_and_entry_id || entry.entry_id}`}
+                key={entry.user_and_entry_id || entry.entry_id} 
+                className={`entry-item ${selectedEntry?.user_and_entry_id === entry.user_and_entry_id || selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''} ${newEntryId === (entry.user_and_entry_id || entry.entry_id) ? 'new-entry' : ''}`}
                 onClick={() => handleEntryClick(entry)}
               >
                 <div className="entry-header">
-                  <span className="entry-id">#{entry.user_entry_id || entry.entry_id}</span>
+                  <span className="entry-id">{entry.title_date || `#${entry.user_entry_id || entry.user_and_entry_id || entry.entry_id}`}</span>
                   <span className="entry-date">{formatDate(entry.created_at)}</span>
                 </div>
                 <div className="entry-preview">
@@ -232,7 +235,7 @@ function SharedLayout({ children, activeTab }) {
               title="Drag to resize height"
             ></div>
             <div className="entry-detail" ref={entryDetailRef}>
-              <h3>Entry #{selectedEntry.user_entry_id || selectedEntry.entry_id}</h3>
+              <h3>{selectedEntry.title_date || `Entry #${selectedEntry.user_entry_id || selectedEntry.user_and_entry_id || selectedEntry.entry_id}`}</h3>
               <div className="entry-date-full">{formatDate(selectedEntry.created_at)}</div>
               <div className="entry-content">{selectedEntry.content}</div>
             </div>
