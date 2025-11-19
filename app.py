@@ -20,11 +20,13 @@ from config import Config
 from extensions import cors
 from backend.routes.main import main_bp
 from backend.routes.audio import audio_bp
+from backend.routes.audio_bulk import audio_bulk_bp
 from backend.routes.chat import chat_bp
 from backend.routes.converse import converse_bp
 # from backend.routes.files import files_bp
 from backend.routes.entries import entries_bp
 from backend.routes.bulk_upload import bulk_upload_bp
+from backend.routes.audit import audit_bp
 from backend.commands import vectorize_pages_command
 from datetime import datetime
 import pytz
@@ -117,10 +119,14 @@ def create_app(config_class=Config):
     print("  ✓ entries_bp registered with /api prefix")
     app.register_blueprint(audio_bp, url_prefix='/api')
     print("  ✓ audio_bp registered with /api prefix")
+    app.register_blueprint(audio_bulk_bp, url_prefix='/api')
+    print("  ✓ audio_bulk_bp registered with /api prefix")
     app.register_blueprint(converse_bp, url_prefix='/api')
     print("  ✓ converse_bp registered with /api prefix")
     app.register_blueprint(bulk_upload_bp, url_prefix='/api')
     print("  ✓ bulk_upload_bp registered with /api prefix")
+    app.register_blueprint(audit_bp, url_prefix='/api')
+    print("  ✓ audit_bp registered with /api prefix")
     
     try:
         print(f"  Attempting to register chat_bp...")

@@ -114,8 +114,9 @@ def create_entry():
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Format entry date as "Month DD, YYYY" for title_date (using current date)
-        title_date = datetime.now().strftime("%B %d, %Y").replace(' 0', ' ')
+        # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
+        from backend.utils.entry_helpers import format_title_date_with_time
+        title_date = format_title_date_with_time()
         
         # Create composite primary key: user_id + user_entry_id
         user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"

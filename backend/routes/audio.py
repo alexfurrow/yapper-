@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify, g
 import os
 from werkzeug.utils import secure_filename
-import requests
-import json
 from dotenv import load_dotenv
 from backend.services.embedding import generate_embedding
 from backend.services.initial_processing  import process_text
 from datetime import datetime
 from backend.config.logging import get_logger
 from backend.routes.entries import supabase_auth_required
+from backend.utils.audio_transcription import transcribe_audio_file
+from backend.utils.entry_helpers import format_title_date_with_time
 
 # Load environment variables
 load_dotenv()
@@ -49,94 +49,67 @@ def upload_audio_api():
         os.makedirs('temp', exist_ok=True)
         audio_file.save(temp_path)
 
-        # Get API key from environment variable
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            logger.error("OpenAI API key not configured", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
-            return jsonify({'error': 'Audio processing service not configured'}), 500
-
-        # Call OpenAI's Whisper API
-        with open(temp_path, 'rb') as audio_data:
-            headers = {
-                'Authorization': f'Bearer {api_key}'
-            }
-            response = requests.post(
-                'https://api.openai.com/v1/audio/transcriptions',
-                headers=headers,
-                files={
-                    'file': audio_data,
-                },
-                data={
-                    'model': 'whisper-1',
-                }
-            )
+        # Transcribe using utility function
+        transcription, error_msg = transcribe_audio_file(temp_path)
         
         # Clean up the temporary file
         os.remove(temp_path)
+        
+        if transcription is None:
+            logger.warning(f"Transcription failed: {error_msg}", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
+            return jsonify({'error': error_msg}), 400
 
-        # Process the API response
-        if response.status_code == 200:
-            result = response.json()
-            transcription = result.get('text', '').strip()
-            
-            if not transcription:
-                logger.warning("Empty transcription from Whisper API", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
-                return jsonify({'error': 'No speech detected in audio file'}), 400
+        logger.info("Audio transcription successful", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "transcription_length": len(transcription)})
 
-            logger.info("Audio transcription successful", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "transcription_length": len(transcription)})
+        # Process content through OpenAI for better journal entry
+        processed_content = process_text(transcription)
+        
+        # Get the next user entry ID using user context (keep as integer)
+        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
+        user_entry_count = len(user_entries_response.data)
+        next_user_entry_id = user_entry_count + 1
+        
+        # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
+        # For in-app recordings, use the datetime from when audio was recorded
+        # (frontend should send this, but for now use current time)
+        recording_datetime = datetime.now()  # TODO: Get from request if frontend sends it
+        title_date = format_title_date_with_time(recording_datetime)
+        
+        # Create composite primary key: user_id + user_entry_id
+        user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
 
-            # Process content through OpenAI for better journal entry
-            processed_content = process_text(transcription)
-            
-            # Get the next user entry ID using user context (keep as integer)
-            user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
-            user_entry_count = len(user_entries_response.data)
-            next_user_entry_id = user_entry_count + 1
-            
-            # Format entry date as "Month DD, YYYY" for title_date (using current date)
-            title_date = datetime.now().strftime("%B %d, %Y").replace(' 0', ' ')
-            
-            # Create composite primary key: user_id + user_entry_id
-            user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
+        # Prepare entry data
+        entry_data = {
+            'user_and_entry_id': user_and_entry_id,
+            'user_id': g.current_user.id,
+            'user_entry_id': next_user_entry_id,
+            'title_date': title_date,
+            'content': transcription,
+            'processed': processed_content
+        }
 
-            # Prepare entry data
-            entry_data = {
-                'user_and_entry_id': user_and_entry_id,
-                'user_id': g.current_user.id,
-                'user_entry_id': next_user_entry_id,
-                'title_date': title_date,
-                'content': transcription,
-                'processed': processed_content
-            }
+        # Generate embedding for the processed content
+        if processed_content:
+            embedding = generate_embedding(processed_content)
+            if embedding:
+                entry_data['vectors'] = embedding
+                logger.info("Embedding generated for audio entry", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
 
-            # Generate embedding for the processed content
-            if processed_content:
-                embedding = generate_embedding(processed_content)
-                if embedding:
-                    entry_data['vectors'] = embedding
-                    logger.info("Embedding generated for audio entry", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
+        # Create entry in database
+        response = g.user_supabase.table('entries').insert(entry_data).execute()
+        new_entry = response.data[0] if response.data else None
 
-            # Create entry in database
-            response = g.user_supabase.table('entries').insert(entry_data).execute()
-            new_entry = response.data[0] if response.data else None
+        if not new_entry:
+            logger.error("Failed to create audio entry in database", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
+            return jsonify({'error': 'Failed to save journal entry'}), 500
 
-            if not new_entry:
-                logger.error("Failed to create audio entry in database", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
-                return jsonify({'error': 'Failed to save journal entry'}), 500
+        logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
 
-            logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
-
-            return jsonify({
-                'message': 'Audio processed and journal entry created successfully',
-                'transcription': transcription,
-                'entry': new_entry
-            }), 200
-        else:
-            logger.error("Whisper API error", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "status_code": response.status_code, "response": response.text})
-            return jsonify({
-                'error': f'Audio processing failed: {response.status_code}',
-                'details': response.text
-            }), 500
+        return jsonify({
+            'message': 'Audio processed and journal entry created successfully',
+            'transcription': transcription,
+            'entry': new_entry
+        }), 200
 
     except Exception as e:
         logger.exception("Error processing audio", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})

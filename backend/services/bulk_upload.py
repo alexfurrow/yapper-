@@ -180,13 +180,14 @@ class BulkUploadService:
                     'content_preview': content[:100] + '...' if len(content) > 100 else content
                 }
             
-            # Format date as title_date in "Month DD, YYYY" format
+            # Format date with time as title_date in "Month DD, YYYY at h:MM AM/PM" format
             # Convert date to datetime if needed, then format
+            from backend.utils.entry_helpers import format_title_date_with_time_from_date
             if isinstance(entry_date, date) and not isinstance(entry_date, datetime):
-                entry_date_dt = datetime.combine(entry_date, datetime.min.time())
+                # Use current time if only date is available
+                title_date = format_title_date_with_time_from_date(entry_date)
             else:
-                entry_date_dt = entry_date
-            title_date = entry_date_dt.strftime("%B %d, %Y").replace(' 0', ' ')
+                title_date = format_title_date_with_time(entry_date if isinstance(entry_date, datetime) else None)
             date_str = entry_date.strftime('%m/%d/%Y')  # Keep for display purposes
             
             return {
