@@ -10,6 +10,7 @@ from datetime import datetime, date
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 import logging
+from backend.utils.entry_helpers import format_title_date_with_time_from_date, format_title_date_with_time
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,10 @@ class BulkUploadService:
             elif file_ext == '.m4a':
                 # Transcribe audio file
                 from backend.utils.audio_transcription import transcribe_audio_file
+                logger.info(f"Starting transcription for {Path(file_path).name}")
                 transcription, error_msg = transcribe_audio_file(file_path)
                 if transcription:
+                    logger.info(f"Transcription successful for {Path(file_path).name}, length: {len(transcription)}")
                     return transcription
                 else:
                     logger.error(f"Failed to transcribe audio file {file_path}: {error_msg}")
@@ -207,7 +210,6 @@ class BulkUploadService:
             
             # Format date with time as title_date in "Month DD, YYYY at h:MM AM/PM" format
             # Convert date to datetime if needed, then format
-            from backend.utils.entry_helpers import format_title_date_with_time_from_date
             if isinstance(entry_date, date) and not isinstance(entry_date, datetime):
                 # Use current time if only date is available
                 title_date = format_title_date_with_time_from_date(entry_date)

@@ -42,27 +42,21 @@ def extract_date_from_m4a_metadata(file_path: str) -> Optional[datetime]:
         # Try MP4-specific tags
         if isinstance(audio_file, MP4):
             # Try creation_time tag (ISO 8601 format)
-            if '©day' in audio_file:
-                # QuickTime date tag
-                date_str = str(audio_file['©day'][0])
-                try:
-                    # Try parsing various date formats
-                    # Format: "2025-11-17" or "2025-11-17T15:45:00Z"
-                    if 'T' in date_str:
-                        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-                    else:
-                        return datetime.strptime(date_str, '%Y-%m-%d')
-                except ValueError:
-                    pass
-            
-            # Try creation date from metadata
-            if '©day' in audio_file:
-                try:
-                    date_str = str(audio_file['©day'][0])
-                    # Try parsing
-                    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-                except (ValueError, AttributeError):
-                    pass
+            # Check for various MP4 date tags
+            date_tags = ['©day', '©mvd', '©mvi', '©mvc']  # Various QuickTime date tags
+            for tag in date_tags:
+                if tag in audio_file:
+                    try:
+                        date_str = str(audio_file[tag][0])
+                        # Try parsing various date formats
+                        # Format: "2025-11-17" or "2025-11-17T15:45:00Z"
+                        if 'T' in date_str:
+                            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        else:
+                            parsed = datetime.strptime(date_str, '%Y-%m-%d')
+                            return parsed
+                    except (ValueError, AttributeError, IndexError):
+                        continue
         
         # Try generic tags
         for tag in ['date', 'creation_date', 'recording_date', 'creation_time']:

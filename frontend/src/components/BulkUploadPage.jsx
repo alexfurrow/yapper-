@@ -28,7 +28,8 @@ const BulkUploadPage = () => {
     const validFiles = droppedFiles.filter(file => 
       file.name.toLowerCase().endsWith('.txt') || 
       file.name.toLowerCase().endsWith('.doc') || 
-      file.name.toLowerCase().endsWith('.docx')
+      file.name.toLowerCase().endsWith('.docx') ||
+      file.name.toLowerCase().endsWith('.m4a')
     );
     
     setFiles(prev => [...prev, ...validFiles]);
@@ -39,7 +40,8 @@ const BulkUploadPage = () => {
     const validFiles = selectedFiles.filter(file => 
       file.name.toLowerCase().endsWith('.txt') || 
       file.name.toLowerCase().endsWith('.doc') || 
-      file.name.toLowerCase().endsWith('.docx')
+      file.name.toLowerCase().endsWith('.docx') ||
+      file.name.toLowerCase().endsWith('.m4a')
     );
     
     setFiles(prev => [...prev, ...validFiles]);
@@ -135,7 +137,7 @@ const BulkUploadPage = () => {
       <div className="bulk-upload-container">
         <div className="bulk-upload-header">
           <h1>Upload Your Past Journal</h1>
-          <p>Upload multiple text files to create journal entries in bulk. The system will automatically detect dates from filenames or content.</p>
+          <p>Upload multiple text or audio files to create journal entries in bulk. The system will automatically detect dates from filenames, metadata, or content. Audio files (.m4a) will be transcribed automatically.</p>
         </div>
 
         {!previewData && !results && (
@@ -156,7 +158,7 @@ const BulkUploadPage = () => {
                 >
                   Select Files
                 </button>
-                <p className="supported-formats">Supported: .txt, .doc, .docx</p>
+                <p className="supported-formats">Supported: .txt, .doc, .docx, .m4a</p>
               </div>
             </div>
 
@@ -164,7 +166,7 @@ const BulkUploadPage = () => {
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".txt,.doc,.docx"
+              accept=".txt,.doc,.docx,.m4a"
               onChange={handleFileSelect}
               style={{ display: 'none' }}
             />

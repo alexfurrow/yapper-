@@ -30,7 +30,14 @@ def transcribe_audio_file(file_path: str) -> Tuple[Optional[str], Optional[str]]
             logger.error(error_msg)
             return None, error_msg
 
+        # Get file size for logging
+        file_size = os.path.getsize(file_path)
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"Starting transcription: {file_path} ({file_size_mb:.2f} MB)")
+
         # Call OpenAI's Whisper API
+        # Add timeout to prevent hanging (17MB file ~30-60s, set 5min max)
+        # For very large files, processing can take 1-2x audio duration
         with open(file_path, 'rb') as audio_data:
             headers = {
                 'Authorization': f'Bearer {api_key}'
@@ -43,8 +50,11 @@ def transcribe_audio_file(file_path: str) -> Tuple[Optional[str], Optional[str]]
                 },
                 data={
                     'model': 'whisper-1',
-                }
+                },
+                timeout=(30, 600)  # (connect timeout, read timeout) - 30s to connect, 10min to read (for large files)
             )
+
+        logger.info(f"Received response from Whisper API: status {response.status_code}")
 
         # Process the API response
         if response.status_code == 200:
