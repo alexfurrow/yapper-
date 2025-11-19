@@ -17,7 +17,7 @@ class BulkUploadService:
     """Service for handling bulk upload of journal entries."""
     
     def __init__(self):
-        self.supported_extensions = ['.txt', '.doc', '.docx']
+        self.supported_extensions = ['.txt', '.doc', '.docx', '.m4a']
         self.date_patterns = [
             # File name patterns
             r'(\d{1,2})[\.\-/](\d{1,2})[\.\-/](\d{2,4})',  # 10.5.25, 10-5-25, 10/5/25
@@ -44,6 +44,15 @@ class BulkUploadService:
                 # TODO: Implement doc/docx parsing when needed
                 # For now, return placeholder
                 return f"[DOC FILE: {Path(file_path).name}]"
+            elif file_ext == '.m4a':
+                # Transcribe audio file
+                from backend.utils.audio_transcription import transcribe_audio_file
+                transcription, error_msg = transcribe_audio_file(file_path)
+                if transcription:
+                    return transcription
+                else:
+                    logger.error(f"Failed to transcribe audio file {file_path}: {error_msg}")
+                    return ""
             else:
                 logger.warning(f"Unsupported file type: {file_ext}")
                 return ""
@@ -137,6 +146,22 @@ class BulkUploadService:
         Infer the entry date from multiple sources.
         Returns (date, source_description)
         """
+        file_ext = Path(file_path).suffix.lower()
+        
+        # For audio files, use audio-specific date extraction
+        if file_ext == '.m4a':
+            from backend.utils.audio_metadata import infer_audio_entry_date
+            from datetime import date as date_type
+            audio_datetime, source = infer_audio_entry_date(file_path)
+            if audio_datetime:
+                # Convert datetime to date if needed
+                if isinstance(audio_datetime, date_type):
+                    return audio_datetime, source
+                else:
+                    return audio_datetime.date(), source
+            return None, "none"
+        
+        # For text files, use existing logic
         # Try filename first
         filename_date = self.infer_date_from_filename(Path(file_path).name)
         if filename_date:

@@ -10,6 +10,10 @@ from backend.services.bulk_upload import bulk_upload_service
 from backend.routes.entries import supabase_auth_required
 from backend.services.embedding import generate_embedding
 from backend.services.initial_processing import process_text
+from backend.utils.audio_transcription import transcribe_audio_file
+from backend.utils.audio_metadata import infer_audio_entry_date
+from backend.utils.entry_helpers import format_title_date_with_time
+from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +22,7 @@ logger = logging.getLogger(__name__)
 bulk_upload_bp = Blueprint('bulk_upload', __name__)
 
 # Allowed file extensions
-ALLOWED_EXTENSIONS = {'txt', 'doc', 'docx'}
+ALLOWED_EXTENSIONS = {'txt', 'doc', 'docx', 'm4a'}
 
 def allowed_file(filename):
     """Check if file extension is allowed."""
