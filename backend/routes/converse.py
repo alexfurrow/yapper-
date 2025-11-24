@@ -6,7 +6,7 @@ Handles all OpenAI calls, message formatting, and business logic.
 from flask import Blueprint, request, jsonify, Response, g
 import json
 import logging
-from backend.services.embedding import search_by_text
+from backend.services.context_retrieval import search_by_text
 from backend.routes.entries import supabase_auth_required
 from openai import OpenAI
 import os
@@ -124,7 +124,7 @@ def converse_stream():
         logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
         
         # Use RAG pipeline to find relevant entries
-        from backend.services.embedding import search_by_text
+        from backend.services.context_retrieval import search_by_text
         relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
         
         # Build context from relevant entries

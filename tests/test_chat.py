@@ -90,30 +90,17 @@ class TestVectorSearch:
     
     def test_search_by_text(self, sample_entry):
         """Test vector search functionality."""
-        with patch('backend.services.embedding.supabase') as mock_supabase:
-            # Mock Supabase query
-            mock_table = Mock()
-            mock_supabase.table.return_value = mock_table
-            mock_table.select.return_value = mock_table
-            mock_table.eq.return_value = mock_table
-            mock_table.not_null.return_value = mock_table
-            mock_table.execute.return_value = Mock(data=[sample_entry])
+        with patch('backend.services.context_retrieval.search_similar') as mock_search:
+            # Mock HNSW search results
+            mock_search.return_value = [{**sample_entry, 'similarity': 0.85}]
             
-            # Mock embedding generation
-            with patch('backend.services.embedding.generate_embedding') as mock_embedding:
-                mock_embedding.return_value = sample_entry['vectors']
-                
-                # Mock cosine similarity calculation
-                with patch('backend.services.embedding.cosine_similarity') as mock_similarity:
-                    mock_similarity.return_value = 0.85
-                    
-                    from backend.services.embedding import search_by_text
-                    
-                    results = search_by_text("test query", limit=1, user_id=sample_entry['user_id'])
-                    
-                    assert len(results) == 1
-                    assert results[0]['user_entry_id'] == sample_entry['user_entry_id']
-                    assert results[0]['similarity'] == 0.85
+            from backend.services.context_retrieval import search_by_text
+            
+            results = search_by_text("test query", limit=1, user_id=sample_entry['user_id'])
+            
+            assert len(results) == 1
+            assert results[0]['user_entry_id'] == sample_entry['user_entry_id']
+            assert results[0]['similarity'] == 0.85
 
 class TestAuthentication:
     """Test authentication functionality."""

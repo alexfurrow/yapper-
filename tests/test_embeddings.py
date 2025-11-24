@@ -51,111 +51,39 @@ class TestVectorSearch:
     
     def test_search_by_text_success(self, sample_entry):
         """Test successful vector search."""
-        with patch('backend.services.embedding.supabase') as mock_supabase:
-            # Mock Supabase query
-            mock_table = Mock()
-            mock_supabase.table.return_value = mock_table
-            mock_table.select.return_value = mock_table
-            mock_table.eq.return_value = mock_table
-            mock_table.not_null.return_value = mock_table
-            mock_table.execute.return_value = Mock(data=[sample_entry])
+        with patch('backend.services.context_retrieval.search_similar') as mock_search:
+            # Mock HNSW search results
+            mock_search.return_value = [{**sample_entry, 'similarity': 0.85}]
             
-            # Mock embedding generation
-            with patch('backend.services.embedding.generate_embedding') as mock_embedding:
-                mock_embedding.return_value = sample_entry['vectors']
-                
-                # Mock cosine similarity
-                with patch('backend.services.embedding.cosine_similarity') as mock_similarity:
-                    mock_similarity.return_value = 0.85
-                    
-                    from backend.services.embedding import search_by_text
-                    
-                    results = search_by_text("test query", limit=1, user_id=sample_entry['user_id'])
-                    
-                    assert len(results) == 1
-                    assert results[0]['user_entry_id'] == sample_entry['user_entry_id']
-                    assert results[0]['similarity'] == 0.85
+            from backend.services.context_retrieval import search_by_text
+            
+            results = search_by_text("test query", limit=1, user_id=sample_entry['user_id'])
+            
+            assert len(results) == 1
+            assert results[0]['user_entry_id'] == sample_entry['user_entry_id']
+            assert results[0]['similarity'] == 0.85
     
     def test_search_by_text_no_entries(self):
         """Test vector search with no entries."""
-        with patch('backend.services.embedding.supabase') as mock_supabase:
-            # Mock empty Supabase query
-            mock_table = Mock()
-            mock_supabase.table.return_value = mock_table
-            mock_table.select.return_value = mock_table
-            mock_table.eq.return_value = mock_table
-            mock_table.not_null.return_value = mock_table
-            mock_table.execute.return_value = Mock(data=[])
+        with patch('backend.services.context_retrieval.search_similar') as mock_search:
+            mock_search.return_value = []
             
-            # Mock embedding generation
-            with patch('backend.services.embedding.generate_embedding') as mock_embedding:
-                mock_embedding.return_value = [0.1, 0.2, 0.3] * 1536
-                
-                from backend.services.embedding import search_by_text
-                
-                results = search_by_text("test query", limit=1, user_id="test-user")
-                
-                assert len(results) == 0
+            from backend.services.context_retrieval import search_by_text
+            
+            results = search_by_text("test query", limit=1, user_id="test-user")
+            
+            assert len(results) == 0
     
     def test_search_by_text_embedding_failure(self):
         """Test vector search when embedding generation fails."""
         with patch('backend.services.embedding.generate_embedding') as mock_embedding:
             mock_embedding.return_value = None
             
-            from backend.services.embedding import search_by_text
+            from backend.services.context_retrieval import search_by_text
             
             results = search_by_text("test query", limit=1, user_id="test-user")
             
             assert len(results) == 0
-
-class TestCosineSimilarity:
-    """Test cosine similarity calculations."""
-    
-    def test_cosine_similarity_identical(self):
-        """Test cosine similarity with identical vectors."""
-        from backend.services.embedding import cosine_similarity
-        
-        vector1 = [1.0, 0.0, 0.0]
-        vector2 = [1.0, 0.0, 0.0]
-        
-        similarity = cosine_similarity(vector1, vector2)
-        
-        assert abs(similarity - 1.0) < 0.001
-    
-    def test_cosine_similarity_orthogonal(self):
-        """Test cosine similarity with orthogonal vectors."""
-        from backend.services.embedding import cosine_similarity
-        
-        vector1 = [1.0, 0.0, 0.0]
-        vector2 = [0.0, 1.0, 0.0]
-        
-        similarity = cosine_similarity(vector1, vector2)
-        
-        assert abs(similarity - 0.0) < 0.001
-    
-    def test_cosine_similarity_opposite(self):
-        """Test cosine similarity with opposite vectors."""
-        from backend.services.embedding import cosine_similarity
-        
-        vector1 = [1.0, 0.0, 0.0]
-        vector2 = [-1.0, 0.0, 0.0]
-        
-        similarity = cosine_similarity(vector1, vector2)
-        
-        assert abs(similarity - (-1.0)) < 0.001
-    
-    def test_cosine_similarity_different_lengths(self):
-        """Test cosine similarity with vectors of different lengths."""
-        from backend.services.embedding import cosine_similarity
-        
-        vector1 = [1.0, 0.0]
-        vector2 = [1.0, 0.0, 0.0]
-        
-        # Should handle different lengths gracefully
-        similarity = cosine_similarity(vector1, vector2)
-        
-        # Should return 0 or handle gracefully
-        assert isinstance(similarity, (int, float))
 
 class TestTextProcessing:
     """Test text processing functionality."""

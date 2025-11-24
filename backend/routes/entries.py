@@ -6,10 +6,10 @@ from backend.services.embedding import generate_embedding
 import os
 from supabase import create_client, Client
 from functools import wraps
-from backend.config.logging import get_logger
+import logging
 
 # Set up logging
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [
@@ -121,6 +121,7 @@ def create_entry():
         }
         
         # Generate embedding immediately for real-time search
+        embedding = None
         if processed_content:
             embedding = generate_embedding(processed_content)
             if embedding:
@@ -134,6 +135,16 @@ def create_entry():
         if not new_entry:
             logger.error("Failed to create entry - no data returned", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'message': 'Failed to create entry'}), 500
+        
+        # Add entry to HNSW index for fast search
+        if embedding and new_entry.get('entry_id'):
+            try:
+                from backend.services.hnsw_index import add_entry_to_index
+                add_entry_to_index(new_entry['entry_id'], embedding)
+                logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": new_entry['entry_id']})
+            except Exception as e:
+                # Log but don't fail - index will be rebuilt on next search if needed
+                logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": new_entry.get('entry_id')})
         
         # Uncomment if you want to add personality or story generation
         # personality = create_personality_and_write_to_db(new_entry['entry_id'], processed_content)        
@@ -231,7 +242,7 @@ def search_entries():
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        from backend.services.embedding import search_by_text
+        from backend.services.context_retrieval import search_by_text
         
         limit = data.get('limit', 5)
         # Only search the current user's entries

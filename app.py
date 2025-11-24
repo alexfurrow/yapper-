@@ -1,24 +1,16 @@
-###testing a commit
+#Import crucial packages
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-# SQLAlchemy database references removed - using Supabase
-
-from backend.config.environment import load_environment
-from backend.config.logging import setup_logging
-
-# Load environment first
-load_environment()
-
-# Setup logging with redaction
-setup_logging()
+# Load environment
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, request, g
 import uuid
 from config import Config
 from extensions import cors
-from backend.routes.main import main_bp
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
 from backend.routes.converse import converse_bp
@@ -110,8 +102,6 @@ def create_app(config_class=Config):
 
     # Register blueprints
     print("--- DEBUG: Registering blueprints...")
-    app.register_blueprint(main_bp)
-    print("  ✓ main_bp registered")
     app.register_blueprint(entries_bp, url_prefix='/api')
     print("  ✓ entries_bp registered with /api prefix")
     app.register_blueprint(audio_bp, url_prefix='/api')
@@ -150,28 +140,7 @@ def create_app(config_class=Config):
     # Register commands
     app.cli.add_command(vectorize_pages_command)
 
-    # Start the scheduler
-    # scheduler.start() # Removed as per edit hint
-
-    # Database configuration removed - using Supabase directly
-
     return app
-
-# Define the scheduled task
-# @scheduler.task('cron', id='vectorize_weekly', day_of_week='sun', hour=1, minute=0, 
-#                start_date='2025-03-02 01:00:00')
-# def scheduled_vectorize():
-#     with scheduler.app.app_context():
-#         from backend.services.embedding import vectorize_all_entries
-#         vectorize_all_entries()
-
-# Add this scheduled task
-# @scheduler.task('cron', id='rebuild_index_weekly', day_of_week='sun', hour=1, minute=30, 
-#                start_date='2025-03-03 02:00:00')
-# def scheduled_index_rebuild():
-#     with scheduler.app.app_context():
-#         from backend.services.hnsw_index import build_and_save_index
-#         build_and_save_index()
 
 app = create_app()
 

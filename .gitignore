@@ -4,6 +4,12 @@
 .env.local
 .env.production
 .env.development
+venv/
+.venv/
+ENV/
+
+#tests
+tests/
 
 # Python
 __pycache__/
@@ -27,9 +33,6 @@ var/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
 
 # Flask
 instance/

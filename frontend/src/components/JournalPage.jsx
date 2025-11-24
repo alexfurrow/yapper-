@@ -86,7 +86,7 @@ const ChatMessage = ({ message, isLastMessage, onSourceClick }) => {
             <button 
               key={`${source.user_entry_id ?? 'na'}-${idx}`} 
               className="source-link"
-              onClick={() => onSourceClick(source.entry_id)}
+                onClick={() => onSourceClick(source.entry_id)}
             >
               Entry #{source.user_entry_id}
             </button>

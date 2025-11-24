@@ -6,12 +6,12 @@ import json
 from dotenv import load_dotenv
 from backend.services.embedding import generate_embedding
 from backend.services.initial_processing  import process_text
-from backend.config.logging import get_logger
+import logging
 from backend.routes.entries import supabase_auth_required
 
 # Load environment variables
 load_dotenv()
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 audio_bp = Blueprint('audio', __name__, url_prefix='/api')
 
