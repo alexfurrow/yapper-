@@ -10,7 +10,6 @@ load_dotenv()
 from flask import Flask, request, g
 import uuid
 from config import Config
-from extensions import cors
 from backend.routes.audio import audio_bp
 from backend.routes.chat import chat_bp
 from backend.routes.converse import converse_bp

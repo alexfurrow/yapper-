@@ -85,3 +85,6 @@ Cursor.md
 
 #shell scripts
 *.sh
+
+#vercel
+vercel.json
