@@ -14,7 +14,7 @@ from backend.services.embedding import generate_embedding
 from backend.services.initial_processing import process_text
 from backend.utils.audio_transcription import transcribe_audio_file
 from backend.utils.audio_metadata import infer_audio_entry_date
-from backend.utils.entry_helpers import format_title_date_with_time, format_title_date_with_time_from_date
+from backend.utils.entry_helpers import format_title_date_with_time, format_title_date_with_time_from_date, recalculate_user_entry_ids
 from backend.utils.supabase_storage import store_audio_file_in_supabase
 from backend.config.logging import get_logger
 from typing import List, Dict
@@ -84,13 +84,24 @@ def bulk_upload_audio():
             created_entries = []
             failed_entries = []
             
+            # Use temporary high IDs during creation to avoid conflicts
+            # These will be recalculated at the end based on chronological order
+            # Start from a high number (1000000) to ensure no conflicts with existing entries
+            temp_id_start = 1000000
+            next_user_entry_id = temp_id_start
+            
             for file in valid_files:
                 file_result = process_single_audio_file(
                     file=file,
                     temp_dir=temp_dir,
                     user_id=g.current_user.id,
-                    user_supabase=g.user_supabase
+                    user_supabase=g.user_supabase,
+                    user_entry_id=next_user_entry_id
                 )
+                
+                # Increment for next file
+                if file_result['success']:
+                    next_user_entry_id += 1
                 
                 if file_result['success']:
                     created_entries.append(file_result['entry_info'])
@@ -99,6 +110,16 @@ def bulk_upload_audio():
                         'filename': file.filename,
                         'error': file_result['error']
                     })
+            
+            # Recalculate all user_entry_id values based on chronological order
+            # This is the default process - ensures IDs are sequential (1, 2, 3, ...) ordered by created_at
+            # Runs after every bulk upload to maintain chronological ordering
+            logger.info(f"Recalculating entry IDs for user {g.current_user.id} after bulk audio upload (default process)")
+            recalculation_result = recalculate_user_entry_ids(g.user_supabase, g.current_user.id)
+            if not recalculation_result['success']:
+                logger.warning(f"Failed to recalculate entry IDs: {recalculation_result.get('error')}")
+            else:
+                logger.info(f"Recalculated {recalculation_result['updated_count']} entry IDs")
             
             return jsonify({
                 'message': 'Bulk audio upload processed',
@@ -121,7 +142,8 @@ def process_single_audio_file(
     file,
     temp_dir: str,
     user_id: str,
-    user_supabase
+    user_supabase,
+    user_entry_id: int
 ) -> Dict:
     """
     Process a single audio file: extract date, transcribe, store, create entry.
@@ -167,16 +189,12 @@ def process_single_audio_file(
         # Process content through OpenAI
         processed_content = process_text(transcription)
         
-        # Get the next user entry ID
-        user_entries_response = user_supabase.table('entries').select('user_entry_id').execute()
-        user_entry_count = len(user_entries_response.data)
-        next_user_entry_id = user_entry_count + 1
-        
+        # Use the provided user_entry_id (calculated once before the loop)
         # Create composite primary key
-        user_and_entry_id = f"{user_id}_{next_user_entry_id}"
+        user_and_entry_id = f"{user_id}_{user_entry_id}"
         
-        # Format title_date with time
-        title_date = format_title_date_with_time(entry_datetime)
+        # Format title with time
+        title = format_title_date_with_time(entry_datetime)
         
         # Store audio file in Supabase Storage
         storage_path, storage_error = store_audio_file_in_supabase(
@@ -202,8 +220,8 @@ def process_single_audio_file(
         # Prepare entry data
         entry_data = {
             'user_and_entry_id': user_and_entry_id,
-            'user_entry_id': next_user_entry_id,
-            'title_date': title_date,
+            'user_entry_id': user_entry_id,
+            'title': title,
             'content': transcription,
             'processed': processed_content,
             'created_at': entry_datetime.isoformat() if isinstance(entry_datetime, datetime) else None
@@ -223,7 +241,7 @@ def process_single_audio_file(
         if response.data:
             logger.info(f"Created entry from audio file: {filename}", extra={
                 "user_id": user_id,
-                "user_entry_id": next_user_entry_id,
+                "user_entry_id": user_entry_id,
                 "filename": filename
             })
             
@@ -231,8 +249,8 @@ def process_single_audio_file(
                 'success': True,
                 'entry_info': {
                     'user_and_entry_id': response.data[0].get('user_and_entry_id'),
-                    'user_entry_id': next_user_entry_id,
-                    'title_date': title_date,
+                    'user_entry_id': user_entry_id,
+                    'title': title,
                     'filename': filename,
                     'date_source': date_source,
                     'has_audio_file': storage_path is not None

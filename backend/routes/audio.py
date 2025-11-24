@@ -69,12 +69,12 @@ def upload_audio_api():
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
-        # For in-app recordings, use the datetime from when audio was recorded
-        # (frontend should send this, but for now use current time)
+            # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
+            # For in-app recordings, use the datetime from when audio was recorded
+            # (frontend should send this, but for now use current time)
         recording_datetime = datetime.now()  # TODO: Get from request if frontend sends it
-        title_date = format_title_date_with_time(recording_datetime)
-        
+        title = format_title_date_with_time(recording_datetime)
+            
         # Create composite primary key: user_id + user_entry_id
         user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
 
@@ -83,10 +83,10 @@ def upload_audio_api():
             'user_and_entry_id': user_and_entry_id,
             'user_id': g.current_user.id,
             'user_entry_id': next_user_entry_id,
-            'title_date': title_date,
+            'title': title,
             'content': transcription,
             'processed': processed_content
-        }
+            }
 
         # Generate embedding for the processed content
         if processed_content:
@@ -103,7 +103,7 @@ def upload_audio_api():
             logger.error("Failed to create audio entry in database", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'error': 'Failed to save journal entry'}), 500
 
-        logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
+        logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title": title})
 
         return jsonify({
             'message': 'Audio processed and journal entry created successfully',

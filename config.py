@@ -5,6 +5,5 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://postgres:password@localhost/yapper'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # SQLAlchemy configuration removed - using Supabase
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')

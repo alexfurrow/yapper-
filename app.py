@@ -30,7 +30,11 @@ from backend.routes.audit import audit_bp
 from backend.commands import vectorize_pages_command
 from datetime import datetime
 import pytz
+from flask_apscheduler import APScheduler
 # from backend.models.users import users
+
+# Initialize scheduler
+scheduler = APScheduler()
 
 
 def create_app(config_class=Config):
@@ -38,7 +42,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Configure scheduler
-    # app.config['SCHEDULER_API_ENABLED'] = True # Removed as per edit hint
+    app.config['SCHEDULER_API_ENABLED'] = True
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
     # Initialize extensions (SQLAlchemy removed - using Supabase)
@@ -80,7 +84,7 @@ def create_app(config_class=Config):
             print(f"--- DEBUG: Origin {origin} not in allowed origins")
             
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
         response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers['Access-Control-Max-Age'] = '3600'
         
@@ -103,13 +107,13 @@ def create_app(config_class=Config):
             print(f"--- DEBUG: Preflight origin {origin} not allowed")
             
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
         response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers['Access-Control-Max-Age'] = '3600'
         
         print(f"--- DEBUG: Preflight response headers: {dict(response.headers)}")
         return response
-    # scheduler.init_app(app) # Removed as per edit hint
+    scheduler.init_app(app)
 
     # Register blueprints
     print("--- DEBUG: Registering blueprints...")
@@ -160,7 +164,7 @@ def create_app(config_class=Config):
     app.cli.add_command(vectorize_pages_command)
 
     # Start the scheduler
-    # scheduler.start() # Removed as per edit hint
+    scheduler.start()
 
     # Database configuration removed - using Supabase directly
 
@@ -181,6 +185,19 @@ def create_app(config_class=Config):
 #     with scheduler.app.app_context():
 #         from backend.services.hnsw_index import build_and_save_index
 #         build_and_save_index()
+
+# Scheduled task to permanently delete entries after 30 days
+@scheduler.task('cron', id='permanently_delete_old_entries', day_of_week='sun', hour=2, minute=0,
+               start_date='2025-01-15 02:00:00')
+def scheduled_permanent_deletion():
+    """Run weekly to permanently delete entries that have been soft-deleted for 30+ days"""
+    with scheduler.app.app_context():
+        from backend.services.entry_cleanup import permanently_delete_old_entries
+        try:
+            result = permanently_delete_old_entries()
+            print(f"Scheduled permanent deletion completed: {result}")
+        except Exception as e:
+            print(f"Error in scheduled permanent deletion: {str(e)}")
 
 app = create_app()
 

@@ -4,7 +4,7 @@ Audit routes for checking entry naming conventions.
 
 from flask import Blueprint, request, jsonify, g
 from backend.routes.entries import supabase_auth_required
-from backend.services.entry_audit import audit_entries, fix_legacy_entry_title_date
+from backend.services.entry_audit import audit_entries, fix_legacy_entry_title
 from backend.config.logging import get_logger
 
 logger = get_logger(__name__)
@@ -37,7 +37,7 @@ def audit_user_entries():
 @supabase_auth_required
 def fix_legacy_entries():
     """
-    Fix legacy entries (without time component) by adding time to title_date.
+    Fix legacy entries (without time component) by adding time to title.
     Can fix a specific entry or all legacy entries.
     """
     try:
@@ -58,7 +58,7 @@ def fix_legacy_entries():
             target_id = data['user_and_entry_id']
             entry = next((e for e in legacy_entries if e['user_and_entry_id'] == target_id), None)
             if entry:
-                success = fix_legacy_entry_title_date(entry, g.user_supabase)
+                success = fix_legacy_entry_title(entry, g.user_supabase)
                 return jsonify({
                     'message': 'Entry fixed' if success else 'Failed to fix entry',
                     'fixed_count': 1 if success else 0
@@ -69,7 +69,7 @@ def fix_legacy_entries():
         # Fix all legacy entries
         fixed_count = 0
         for entry in legacy_entries:
-            if fix_legacy_entry_title_date(entry, g.user_supabase):
+            if fix_legacy_entry_title(entry, g.user_supabase):
                 fixed_count += 1
         
         return jsonify({

@@ -24,6 +24,7 @@ except ImportError:
 def extract_date_from_m4a_metadata(file_path: str) -> Optional[datetime]:
     """
     Extract recording date/time from m4a file metadata.
+    This is the preferred source for audio file dates as it's embedded in the file.
     
     Args:
         file_path: Path to the m4a file
@@ -31,54 +32,99 @@ def extract_date_from_m4a_metadata(file_path: str) -> Optional[datetime]:
     Returns:
         datetime object if found, None otherwise
     """
-    if not MUTAGEN_AVAILABLE:
+    # Import mutagen here to ensure it's available even if module-level import failed
+    try:
+        from mutagen import File as MutagenFile
+        from mutagen.mp4 import MP4
+    except ImportError as e:
+        logger.warning(f"mutagen not available, cannot extract m4a metadata for {Path(file_path).name}: {e}")
         return None
     
     try:
         audio_file = MutagenFile(file_path)
         if audio_file is None:
+            logger.debug(f"Could not open audio file: {file_path}")
             return None
         
-        # Try MP4-specific tags
+        available_tags = list(audio_file.keys())
+        logger.info(f"Checking m4a metadata for {Path(file_path).name}, available tags: {available_tags}")
+        
+        # Try MP4-specific tags (iOS Voice Memos and other QuickTime-based formats)
         if isinstance(audio_file, MP4):
-            # Try creation_time tag (ISO 8601 format)
-            # Check for various MP4 date tags
-            date_tags = ['©day', '©mvd', '©mvi', '©mvc']  # Various QuickTime date tags
+            # iOS Voice Memos typically use these tags:
+            # - '©day' for date
+            # - '©tim' for time (sometimes combined)
+            # - '©too' (encoder/tool) - sometimes contains creation info
+            # Also try other QuickTime date tags
+            date_tags = ['©day', '©mvd', '©mvi', '©mvc', '©tim', '©too']  # Various QuickTime date tags
+            
+            # First, check if ©too exists and log its value for debugging
+            if '©too' in audio_file:
+                too_value = audio_file['©too'][0] if audio_file['©too'] else None
+                logger.info(f"Found ©too tag with value: {too_value} (type: {type(too_value)})")
             for tag in date_tags:
                 if tag in audio_file:
                     try:
-                        date_str = str(audio_file[tag][0])
+                        date_value = audio_file[tag][0]
+                        date_str = str(date_value)
+                        logger.info(f"Found tag {tag} with value: {date_str}")
+                        
                         # Try parsing various date formats
-                        # Format: "2025-11-17" or "2025-11-17T15:45:00Z"
+                        # Format: "2025-11-17" or "2025-11-17T15:45:00Z" or timestamp
                         if 'T' in date_str:
-                            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-                        else:
-                            parsed = datetime.strptime(date_str, '%Y-%m-%d')
+                            parsed = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                            logger.info(f"Parsed date from {tag}: {parsed}")
                             return parsed
-                    except (ValueError, AttributeError, IndexError):
+                        else:
+                            # Try date-only format
+                            try:
+                                parsed = datetime.strptime(date_str, '%Y-%m-%d')
+                                logger.info(f"Parsed date from {tag}: {parsed}")
+                                return parsed
+                            except ValueError:
+                                # Might be a timestamp or other format
+                                try:
+                                    # Try as timestamp (seconds since epoch)
+                                    timestamp = float(date_str)
+                                    parsed = datetime.fromtimestamp(timestamp)
+                                    logger.info(f"Parsed timestamp from {tag}: {parsed}")
+                                    return parsed
+                                except (ValueError, OSError):
+                                    continue
+                    except (ValueError, AttributeError, IndexError, TypeError) as e:
+                        logger.info(f"Error parsing tag {tag}: {e}")
                         continue
         
         # Try generic tags
-        for tag in ['date', 'creation_date', 'recording_date', 'creation_time']:
+        for tag in ['date', 'creation_date', 'recording_date', 'creation_time', 'TDRC']:
             if tag in audio_file:
                 try:
-                    date_str = str(audio_file[tag][0])
+                    date_value = audio_file[tag][0]
+                    date_str = str(date_value)
+                    logger.info(f"Found generic tag {tag} with value: {date_str}")
+                    
                     # Try ISO format first
                     if 'T' in date_str:
-                        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        parsed = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        logger.info(f"Parsed date from {tag}: {parsed}")
+                        return parsed
                     # Try other common formats
                     for fmt in ['%Y-%m-%d', '%Y/%m/%d', '%m/%d/%Y']:
                         try:
-                            return datetime.strptime(date_str, fmt)
+                            parsed = datetime.strptime(date_str, fmt)
+                            logger.info(f"Parsed date from {tag}: {parsed}")
+                            return parsed
                         except ValueError:
                             continue
-                except (ValueError, AttributeError, IndexError):
+                except (ValueError, AttributeError, IndexError) as e:
+                    logger.info(f"Error parsing generic tag {tag}: {e}")
                     continue
         
+        logger.info(f"No date found in m4a metadata for {Path(file_path).name}")
         return None
         
     except Exception as e:
-        logger.debug(f"Error extracting m4a metadata from {file_path}: {e}")
+        logger.warning(f"Error extracting m4a metadata from {file_path}: {e}")
         return None
 
 
@@ -205,7 +251,7 @@ def infer_date_from_audio_filename(filename: str) -> Optional[datetime]:
 
 def get_file_metadata_date(file_path: str) -> Optional[date]:
     """
-    Get date from file system metadata (modification time).
+    Get date from file system metadata (creation time preferred, modification time as fallback).
     
     Args:
         file_path: Path to the file
@@ -215,8 +261,16 @@ def get_file_metadata_date(file_path: str) -> Optional[date]:
     """
     try:
         stat = os.stat(file_path)
-        # Use modification time as fallback
-        timestamp = stat.st_mtime
+        # Try to get creation time (birthtime) - available on macOS and some Linux systems
+        # Fallback to modification time if creation time not available
+        if hasattr(stat, 'st_birthtime'):
+            timestamp = stat.st_birthtime  # Creation time (macOS)
+        elif hasattr(stat, 'st_ctime'):
+            # On some systems, st_ctime is creation time, on others it's metadata change time
+            # Use it as fallback
+            timestamp = stat.st_ctime
+        else:
+            timestamp = stat.st_mtime  # Modification time as last resort
         return date.fromtimestamp(timestamp)
     except Exception as e:
         logger.debug(f"Could not get metadata date for {file_path}: {e}")
@@ -229,7 +283,7 @@ def infer_audio_entry_date(file_path: str) -> Tuple[Optional[datetime], str]:
     Priority:
     1. m4a file metadata (recording date)
     2. Filename patterns (Recorder Pro, generic dates)
-    3. File system metadata (modification time)
+    3. File system metadata (modification time - "Date Modified" in Finder)
     
     Args:
         file_path: Path to the audio file
@@ -239,22 +293,43 @@ def infer_audio_entry_date(file_path: str) -> Tuple[Optional[datetime], str]:
         If no date found: (None, "none")
     """
     filename = Path(file_path).name
+    logger.info(f"Inferring date for audio file: {filename}")
     
     # Try m4a metadata first (most accurate for recording date)
     metadata_date = extract_date_from_m4a_metadata(file_path)
     if metadata_date:
+        logger.info(f"Found date in m4a metadata: {metadata_date}")
         return metadata_date, "m4a_metadata"
+    else:
+        logger.info(f"No date found in m4a metadata for {filename}, trying other sources...")
     
     # Try filename patterns
     filename_date = infer_date_from_audio_filename(filename)
     if filename_date:
+        logger.info(f"Found date in filename: {filename_date}")
         return filename_date, "filename"
+    else:
+        logger.info(f"No date found in filename pattern for {filename}")
     
     # Fallback to file system metadata
-    fs_date = get_file_metadata_date(file_path)
-    if fs_date:
-        # Convert date to datetime with current time
-        return datetime.combine(fs_date, datetime.now().time()), "file_metadata"
+    # Use modification time (st_mtime) which corresponds to "Date Modified" in Finder
+    # This is what the user expects to see
+    try:
+        stat = os.stat(file_path)
+        # Use modification time (st_mtime) - this is "Date Modified" in Finder
+        timestamp = stat.st_mtime
+        # Convert timestamp to datetime
+        fs_datetime = datetime.fromtimestamp(timestamp)
+        logger.info(f"Using file modification time for {Path(file_path).name}: {fs_datetime}")
+        return fs_datetime, "file_metadata"
+    except Exception as e:
+        logger.warning(f"Could not get file metadata timestamp for {file_path}: {e}")
+        # Last resort: try to get date from get_file_metadata_date
+        fs_date = get_file_metadata_date(file_path)
+        if fs_date:
+            # Combine with current time (not ideal, but better than nothing)
+            logger.warning(f"Using date with current time as fallback: {fs_date}")
+            return datetime.combine(fs_date, datetime.now().time()), "file_metadata"
     
     return None, "none"
 

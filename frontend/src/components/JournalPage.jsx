@@ -123,6 +123,7 @@ function JournalPage() {
   const yapTextareaRef = useRef(null);
   const [yapSendTick, setYapSendTick] = useState(0); // increment after each send
   const { currentUser } = useContext(AuthContext);
+  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState(null); // Entry to be deleted
 
   const generateId = () => {
     try {
@@ -185,21 +186,30 @@ function JournalPage() {
     try {
       console.log('Loading entries for user:', currentUser?.id);
       
-      // Use Supabase directly instead of backend API for now
-      // This avoids the URL routing issue
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', currentUser?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading entries:', error);
-        setEntries([]);
-        return;
+      // Get Supabase session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
       }
 
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const entriesUrl = `${backendUrl}/api/entries`;
+      
+      const response = await fetch(entriesUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       console.log('Entries loaded:', data);
+      // Filter out deleted entries (entries with deleted_at are already filtered by backend)
       setEntries(data || []);
     } catch (error) {
       console.error('Error loading entries:', error);
@@ -530,6 +540,83 @@ function JournalPage() {
     const entry = entries.find(e => e.user_and_entry_id === entryId || e.entry_id === entryId);
     if (entry) {
       setSelectedEntry(entry);
+    }
+  };
+
+  const handleDeleteClick = (e, entry) => {
+    e.stopPropagation(); // Prevent entry selection
+    setDeleteConfirmEntry(entry);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmEntry) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const deleteUrl = `${backendUrl}/api/entries/${deleteConfirmEntry.user_and_entry_id}`;
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Remove from selected entry if it was the deleted one
+      if (selectedEntry?.user_and_entry_id === deleteConfirmEntry.user_and_entry_id) {
+        setSelectedEntry(null);
+      }
+
+      // Refresh entries list (will automatically filter out deleted entry)
+      loadEntries();
+      setDeleteConfirmEntry(null);
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      alert('Error deleting entry: ' + error.message);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmEntry(null);
+  };
+
+  const handleRestoreClick = async (entry) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authentication session found');
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const restoreUrl = `${backendUrl}/api/entries/${entry.user_and_entry_id}/restore`;
+      
+      const response = await fetch(restoreUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Refresh entries list
+      loadEntries();
+    } catch (error) {
+      console.error('Error restoring entry:', error);
+      alert('Error restoring entry: ' + error.message);
     }
   };
 
@@ -1018,15 +1105,21 @@ function JournalPage() {
               <span>Start writing to see your journal history here</span>
             </div>
           ) : (
-            (entries || []).map((entry) => (
+            (entries || []).filter(entry => !entry.deleted_at).map((entry) => (
               <div 
                 key={entry.user_and_entry_id ?? entry.entry_id ?? `tmp-${entry.created_at}-${Math.random()}`}
                 className={`entry-item ${entry.__optimistic ? '__optimistic' : ''} ${selectedEntry?.user_and_entry_id === entry.user_and_entry_id || selectedEntry?.entry_id === entry.entry_id ? 'selected' : ''}`}
                 onClick={() => setSelectedEntry(entry)}
               >
                 <div className="entry-header">
-                  <span className="entry-id">{entry.title_date || `#${entry.user_entry_id || entry.user_and_entry_id || entry.entry_id}`}</span>
-                  <span className="entry-date">{formatDate(entry.created_at)}</span>
+                  <span className="entry-id">{entry.title || `#${entry.user_entry_id || entry.user_and_entry_id || entry.entry_id}`}</span>
+                  <button
+                    className="entry-delete-button"
+                    onClick={(e) => handleDeleteClick(e, entry)}
+                    title="Delete entry"
+                  >
+                    🗑️
+                  </button>
                 </div>
                 <div className="entry-preview">
                   {entry.content.length > 80 
@@ -1041,8 +1134,7 @@ function JournalPage() {
         {selectedEntry && (
           <div className="entry-detail">
             <div className="detail-header">
-              <h4>{selectedEntry.title_date || `Entry #${selectedEntry.user_entry_id || selectedEntry.user_and_entry_id || selectedEntry.entry_id}`}</h4>
-              <span className="detail-date">{formatDate(selectedEntry.created_at)}</span>
+              <h4>{(selectedEntry.title || `Entry #${selectedEntry.user_entry_id || selectedEntry.user_and_entry_id || selectedEntry.entry_id}`).split('\n')[0]}</h4>
             </div>
             <div className="detail-content">{selectedEntry.content}</div>
           </div>
@@ -1058,6 +1150,24 @@ function JournalPage() {
         >
           <span className="toggle-icon">📚</span>
         </button>
+      )}
+
+      {/* Delete Confirmation Popup */}
+      {deleteConfirmEntry && (
+        <div className="delete-confirm-overlay" onClick={handleDeleteCancel}>
+          <div className="delete-confirm-popup" onClick={(e) => e.stopPropagation()}>
+            <h3>Confirm Deletion</h3>
+            <p>Please confirm that you want to delete this entry. Can be restored within 30 days of deletion.</p>
+            <div className="delete-confirm-buttons">
+              <button className="delete-confirm-yes" onClick={handleDeleteConfirm}>
+                Yes, Delete
+              </button>
+              <button className="delete-confirm-no" onClick={handleDeleteCancel}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

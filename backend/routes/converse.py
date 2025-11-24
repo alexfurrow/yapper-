@@ -213,7 +213,7 @@ def save_conversation():
         
         # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
         from backend.utils.entry_helpers import format_title_date_with_time
-        title_date = format_title_date_with_time()
+        title = format_title_date_with_time()
         
         # Create composite primary key: user_id + user_entry_id
         user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
@@ -227,7 +227,7 @@ def save_conversation():
         entry_data = {
             'user_and_entry_id': user_and_entry_id,
             'user_entry_id': next_user_entry_id,
-            'title_date': title_date,
+            'title': title,
             'content': conversation_text,
             'processed': processed_content
         }

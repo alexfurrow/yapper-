@@ -6,7 +6,11 @@ Can be used by both single audio upload and bulk upload routes.
 import os
 import requests
 from typing import Optional, Tuple
+from dotenv import load_dotenv
 from backend.config.logging import get_logger
+
+# Load environment variables
+load_dotenv(override=True)
 
 logger = get_logger(__name__)
 
@@ -24,11 +28,15 @@ def transcribe_audio_file(file_path: str) -> Tuple[Optional[str], Optional[str]]
     """
     try:
         # Get API key from environment variable
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = os.getenv('OPENAI_API_KEY') or os.environ.get('OPENAI_API_KEY')
         if not api_key:
-            error_msg = 'OpenAI API key not configured'
+            error_msg = 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.'
             logger.error(error_msg)
+            logger.error("Checked both os.getenv() and os.environ.get() - key not found")
             return None, error_msg
+        
+        # Log that we found the key (but don't log the actual key)
+        logger.info("OpenAI API key found, proceeding with transcription")
 
         # Get file size for logging
         file_size = os.path.getsize(file_path)

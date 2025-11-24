@@ -82,11 +82,15 @@ def supabase_auth_required(f):
 @entries_bp.route('/entries', methods=['GET'])
 @supabase_auth_required
 def get_entries():
-    """Get all entries for the current user"""
+    """Get all entries for the current user (excluding soft-deleted entries)"""
     try:
         logger.info("Fetching entries", extra={"route": "/entries", "method": "GET", "user_id": g.current_user.id})
-        response = g.user_supabase.table('entries').select('*').order('created_at', desc=True).execute()
-        all_entries = response.data
+        # Filter out entries where deleted_at is null (not deleted)
+        # Using PostgREST syntax: is_('column', 'null') checks for null values
+        response = g.user_supabase.table('entries').select('*').is_('deleted_at', 'null').order('created_at', desc=True).execute()
+        all_entries = response.data if response.data else []
+        # Additional safety: filter out any entries with deleted_at in Python as well
+        all_entries = [e for e in all_entries if e.get('deleted_at') is None]
         logger.info("Entries fetched successfully", extra={"route": "/entries", "method": "GET", "count": len(all_entries)})
         return jsonify(all_entries), 200
     except Exception as e:
@@ -116,7 +120,7 @@ def create_entry():
         
         # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
         from backend.utils.entry_helpers import format_title_date_with_time
-        title_date = format_title_date_with_time()
+        title = format_title_date_with_time()
         
         # Create composite primary key: user_id + user_entry_id
         user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
@@ -125,7 +129,7 @@ def create_entry():
         entry_data = {
             'user_and_entry_id': user_and_entry_id,
             'user_entry_id': next_user_entry_id,
-            'title_date': title_date,
+            'title': title,
             'content': data['content'],
             'processed': processed_content
         }
@@ -152,7 +156,7 @@ def create_entry():
         # story = write_story_and_write_to_db(new_entry['entry_id'], processed_content)
         # new_entry['story'] = story
         
-        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title_date": title_date})
+        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title": title})
         return jsonify(new_entry), 201
     except Exception as e:
         logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
@@ -161,10 +165,14 @@ def create_entry():
 @entries_bp.route('/entries/<string:user_and_entry_id>', methods=['GET'])
 @supabase_auth_required
 def get_entry(user_and_entry_id):
-    """Get a specific entry by ID"""
+    """Get a specific entry by ID (excluding soft-deleted entries)"""
     try:
         response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
-        entry = response.data[0] if response.data else None
+        entry = None
+        if response.data:
+            # Filter out deleted entries
+            entries = [e for e in response.data if e.get('deleted_at') is None]
+            entry = entries[0] if entries else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
@@ -214,22 +222,57 @@ def update_entry(user_and_entry_id):
 @entries_bp.route('/entries/<string:user_and_entry_id>', methods=['DELETE'])
 @supabase_auth_required
 def delete_entry(user_and_entry_id):
-    """Delete an entry"""
+    """Soft delete an entry by setting deleted_at timestamp"""
     try:
-        # Check if entry exists and belongs to user
+        # Check if entry exists and belongs to user (not deleted)
         response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
-        entry = response.data[0] if response.data else None
+        entry = None
+        if response.data:
+            # Filter to only non-deleted entries
+            entries = [e for e in response.data if e.get('deleted_at') is None]
+            entry = entries[0] if entries else None
         
         if not entry:
             return jsonify({'message': 'Entry not found'}), 404
         
-        # Delete entry from Supabase
-        response = g.user_supabase.table('entries').delete().eq('user_and_entry_id', user_and_entry_id).execute()
+        # Soft delete: set deleted_at timestamp
+        deleted_at = datetime.utcnow().isoformat()
+        response = g.user_supabase.table('entries').update({'deleted_at': deleted_at}).eq('user_and_entry_id', user_and_entry_id).execute()
         
-        return jsonify({'message': 'Entry deleted successfully'}), 200
+        logger.info("Entry soft deleted successfully", extra={"route": "/entries/<string:user_and_entry_id>", "method": "DELETE", "user_and_entry_id": user_and_entry_id, "user_id": g.current_user.id})
+        return jsonify({'message': 'Entry deleted successfully', 'deleted_at': deleted_at}), 200
     except Exception as e:
         logger.exception("Error deleting entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "DELETE", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
+
+@entries_bp.route('/entries/<string:user_and_entry_id>/restore', methods=['POST'])
+@supabase_auth_required
+def restore_entry(user_and_entry_id):
+    """Restore a soft-deleted entry by clearing deleted_at"""
+    try:
+        # Check if entry exists and is deleted (deleted_at is not null)
+        response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
+        entry = None
+        if response.data:
+            # Find entry that has deleted_at set (is deleted)
+            entries = [e for e in response.data if e.get('deleted_at') is not None]
+            entry = entries[0] if entries else None
+        
+        if not entry:
+            return jsonify({'message': 'Entry not found or not deleted'}), 404
+        
+        # Restore: clear deleted_at
+        response = g.user_supabase.table('entries').update({'deleted_at': None}).eq('user_and_entry_id', user_and_entry_id).execute()
+        restored_entry = response.data[0] if response.data else None
+        
+        if not restored_entry:
+            return jsonify({'message': 'Failed to restore entry'}), 500
+        
+        logger.info("Entry restored successfully", extra={"route": "/entries/<string:user_and_entry_id>/restore", "method": "POST", "user_and_entry_id": user_and_entry_id, "user_id": g.current_user.id})
+        return jsonify({'message': 'Entry restored successfully', 'entry': restored_entry}), 200
+    except Exception as e:
+        logger.exception("Error restoring entry", extra={"route": "/entries/<string:user_and_entry_id>/restore", "method": "POST", "user_and_entry_id": user_and_entry_id})
+        return jsonify({'message': f'Error restoring entry: {str(e)}'}), 500
 
 @entries_bp.route('/entries/search', methods=['POST'])
 @supabase_auth_required

@@ -119,9 +119,13 @@
 .entry-detail h3 {
   margin-top: 0;
   color: #4B286D; /* Royal ink text color */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .entry-date-full {
+  display: none; /* Hide duplicate date */
   font-size: 0.8rem;
   color: #4B286D; /* Royal ink with opacity */
   margin-bottom: 10px;

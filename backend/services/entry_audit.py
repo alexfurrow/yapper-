@@ -1,6 +1,6 @@
 """
 Auditing service to check that all entries follow the naming convention.
-Convention: title_date should be in format "Month DD, YYYY at h:MM AM/PM"
+Convention: title should be in format "Month DD, YYYY at h:MM AM/PM"
 """
 
 import re
@@ -10,9 +10,9 @@ from backend.config.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Pattern for expected title_date format: "Month DD, YYYY at h:MM AM/PM"
+# Pattern for expected title format: "Month DD, YYYY at h:MM AM/PM"
 # Examples: "November 17, 2025 at 3:45 PM", "October 27, 2025 at 6:51 PM"
-TITLE_DATE_PATTERN = re.compile(
+TITLE_PATTERN = re.compile(
     r'^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})\s+at\s+(\d{1,2}):(\d{2})\s+(AM|PM)$',
     re.IGNORECASE
 )
@@ -24,12 +24,12 @@ LEGACY_PATTERN = re.compile(
 )
 
 
-def validate_title_date_format(title_date: str) -> Dict[str, any]:
+def validate_title_format(title: str) -> Dict[str, any]:
     """
-    Validate that a title_date follows the expected format.
+    Validate that a title follows the expected format.
     
     Args:
-        title_date: The title_date string to validate
+        title: The title string to validate
         
     Returns:
         Dict with:
@@ -37,15 +37,15 @@ def validate_title_date_format(title_date: str) -> Dict[str, any]:
             - 'format': 'correct' | 'legacy' | 'invalid'
             - 'message': str (if invalid)
     """
-    if not title_date:
+    if not title:
         return {
             'valid': False,
             'format': 'invalid',
-            'message': 'title_date is empty'
+            'message': 'title is empty'
         }
     
     # Check for correct format (with time)
-    if TITLE_DATE_PATTERN.match(title_date):
+    if TITLE_PATTERN.match(title):
         return {
             'valid': True,
             'format': 'correct',
@@ -53,18 +53,18 @@ def validate_title_date_format(title_date: str) -> Dict[str, any]:
         }
     
     # Check for legacy format (without time)
-    if LEGACY_PATTERN.match(title_date):
+    if LEGACY_PATTERN.match(title):
         return {
             'valid': False,
             'format': 'legacy',
-            'message': 'title_date missing time component (legacy format)'
+            'message': 'title missing time component (legacy format)'
         }
     
     # Invalid format
     return {
         'valid': False,
         'format': 'invalid',
-        'message': f'title_date does not match expected format: "{title_date}"'
+        'message': f'title does not match expected format: "{title}"'
     }
 
 
@@ -86,7 +86,7 @@ def audit_entries(user_supabase, user_id: Optional[str] = None) -> Dict:
     """
     try:
         # Get all entries for the user
-        query = user_supabase.table('entries').select('user_and_entry_id, user_entry_id, title_date, created_at')
+        query = user_supabase.table('entries').select('user_and_entry_id, user_entry_id, title, created_at')
         
         if user_id:
             query = query.eq('user_id', user_id)
@@ -101,8 +101,8 @@ def audit_entries(user_supabase, user_id: Optional[str] = None) -> Dict:
         issues = []
         
         for entry in entries:
-            title_date = entry.get('title_date', '')
-            validation = validate_title_date_format(title_date)
+            title = entry.get('title', '')
+            validation = validate_title_format(title)
             
             if validation['valid']:
                 valid_count += 1
@@ -111,7 +111,7 @@ def audit_entries(user_supabase, user_id: Optional[str] = None) -> Dict:
                 issues.append({
                     'user_and_entry_id': entry.get('user_and_entry_id'),
                     'user_entry_id': entry.get('user_entry_id'),
-                    'title_date': title_date,
+                    'title': title,
                     'issue': validation['message'],
                     'created_at': entry.get('created_at')
                 })
@@ -120,7 +120,7 @@ def audit_entries(user_supabase, user_id: Optional[str] = None) -> Dict:
                 issues.append({
                     'user_and_entry_id': entry.get('user_and_entry_id'),
                     'user_entry_id': entry.get('user_entry_id'),
-                    'title_date': title_date,
+                    'title': title,
                     'issue': validation['message'],
                     'created_at': entry.get('created_at')
                 })
@@ -149,13 +149,13 @@ def audit_entries(user_supabase, user_id: Optional[str] = None) -> Dict:
         }
 
 
-def fix_legacy_entry_title_date(entry: Dict, user_supabase) -> bool:
+def fix_legacy_entry_title(entry: Dict, user_supabase) -> bool:
     """
-    Fix a legacy entry by adding time component to title_date.
+    Fix a legacy entry by adding time component to title.
     Uses created_at timestamp if available, otherwise uses current time.
     
     Args:
-        entry: Entry dict with user_and_entry_id and title_date
+        entry: Entry dict with user_and_entry_id and title
         user_supabase: Authenticated Supabase client
         
     Returns:
@@ -177,12 +177,12 @@ def fix_legacy_entry_title_date(entry: Dict, user_supabase) -> bool:
         else:
             entry_datetime = datetime.now()
         
-        # Format new title_date with time
-        new_title_date = format_title_date_with_time(entry_datetime)
+        # Format new title with time
+        new_title = format_title_date_with_time(entry_datetime)
         
         # Update entry
         response = user_supabase.table('entries').update({
-            'title_date': new_title_date
+            'title': new_title
         }).eq('user_and_entry_id', entry['user_and_entry_id']).execute()
         
         if response.data:

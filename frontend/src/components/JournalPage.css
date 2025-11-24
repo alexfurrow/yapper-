@@ -811,6 +811,23 @@
   margin-bottom: 8px;
 }
 
+.entry-delete-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.entry-delete-button:hover {
+  opacity: 1;
+  background: rgba(220, 38, 38, 0.1);
+  transform: scale(1.1);
+}
+
 .entry-id {
   font-weight: 600;
   color: #7D8456; /* Olive leaf color */
@@ -852,9 +869,13 @@
   color: #4B286D; /* Royal ink text color */
   font-size: 16px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-date {
+  display: none; /* Hide duplicate date */
   font-size: 12px;
   color: #64748b;
 }
@@ -939,4 +960,104 @@
   .left-actions {
     justify-content: center;
   }
+}
+
+/* Delete Confirmation Popup */
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.delete-confirm-popup {
+  background: #FFFCF8;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+  border: 1px solid #E6D8B4;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.delete-confirm-popup h3 {
+  margin: 0 0 12px 0;
+  color: #4B286D;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.delete-confirm-popup p {
+  margin: 0 0 20px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.delete-confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.delete-confirm-yes {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.delete-confirm-yes:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.delete-confirm-no {
+  background: #64748b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.delete-confirm-no:hover {
+  background: #475569;
+  transform: translateY(-1px);
 }
