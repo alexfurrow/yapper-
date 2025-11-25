@@ -175,7 +175,39 @@ def converse_stream():
                 logger.exception("Error in streaming conversation")
                 yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
         
-        return Response(generate_stream(), mimetype='text/plain')
+        # Create streaming response with CORS headers
+        # Use text/event-stream for proper SSE support
+        response = Response(generate_stream(), mimetype='text/event-stream')
+        
+        # Set CORS headers explicitly for streaming response
+        # The after_request handler should handle this, but we set it here as backup
+        origin = request.headers.get('Origin')
+        if origin:
+            # Build allowed origins list (matching app.py logic)
+            allowed_origins = [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001",
+                "https://yapper-beta.vercel.app",
+                "https://yapper.vercel.app"
+            ]
+            # Also check environment variable
+            frontend_urls = os.environ.get('FRONTEND_URL', '')
+            if frontend_urls:
+                urls = [url.strip() for url in frontend_urls.replace(',', ' ').split() if url.strip()]
+                allowed_origins.extend(urls)
+            
+            # Check if origin is in allowed list
+            if origin in allowed_origins:
+                response.headers['Access-Control-Allow-Origin'] = origin
+        
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type'
+        
+        return response
         
     except Exception as e:
         logger.exception("Error in converse_stream")
@@ -230,8 +262,8 @@ def get_conversation_intro():
     Backend handles: Context analysis, AI generation, topic extraction
     """
     try:
-        # Get user's recent entries for context
-        response = g.user_supabase.table('entries').select('content,created_at,user_entry_id').eq('user_id', g.current_user.id).order('created_at', desc=True).limit(100).execute()
+        # Get user's recent entries for context (reduced from 100 to 20 for faster response)
+        response = g.user_supabase.table('entries').select('content,created_at,user_entry_id').eq('user_id', g.current_user.id).order('created_at', desc=True).limit(20).execute()
         entries = response.data if response.data else []
         
         if not entries:
@@ -240,11 +272,14 @@ def get_conversation_intro():
                 'topics': []
             })
         
-        # Build context from recent entries
+        # Build context from recent entries (reduced from 10 to 5 for faster processing)
         context_parts = []
-        for entry in entries[:10]:
+        for entry in entries[:5]:
             content = entry.get('content', '').strip()
             if content:
+                # Truncate entries to keep context manageable
+                if len(content) > 300:
+                    content = content[:300] + "..."
                 context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
         
         context = "\n\n".join(context_parts)
@@ -258,14 +293,15 @@ def get_conversation_intro():
         
         user_prompt = f"User's recent entries (most recent first):\n\n{context}\n\nReturn JSON only."
         
-        # Generate with AI
+        # Generate with AI (use gpt-4o-mini for faster, cheaper intro generation)
         resp = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=200  # Limit response length for faster generation
         )
         
         content = resp.choices[0].message.content if resp.choices else '{}'

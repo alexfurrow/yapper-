@@ -84,43 +84,11 @@ def upload_audio_api():
 
             logger.info("Audio transcription successful", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "transcription_length": len(transcription)})
 
-            # Process content through OpenAI for better journal entry
-            processed_content = process_text(transcription)
-            
-            # Get the next user entry ID
-            user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
-            user_entry_count = len(user_entries_response.data)
-            next_user_entry_id = user_entry_count + 1
-
-            # Prepare entry data
-            entry_data = {
-                'user_id': g.current_user.id,
-                'user_entry_id': next_user_entry_id,
-                'content': transcription,
-                'processed': processed_content
-            }
-
-            # Generate embedding for the processed content
-            if processed_content:
-                embedding = generate_embedding(processed_content)
-                if embedding:
-                    entry_data['vectors'] = embedding
-                    logger.info("Embedding generated for audio entry", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
-
-            # Create entry in database
-            response = g.user_supabase.table('entries').insert(entry_data).execute()
-            new_entry = response.data[0] if response.data else None
-
-            if not new_entry:
-                logger.error("Failed to create audio entry in database", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id})
-                return jsonify({'error': 'Failed to save journal entry'}), 500
-
-            logger.info("Audio entry created successfully", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
-
+            # Return just the transcription - let frontend decide what to do with it
+            # Frontend will handle saving to DB or sending to chat based on mode
             return jsonify({
-                'message': 'Audio processed and journal entry created successfully',
                 'transcription': transcription,
-                'entry': new_entry
+                'success': True
             }), 200
         else:
             logger.error("Whisper API error", extra={"route": "/api/audio", "method": "POST", "user_id": g.current_user.id, "status_code": response.status_code, "response": response.text})
