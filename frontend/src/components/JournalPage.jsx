@@ -154,32 +154,14 @@ function JournalPage() {
     }
   }, [currentUser]);
 
-  // Seed Yap with an opening AI prompt the first time the tab is opened
+  // Seed Yap with a static opening message the first time the tab is opened
   useEffect(() => {
     if (activeTab === 'yap' && yapMessages.length === 0) {
-      (async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) throw new Error('no session');
-          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
-          const introUrl = `${backendUrl}/api/converse/intro`;
-          const res = await fetch(introUrl, { headers: { Authorization: `Bearer ${session.access_token}` } });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const payload = await res.json();
-          const opening = payload.opening || "What's on your mind? Talk as long as you want.";
-          const topics = Array.isArray(payload.topics) ? payload.topics : [];
-          setYapMessages([
-            { id: generateId(), type: 'ai', content: opening },
-            ...(topics.length > 0 ? [{ id: generateId(), type: 'ai', content: `You can pick a topic: ${topics.map(t => `“${t}”`).join(', ')}, or choose “Something new”.` }] : [])
-          ]);
-        } catch (_) {
-          setYapMessages([
-            { id: generateId(), type: 'ai', content: "What's on your mind? Talk as long as you want." }
-          ]);
-        }
-      })();
+      setYapMessages([
+        { id: generateId(), type: 'ai', content: "What stood out today?" }
+      ]);
     }
-  }, [activeTab]);
+  }, [activeTab, yapMessages.length]);
 
   const loadEntries = async () => {
     try {
@@ -359,15 +341,123 @@ function JournalPage() {
       const data = await response.json();
       console.log('Audio processed successfully:', data);
       
-      setMessage('Audio processed and journal entry created!');
+      const transcription = data.transcription || '';
       
-      // Refresh entries list
-      loadEntries();
+      if (!transcription.trim()) {
+        setMessage('No speech detected in recording');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
       
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setMessage('');
-      }, 3000);
+        // Handle transcription based on current mode
+      if (yapMode === 'guided') {
+        // Yap mode: Send transcription to chat
+        setMessage('Transcription received! Sending to chat...');
+        
+        // Use the transcription as if the user typed it
+        const userText = transcription;
+        
+        // Add user message and empty AI message, and get updated messages for API call
+        const userMsgId = generateId();
+        const aiMsgId = generateId();
+        let updatedMessages;
+        setYapMessages(prev => {
+          updatedMessages = [
+            ...prev,
+            { id: userMsgId, type: 'user', content: userText },
+            { id: aiMsgId, type: 'ai', content: '' }
+          ];
+          return updatedMessages;
+        });
+
+        try {
+          setIsYapLoading(true);
+          
+          // Get auth token
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error('No active session');
+          
+          // Build messages array for API (exclude the empty AI message we just added)
+          const messagesForAPI = updatedMessages.slice(0, -1).map(m => ({
+            type: m.type,
+            content: m.content || ''
+          }));
+          
+          // Call backend endpoint
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002';
+          const response = await fetch(`${backendUrl}/api/converse/stream`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              messages: messagesForAPI,
+              user_input: userText
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+          
+          // Stream the response
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              buffer += decoder.decode(value, { stream: true });
+              let sep;
+              while ((sep = buffer.indexOf('\n\n')) !== -1) {
+                const block = buffer.slice(0, sep);
+                buffer = buffer.slice(sep + 2);
+                const lines = block.split('\n');
+                
+                for (const line of lines) {
+                  if (!line.startsWith('data: ')) continue;
+                  try {
+                    const evt = JSON.parse(line.slice(6));
+                    if (evt.type === 'content') {
+                      setYapMessages(prev => {
+                        const m = [...prev];
+                        const last = m[m.length - 1];
+                        if (last && last.type === 'ai') {
+                          m[m.length - 1] = { ...last, content: (last.content || '') + (evt.data || '') };
+                        }
+                        return m;
+                      });
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          
+          setMessage('Transcription sent to chat!');
+          setTimeout(() => setMessage(''), 2000);
+        } catch (err) {
+          console.error('Yap chat error:', err);
+          setYapMessages(prev => ([...prev, { id: generateId(), type: 'ai', content: 'Sorry, I ran into an error. Please try again.' }]));
+          setMessage('Error sending to chat: ' + err.message);
+          setTimeout(() => setMessage(''), 5000);
+        } finally {
+          setIsYapLoading(false);
+          setIsYapSaved(false);
+        }
+      } else {
+        // Free Hand mode: Populate textarea with transcription
+        setContent(transcription);
+        setMessage('Transcription ready! Review and edit before saving.');
+        setTimeout(() => setMessage(''), 3000);
+      }
       
     } catch (error) {
       console.error('Error processing audio:', error);
@@ -878,8 +968,77 @@ function JournalPage() {
                   ) : (
                     <button 
                       type="button" 
-                      onClick={(e) => handleSubmit(e)}
-                      disabled={!content.trim()}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (!content.trim()) {
+                          setMessage('Content cannot be empty');
+                          return;
+                        }
+                        
+                        try {
+                          setMessage('Saving...');
+                          setIsLoading(true);
+                          
+                          // Get Supabase session for auth token
+                          const { data: { session } } = await supabase.auth.getSession();
+                          if (!session) {
+                            throw new Error('No authentication session found');
+                          }
+
+                          const accessToken = session.access_token;
+                          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+                          const createUrl = `${backendUrl}/api/entries`;
+                          
+                          console.log('Creating entry via backend API (Free Hand mode)...');
+                          console.log('Backend URL:', createUrl);
+                          console.log('Content:', content);
+                          
+                          const response = await fetch(createUrl, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${accessToken}`
+                            },
+                            body: JSON.stringify({
+                              content: content
+                            })
+                          });
+
+                          console.log('Create entry response status:', response.status);
+                          
+                          if (!response.ok) {
+                            const errorText = await response.text();
+                            console.log('Error response body:', errorText);
+                            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                          }
+
+                          const data = await response.json();
+                          console.log('Entry created successfully:', data);
+                          
+                          setMessage('Entry saved successfully!');
+                          setContent('');
+                          
+                          // Refresh entries list
+                          loadEntries();
+                          
+                          // Clear success message after 3 seconds
+                          setTimeout(() => {
+                            setMessage('');
+                          }, 3000);
+                          
+                        } catch (error) {
+                          console.error('Error saving entry:', error);
+                          setMessage('Error saving entry: ' + error.message);
+                          
+                          // Clear error after 5 seconds
+                          setTimeout(() => {
+                            setMessage('');
+                          }, 5000);
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      disabled={!content.trim() || isLoading}
                       className="save-button"
                     >
                       <span className="button-icon">💾</span>

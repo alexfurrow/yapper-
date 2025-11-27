@@ -25,7 +25,7 @@ def validate_env():
         # Log only the variable names, not values
         raise InternalServerError(f"Missing required environment variables: {', '.join(missing)}")
 
-entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
+entries_bp = Blueprint('entries', __name__)
 
 # Validate environment variables
 validate_env()
@@ -78,7 +78,7 @@ def supabase_auth_required(f):
     return decorated
 
 # Update all your route decorators from @token_required to @supabase_auth_required
-@entries_bp.route('/entries', methods=['GET'])
+@entries_bp.route('', methods=['GET'])
 @supabase_auth_required
 def get_entries():
     """Get all entries for the current user"""
@@ -92,7 +92,7 @@ def get_entries():
         logger.exception("Error getting entries", extra={"route": "/entries", "method": "GET"})
         return jsonify({'message': f'Error getting entries: {str(e)}'}), 500
 
-@entries_bp.route('/entries', methods=['POST'])
+@entries_bp.route('', methods=['POST'])
 @supabase_auth_required
 def create_entry():
     """Create a new entry with processed content and immediate embedding"""
@@ -113,9 +113,12 @@ def create_entry():
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Prepare entry data (don't include user_id - let RLS handle it)
+        # Prepare entry data
+        # user_and_entry_id is likely a composite field, so we set it explicitly
         entry_data = {
+            'user_id': g.current_user.id,
             'user_entry_id': next_user_entry_id,
+            'user_and_entry_id': f"{g.current_user.id}_{next_user_entry_id}",
             'content': data['content'],
             'processed': processed_content
         }
@@ -159,7 +162,7 @@ def create_entry():
         logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['GET'])
+@entries_bp.route('/<int:entry_id>', methods=['GET'])
 @supabase_auth_required
 def get_entry(entry_id):
     """Get a specific entry by ID"""
@@ -175,7 +178,7 @@ def get_entry(entry_id):
         logger.exception("Error getting entry", extra={"route": "/entries/<int:entry_id>", "method": "GET", "entry_id": entry_id})
         return jsonify({'message': f'Error getting entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['PUT'])
+@entries_bp.route('/<int:entry_id>', methods=['PUT'])
 @supabase_auth_required
 def update_entry(entry_id):
     """Update an existing entry"""
@@ -212,7 +215,7 @@ def update_entry(entry_id):
         logger.exception("Error updating entry", extra={"route": "/entries/<int:entry_id>", "method": "PUT", "entry_id": entry_id})
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<int:entry_id>', methods=['DELETE'])
+@entries_bp.route('/<int:entry_id>', methods=['DELETE'])
 @supabase_auth_required
 def delete_entry(entry_id):
     """Delete an entry"""
@@ -232,7 +235,7 @@ def delete_entry(entry_id):
         logger.exception("Error deleting entry", extra={"route": "/entries/<int:entry_id>", "method": "DELETE", "entry_id": entry_id})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/search', methods=['POST'])
+@entries_bp.route('/search', methods=['POST'])
 @supabase_auth_required
 def search_entries():
     """Search for similar entries using vector embeddings"""

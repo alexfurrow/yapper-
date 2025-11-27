@@ -17,17 +17,10 @@ function Header() {
       <div className="header-content">
         <h1>Yapper</h1>
         
-        {currentUser ? (
-          <div className="user-controls">
-            <span className="username">Hello, {currentUser.username}</span>
-            <button className="logout-button" onClick={handleLogout}>Logout</button>
-          </div>
-        ) : (
-          <div className="auth-buttons">
-            <button onClick={() => navigate('/login')}>Login</button>
-            <button onClick={() => navigate('/register')}>Register</button>
-          </div>
-        )}
+        <div className="user-controls">
+          <span className="username">Hello, {currentUser.username}</span>
+          <button className="logout-button" onClick={handleLogout}>Logout</button>
+        </div>
       </div>
     </header>
   );

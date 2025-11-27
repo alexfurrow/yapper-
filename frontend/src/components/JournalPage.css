@@ -249,12 +249,12 @@
 }
 
 .record-button {
-  background: #7D8456; /* Olive leaf color */
+  background: #B5694E; /* Terracotta dust - matching voice-button */
   color: white;
 }
 
 .record-button:hover:not(:disabled) {
-  background: #3E6B6B; /* Deep teal */
+  background: #A05A43; /* Darker terracotta */
   transform: translateY(-1px);
 }
 
