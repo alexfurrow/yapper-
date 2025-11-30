@@ -22,8 +22,5 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    define: {
-      __API_URL__: JSON.stringify(env.VITE_API_URL || 'http://127.0.0.1:5000'),
-    },
   };
 });

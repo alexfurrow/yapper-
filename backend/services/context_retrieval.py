@@ -41,9 +41,4 @@ def search_by_text(query_text, limit=5, user_id=None, user_client=None):
         return results
     except Exception as e:
         print(f"Error finding similar entries: {str(e)}")
-        # Fallback to brute-force if HNSW fails
-        try:
-            return _brute_force_search(query_text, limit, user_id, user_client)
-        except Exception as e2:
-            print(f"Fallback search also failed: {str(e2)}")
-            return []
+        return []

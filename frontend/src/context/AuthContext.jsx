@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase.js';
-import { useNavigate } from 'react-router-dom';
 
 // Create the context with a default value
 const AuthContext = createContext({
@@ -17,7 +16,6 @@ function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   // Initialize auth state from Supabase session
   useEffect(() => {
@@ -32,7 +30,7 @@ function AuthProvider({ children }) {
           });
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        // Error getting initial session
       } finally {
         setLoading(false);
       }
@@ -63,23 +61,18 @@ function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     try {
       setError(null);
-      console.log('Starting login with:', { email, password: '***' });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
-      console.log('Supabase login response:', { data, error });
-      
       if (error) {
-        console.error('Supabase login error:', error);
         setError(error.message);
         return false;
       }
       
       if (data.user) {
-        console.log('Login successful, setting user:', data.user);
         setCurrentUser({
           id: data.user.id,
           email: data.user.email,
@@ -91,7 +84,6 @@ function AuthProvider({ children }) {
       return false;
     } catch (err) {
       const errorMsg = err.message || 'Login failed';
-      console.error("Login error:", errorMsg);
       setError(errorMsg);
       return false;
     }
@@ -103,8 +95,6 @@ function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       
-      console.log('Starting registration with:', { username, email, password: '***' });
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -114,10 +104,6 @@ function AuthProvider({ children }) {
       });
 
       if (error) {
-        console.error('Supabase registration error:', error);
-        console.log('Error message:', error.message);
-        console.log('Full error object:', error);
-        
         // Handle specific error cases with user-friendly messages
         if (error.message.includes('already registered') || 
             error.message.includes('already exists') ||
@@ -137,14 +123,11 @@ function AuthProvider({ children }) {
       }
 
       if (data.user) {
-        console.log('Registration successful, user data:', data.user);
-        
         // Check if email is confirmed
         if (data.user.email_confirmed_at) {
           // Email is confirmed, proceed with auto-login
           setCurrentUser(data.user);
           setLoading(false);
-          navigate('/');
         } else {
           // Email not confirmed, show message to user
           setError('Registration successful! Please check your email and click the verification link to confirm your account before logging in.');
@@ -152,7 +135,6 @@ function AuthProvider({ children }) {
         }
       }
     } catch (error) {
-      console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -173,14 +155,12 @@ function AuthProvider({ children }) {
       });
       
       if (error) {
-        console.error('Google SSO error:', error);
         setError(error.message);
         return false;
       }
       
       return true;
     } catch (err) {
-      console.error('Google SSO error:', err);
       setError('Google sign-in failed. Please try again.');
       return false;
     } finally {
@@ -194,10 +174,10 @@ function AuthProvider({ children }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Logout error:', error);
+        // Logout error
       }
     } catch (err) {
-      console.error('Logout error:', err);
+      // Logout error
     } finally {
     setCurrentUser(null);
     }

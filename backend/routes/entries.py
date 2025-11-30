@@ -105,33 +105,22 @@ def create_entry():
     try:
         logger.info("Creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "content_length": len(data['content'])})
         
-        # Process content through OpenAI
-        processed_content = process_text(data['content'])
-        
         # Get the next user entry ID using user context
         user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Prepare entry data
-        # user_and_entry_id is likely a composite field, so we set it explicitly
+        # Save entry immediately with raw content (fast response)
         entry_data = {
             'user_id': g.current_user.id,
             'user_entry_id': next_user_entry_id,
             'user_and_entry_id': f"{g.current_user.id}_{next_user_entry_id}",
             'content': data['content'],
-            'processed': processed_content
+            'processed': None,  # Will be processed in background
+            'vectors': None     # Will be generated in background
         }
         
-        # Generate embedding immediately for real-time search
-        embedding = None
-        if processed_content:
-            embedding = generate_embedding(processed_content)
-            if embedding:
-                entry_data['vectors'] = embedding
-                logger.info("Embedding generated for entry", extra={"route": "/entries", "method": "POST", "user_entry_id": next_user_entry_id})
-        
-        # Create new entry in Supabase
+        # Create new entry in Supabase immediately
         response = g.user_supabase.table('entries').insert(entry_data).execute()
         new_entry = response.data[0] if response.data else None
         
@@ -139,24 +128,59 @@ def create_entry():
             logger.error("Failed to create entry - no data returned", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'message': 'Failed to create entry'}), 500
         
-        # Add entry to HNSW index for fast search
-        if embedding and new_entry.get('entry_id'):
+        # Extract entry_id safely (Supabase might return it with different key or structure)
+        entry_id = new_entry.get('entry_id') or new_entry.get('id')
+        if not entry_id:
+            logger.warning("Entry created but no entry_id found in response", extra={"route": "/entries", "method": "POST", "response_keys": list(new_entry.keys()) if new_entry else None})
+            # Still return the entry, but background processing will skip
+            return jsonify(new_entry), 201
+        
+        # Process and embed in background (don't block response)
+        def process_entry_background(entry_id_value, content_to_process):
             try:
-                from backend.services.hnsw_index import add_entry_to_index
-                add_entry_to_index(new_entry['entry_id'], embedding)
-                logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": new_entry['entry_id']})
+                # Create new Supabase client for background thread (g is thread-local)
+                bg_supabase = create_client(
+                    os.environ.get('SUPABASE_URL'),
+                    os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                )
+                
+                # Process content through OpenAI
+                processed_content = process_text(content_to_process)
+                
+                # Generate embedding
+                embedding = None
+                if processed_content:
+                    embedding = generate_embedding(processed_content)
+                
+                # Update entry with processed content and embedding
+                update_data = {}
+                if processed_content:
+                    update_data['processed'] = processed_content
+                if embedding:
+                    update_data['vectors'] = embedding
+                
+                if update_data:
+                    bg_supabase.table('entries').update(update_data).eq('entry_id', entry_id_value).execute()
+                    logger.info("Entry processed and embedded", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                    
+                    # Add entry to HNSW index for fast search
+                    if embedding:
+                        try:
+                            from backend.services.hnsw_index import add_entry_to_index
+                            add_entry_to_index(entry_id_value, embedding)
+                            logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                        except Exception as e:
+                            logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
             except Exception as e:
-                # Log but don't fail - index will be rebuilt on next search if needed
-                logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": new_entry.get('entry_id')})
+                logger.exception("Error processing entry in background", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
         
-        # Uncomment if you want to add personality or story generation
-        # personality = create_personality_and_write_to_db(new_entry['entry_id'], processed_content)        
-        # new_entry['personality'] = personality
+        # Start background processing (non-blocking)
+        import threading
+        thread = threading.Thread(target=process_entry_background, args=(entry_id, data['content']))
+        thread.daemon = True
+        thread.start()
         
-        # story = write_story_and_write_to_db(new_entry['entry_id'], processed_content)
-        # new_entry['story'] = story
-        
-        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
+        logger.info("Entry created successfully (processing in background)", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
         return jsonify(new_entry), 201
     except Exception as e:
         logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
