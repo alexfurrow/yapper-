@@ -57,7 +57,11 @@ def build_conversation_messages(yap_messages, user_input, context=""):
     
     # If we have context, add it to the system prompt
     if context:
-        system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
+        if context.startswith("ERROR:"):
+            # Search failed - tell AI to inform user
+            system_prompt += f"\n\n{context}\n\nYou must inform the user about this error."
+        else:
+            system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
     
     messages.append({"role": "system", "content": system_prompt})
     
@@ -130,22 +134,42 @@ def converse_stream():
         # Build context from relevant entries
         context_parts = []
         sources = []
-        for entry in relevant_entries:
-            content = entry.get('content', '').strip()
-            if content:
-                # Truncate very long entries
-                if len(content) > 300:
-                    content = content[:300] + "..."
-                context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
-                # Add to sources for frontend
-                sources.append({
-                    'entry_id': entry.get('entry_id'),
-                    'user_entry_id': entry.get('user_entry_id'),
-                    'content': content,
-                    'similarity': entry.get('similarity', 0)
-                })
+        search_failed = False
+        
+        if not relevant_entries:
+            # Check if user has any entries at all
+            try:
+                response = g.user_supabase.table('entries').select('entry_id').eq('user_id', g.current_user.id).limit(1).execute()
+                has_entries = response.data and len(response.data) > 0
+                
+                if has_entries:
+                    # User has entries but search failed - this is an error
+                    logger.warning("HNSW search returned no results but user has entries - search may have failed")
+                    search_failed = True
+            except Exception as e:
+                logger.error(f"Error checking for user entries: {e}")
+                search_failed = True
+        else:
+            for entry in relevant_entries:
+                content = entry.get('content', '').strip()
+                if content:
+                    # Truncate very long entries
+                    if len(content) > 300:
+                        content = content[:300] + "..."
+                    context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
+                    # Add to sources for frontend
+                    sources.append({
+                        'entry_id': entry.get('entry_id'),
+                        'user_entry_id': entry.get('user_entry_id'),
+                        'content': content,
+                        'similarity': entry.get('similarity', 0)
+                    })
         
         context = "\n\n".join(context_parts)
+        
+        # If search failed, add error message to context
+        if search_failed:
+            context = "ERROR: There was an error with retrieving your history. Please inform the user: 'There was an error with retrieving your history.'"
         
         # Build conversation messages for OpenAI with context
         messages = build_conversation_messages(yap_messages, user_input, context)
@@ -232,15 +256,88 @@ def save_conversation():
         if not conversation_text:
             return jsonify({'error': 'Conversation cannot be empty'}), 400
         
-        # Save to database
-        response = g.user_supabase.table('entries').insert({
+        # Get the next user entry ID
+        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').eq('user_id', g.current_user.id).execute()
+        user_entry_count = len(user_entries_response.data) if user_entries_response.data else 0
+        next_user_entry_id = user_entry_count + 1
+        
+        # Save to database (same structure as entries.py)
+        entry_data = {
             'user_id': g.current_user.id,
+            'user_entry_id': next_user_entry_id,
+            'user_and_entry_id': f"{g.current_user.id}_{next_user_entry_id}",
             'content': conversation_text,
-            'created_at': 'now()'
-        }).execute()
+            'processed': None,  # Will be processed in background
+            'vectors': None     # Will be generated in background
+        }
+        
+        response = g.user_supabase.table('entries').insert(entry_data).execute()
         
         if response.data:
-            entry_id = response.data[0].get('entry_id')
+            new_entry = response.data[0]
+            entry_id = new_entry.get('entry_id') or new_entry.get('id')
+            
+            if entry_id:
+                # Process and embed in background (same flow as entries.py)
+                def process_entry_background(entry_id_value, content_to_process):
+                    try:
+                        from supabase import create_client
+                        from backend.services.initial_processing import process_text
+                        from backend.services.embedding import generate_embedding
+                        from backend.services.hnsw_index import add_entry_to_index
+                        
+                        logger.info(f"Starting background processing for conversation entry {entry_id_value}")
+                        
+                        bg_supabase = create_client(
+                            os.environ.get('SUPABASE_URL'),
+                            os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                        )
+                        
+                        # Step 1: Process content through OpenAI
+                        logger.info(f"Step 1: Processing content for entry {entry_id_value}")
+                        processed_content = process_text(content_to_process)
+                        
+                        if not processed_content:
+                            logger.warning(f"Processing failed for entry {entry_id_value}, skipping vectorization")
+                            return
+                        
+                        # Step 2: Generate embedding from processed content
+                        logger.info(f"Step 2: Generating embedding for entry {entry_id_value}")
+                        embedding = generate_embedding(processed_content)
+                        
+                        if not embedding:
+                            logger.warning(f"Embedding generation failed for entry {entry_id_value}")
+                            # Still save processed content even if embedding fails
+                            bg_supabase.table('entries').update({
+                                'processed': processed_content
+                            }).eq('entry_id', entry_id_value).execute()
+                            return
+                        
+                        # Step 3: Update entry with processed content and embedding
+                        logger.info(f"Step 3: Updating entry {entry_id_value} with processed content and embedding")
+                        bg_supabase.table('entries').update({
+                            'processed': processed_content,
+                            'vectors': embedding
+                        }).eq('entry_id', entry_id_value).execute()
+                        
+                        logger.info(f"Conversation entry processed and embedded: {entry_id_value}")
+                        
+                        # Step 4: Add entry to HNSW index
+                        logger.info(f"Step 4: Adding entry {entry_id_value} to HNSW index")
+                        try:
+                            add_entry_to_index(entry_id_value, embedding)
+                            logger.info(f"Conversation entry added to HNSW index: {entry_id_value}")
+                        except Exception as e:
+                            logger.warning(f"Failed to add conversation entry to HNSW index: {str(e)}")
+                    except Exception as e:
+                        logger.exception(f"Error processing conversation entry in background: {entry_id_value}")
+                
+                # Start background processing
+                import threading
+                thread = threading.Thread(target=process_entry_background, args=(entry_id, conversation_text))
+                thread.daemon = True
+                thread.start()
+            
             logger.info(f"Saved conversation as entry {entry_id}")
             return jsonify({
                 'success': True,

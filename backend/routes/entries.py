@@ -136,41 +136,56 @@ def create_entry():
             return jsonify(new_entry), 201
         
         # Process and embed in background (don't block response)
+        # Flow: 1. Process content → 2. Vectorize processed content → 3. Add to index
         def process_entry_background(entry_id_value, content_to_process):
             try:
+                logger.info(f"Starting background processing for entry {entry_id_value}")
+                
                 # Create new Supabase client for background thread (g is thread-local)
                 bg_supabase = create_client(
                     os.environ.get('SUPABASE_URL'),
                     os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
                 )
                 
-                # Process content through OpenAI
+                # Step 1: Process content through OpenAI
+                logger.info(f"Step 1: Processing content for entry {entry_id_value}")
                 processed_content = process_text(content_to_process)
                 
-                # Generate embedding
-                embedding = None
-                if processed_content:
-                    embedding = generate_embedding(processed_content)
+                if not processed_content:
+                    logger.warning(f"Processing failed for entry {entry_id_value}, skipping vectorization")
+                    return
                 
-                # Update entry with processed content and embedding
-                update_data = {}
-                if processed_content:
-                    update_data['processed'] = processed_content
-                if embedding:
-                    update_data['vectors'] = embedding
+                # Step 2: Generate embedding from processed content
+                logger.info(f"Step 2: Generating embedding for entry {entry_id_value}")
+                embedding = generate_embedding(processed_content)
                 
-                if update_data:
-                    bg_supabase.table('entries').update(update_data).eq('entry_id', entry_id_value).execute()
-                    logger.info("Entry processed and embedded", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                if not embedding:
+                    logger.warning(f"Embedding generation failed for entry {entry_id_value}")
+                    # Still save processed content even if embedding fails
+                    bg_supabase.table('entries').update({
+                        'processed': processed_content
+                    }).eq('entry_id', entry_id_value).execute()
+                    return
+                
+                # Step 3: Update entry with processed content and embedding
+                logger.info(f"Step 3: Updating entry {entry_id_value} with processed content and embedding")
+                bg_supabase.table('entries').update({
+                    'processed': processed_content,
+                    'vectors': embedding
+                }).eq('entry_id', entry_id_value).execute()
+                
+                logger.info("Entry processed and embedded", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                
+                # Step 4: Add entry to HNSW index for fast search
+                logger.info(f"Step 4: Adding entry {entry_id_value} to HNSW index")
+                try:
+                    from backend.services.hnsw_index import add_entry_to_index
+                    add_entry_to_index(entry_id_value, embedding)
+                    logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                except Exception as e:
+                    logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                    # Index will be rebuilt on next search if needed
                     
-                    # Add entry to HNSW index for fast search
-                    if embedding:
-                        try:
-                            from backend.services.hnsw_index import add_entry_to_index
-                            add_entry_to_index(entry_id_value, embedding)
-                            logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
-                        except Exception as e:
-                            logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
             except Exception as e:
                 logger.exception("Error processing entry in background", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
         
