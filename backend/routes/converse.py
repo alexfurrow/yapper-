@@ -126,10 +126,13 @@ def converse_stream():
             return jsonify({'error': 'User input cannot be empty'}), 400
         
         logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
+        print(f"[converse_stream] Starting search for user_id={g.current_user.id}, query={user_input[:50]}")
         
         # Use RAG pipeline to find relevant entries
         from backend.services.context_retrieval import search_by_text
+        print(f"[converse_stream] Calling search_by_text...")
         relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
+        print(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
         
         # Build context from relevant entries
         context_parts = []
@@ -137,17 +140,17 @@ def converse_stream():
         search_failed = False
         
         if not relevant_entries:
-            # Check if user has any entries at all
+            # Check if user has entries WITH VECTORS (not just any entries)
             try:
-                response = g.user_supabase.table('entries').select('entry_id').eq('user_id', g.current_user.id).limit(1).execute()
-                has_entries = response.data and len(response.data) > 0
+                response = g.user_supabase.table('entries').select('entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
+                has_vectorized_entries = response.data and len(response.data) > 0
                 
-                if has_entries:
-                    # User has entries but search failed - this is an error
-                    logger.warning("HNSW search returned no results but user has entries - search may have failed")
+                if has_vectorized_entries:
+                    # User has vectorized entries but search returned nothing - this is an error
+                    logger.warning("HNSW search returned no results but user has vectorized entries - search may have failed")
                     search_failed = True
             except Exception as e:
-                logger.error(f"Error checking for user entries: {e}")
+                logger.error(f"Error checking for user vectorized entries: {e}")
                 search_failed = True
         else:
             for entry in relevant_entries:

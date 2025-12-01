@@ -29,22 +29,27 @@ def search_by_text(query_text, limit=5, user_id=None, user_client=None):
         List of entry dictionaries with similarity scores
     """
     try:
+        print(f"[search_by_text] Starting search for user_id={user_id}, query={query_text[:50]}")
+        
         # Generate embedding for query text
         query_embedding = generate_embedding(query_text)
         if not query_embedding:
-            print(f"Warning: Failed to generate embedding for query: {query_text[:50]}")
+            print(f"[search_by_text] ERROR: Failed to generate embedding for query: {query_text[:50]}")
             return []
+        
+        print(f"[search_by_text] Generated embedding, length={len(query_embedding)}")
         
         # Use HNSW index for fast similarity search
         from backend.services.hnsw_index import search_similar
         results = search_similar(query_embedding, k=limit, user_id=user_id, user_client=user_client)
         
+        print(f"[search_by_text] Search returned {len(results)} results")
         if not results:
-            print(f"Warning: HNSW search returned no results for user_id={user_id}, query={query_text[:50]}")
+            print(f"[search_by_text] WARNING: HNSW search returned no results for user_id={user_id}, query={query_text[:50]}")
         
         return results
     except Exception as e:
-        print(f"Error finding similar entries: {str(e)}")
+        print(f"[search_by_text] ERROR: Exception in search_by_text: {str(e)}")
         import traceback
         traceback.print_exc()
         return []

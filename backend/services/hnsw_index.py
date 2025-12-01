@@ -37,6 +37,8 @@ class HNSWIndex:
         if not all_entries:
             print("No vectorized entries found in database")
             return False
+        
+        print(f"Found {len(all_entries)} entries with vectors, building index...")
             
         # Create new index
         self.index = hnswlib.Index(space='cosine', dim=self.dim)
@@ -50,10 +52,32 @@ class HNSWIndex:
         ids = []
         
         for i, entry in enumerate(all_entries):
-            vectors.append(entry['vectors'])
+            entry_id = entry.get('entry_id')
+            vector = entry.get('vectors')
+            
+            # Validate vector
+            if not vector:
+                print(f"Warning: Entry {entry_id} has null/empty vector, skipping")
+                continue
+            
+            # Ensure vector is a list/array and has correct length
+            if not isinstance(vector, (list, np.ndarray)):
+                print(f"Warning: Entry {entry_id} has invalid vector type {type(vector)}, skipping")
+                continue
+            
+            vector_array = np.array(vector, dtype=np.float32)
+            if len(vector_array) != self.dim:
+                print(f"Warning: Entry {entry_id} has vector with wrong dimension {len(vector_array)} (expected {self.dim}), skipping")
+                continue
+            
+            vectors.append(vector_array)
             ids.append(i)
-            self.id_to_entry_id[i] = entry['entry_id']
-            self.entry_id_to_id[entry['entry_id']] = i
+            self.id_to_entry_id[i] = entry_id
+            self.entry_id_to_id[entry_id] = i
+        
+        if not vectors:
+            print("No valid vectors found to add to index")
+            return False
             
         self.index.add_items(np.array(vectors), ids)
         
@@ -194,8 +218,13 @@ class HNSWIndex:
             self.index.set_ef(50)
             
             return True
+        except FileNotFoundError:
+            # Index file doesn't exist yet - this is normal for first run
+            return False
         except Exception as e:
             print(f"Error loading index: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
 # Global index instance
@@ -203,9 +232,18 @@ index = HNSWIndex()
 
 def build_and_save_index():
     """Build and save index"""
+    print("[build_and_save_index] Starting index build...")
     success = index.build_index()
     if success:
-        index.save('instance/hnsw_index')
+        print("[build_and_save_index] Index built successfully, saving...")
+        save_success = index.save('instance/hnsw_index')
+        if save_success:
+            print("[build_and_save_index] Index saved successfully")
+        else:
+            print("[build_and_save_index] WARNING: Index build succeeded but save failed")
+        return success
+    else:
+        print("[build_and_save_index] ERROR: Index build failed")
     return success
     
 def load_index():
@@ -220,20 +258,32 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
         k: Number of results to return
         user_id: Optional user_id to filter results
         user_client: Optional Supabase client for user-specific queries
-        
+    
     Returns:
         List of entry dictionaries with similarity scores
     """
+    print(f"[search_similar] Starting search, user_id={user_id}, k={k}")
+    
     # Try to load index if not already loaded
     if index.index is None:
+        print("[search_similar] Index not loaded, attempting to load...")
         if not load_index():
+            print("[search_similar] Failed to load index, building new index...")
             if not build_and_save_index():
+                print("[search_similar] ERROR: Failed to build index")
                 return []
+        else:
+            print("[search_similar] Index loaded successfully")
+    else:
+        print(f"[search_similar] Index already loaded, has {len(index.id_to_entry_id)} entries")
     
     # Search index
+    print(f"[search_similar] Searching index for {k * 3 if user_id else k} candidates...")
     candidates = index.search(query_vector, k=k * 3 if user_id else k)  # Get more if filtering by user
     
+    print(f"[search_similar] Index search returned {len(candidates)} candidates")
     if not candidates:
+        print("[search_similar] No candidates found from index search")
         return []
     
     # If no user filtering needed, fetch entries and return
@@ -266,8 +316,10 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
     )
     
     entry_ids = [c['entry_id'] for c in candidates]
+    print(f"[search_similar] Filtering {len(entry_ids)} candidates by user_id={user_id}")
     response = client.table('entries').select('*').in_('entry_id', entry_ids).eq('user_id', user_id).execute()
     entries = response.data if response.data else []
+    print(f"[search_similar] Database query returned {len(entries)} entries for user_id={user_id}")
     
     # Match entries with similarity scores and sort by similarity
     entry_map = {e['entry_id']: e for e in entries}
@@ -278,9 +330,13 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
             entry['similarity'] = candidate['similarity']
             results.append(entry)
     
+    print(f"[search_similar] Matched {len(results)} entries after filtering")
+    
     # Sort by similarity (highest first) and return top k
     results.sort(key=lambda x: x['similarity'], reverse=True)
-    return results[:k]
+    final_results = results[:k]
+    print(f"[search_similar] Returning {len(final_results)} final results")
+    return final_results
 
 def add_entry_to_index(entry_id, vector):
     """Add a single entry to the index (for incremental updates)
