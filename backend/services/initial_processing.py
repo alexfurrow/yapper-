@@ -51,44 +51,4 @@ def process_text(content):
 
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")
-        return None 
-
-
-# def positive_frame(content):
-#     try:        
-#         response = client.chat.completions.create(
-#             model="gpt-4o-mini",
-#             response_format = {"type": "json_object"},
-#             messages=[
-#                 {"role": "system", "content": 
-#                  """You are an expert as parsing people's natural thoughts into an organized set of ideas. if possible, order them in sequence from earlier to later. Your response must be in JSON format. 
-#                     1. Put things in positive format
-#                         <Examples>
-#                             User Input: 
-#                                 "it didn't put a financial strain on me"
-#                             AI Output:
-#                                 "the user could afford it"
-#                             User input:
-#                                 "the punch didn't hurt"
-#                             AI Output:
-#                                 "the punch is painless to the user."
-#                             User input:
-#                                 "I can't keep my mind focusing"
-#                             AI Output:
-#                                 "The user has trouble focusing"
-#                                     </Examples>
-#                     """ 
-#                     },
-#                 {"role": "user", "content": f"For each sentence, clause, or predicate the following text, rewrite the content in a positive frame, according to the examples above: {content}."}
-
-#             ],
-#             max_tokens = 4000,
-#             temperature = 1
-#         )
-#         json_response = json.loads(response.choices[0].message.content)
-#         story_text = json_response.get('story', '')
-#         return story_text
-#     except Exception as e:
-#         print(f"OpenAI API error: {str(e)}")
-#         return None 
-    
+        return None

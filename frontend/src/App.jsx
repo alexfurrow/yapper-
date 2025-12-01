@@ -1,6 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { AuthContext, AuthProvider } from './context/AuthContext';
+import { AuthContext } from './context/AuthContext';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
@@ -184,16 +183,9 @@ function CustomRouter() {
 }
 
 function App() {
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    // Removed debugging console.log statements
-  }, []);
-
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <CustomRouter />
-      </AuthProvider>
+      <CustomRouter />
     </ErrorBoundary>
   );
 }

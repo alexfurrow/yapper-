@@ -35,22 +35,52 @@ def generate_embedding(text):
         return None
 
 def vectorize_all_entries():
-    """Generate embeddings for all entries in the database"""
+    """Vectorize all entries that have processed content but no vectors
+    Flow: Only vectorize entries that have been processed (step 1 complete)
+    """
     try:
-        # Get all entries that don't have vectors yet from Supabase
+        # Get all entries that have processed content but no vectors
         response = supabase.table('entries').select('*').is_('vectors', 'null').not_.is_('processed', 'null').execute()
         vectorless = response.data
         
-        for entry in vectorless:
-            if entry.get('processed'):
-                # Generate embedding for processed text
-                embedding = generate_embedding(entry['processed'])
+        if not vectorless:
+            print("No entries found that need vectorization (all have vectors or are missing processed content)")
+            return True
+        
+        print(f"Found {len(vectorless)} entries that need vectorization")
+        
+        for i, entry in enumerate(vectorless):
+            entry_id = entry.get('user_and_entry_id')  # Primary key is 'user_and_entry_id'
+            if not entry_id:
+                print(f"Skipping entry: missing 'user_and_entry_id' field")
+                continue
+            processed_content = entry.get('processed', '').strip()
+            
+            if not processed_content:
+                print(f"Skipping entry {entry_id}: no processed content")
+                continue
+            
+            try:
+                print(f"Vectorizing entry {entry_id} ({i+1}/{len(vectorless)})...")
+                # Generate embedding from processed content
+                embedding = generate_embedding(processed_content)
+                
                 if embedding:
                     # Store embedding in Supabase
                     supabase.table('entries').update({
                         'vectors': embedding
-                    }).eq('entry_id', entry['entry_id']).execute()
+                    }).eq('user_and_entry_id', entry_id).execute()
+                    print(f"✓ Entry {entry_id} vectorized successfully")
+                else:
+                    print(f"✗ Failed to generate embedding for entry {entry_id}")
+            except Exception as e:
+                print(f"✗ Error vectorizing entry {entry_id}: {str(e)}")
+                continue
+        
+        print(f"Vectorization complete! Processed {len(vectorless)} entries.")
         return True
     except Exception as e:
         print(f"Error vectorizing entries: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False

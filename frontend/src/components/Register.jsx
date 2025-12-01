@@ -73,10 +73,6 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted!');
-    console.log('Form data:', { username, email, password: '***', confirmPassword: '***' });
-    console.log('Password strength:', passwordStrength);
-    console.log('Passwords match:', password === confirmPassword);
     
     setLocalError('');
     
@@ -90,15 +86,12 @@ function Register() {
       return;
     }
     
-    console.log('Starting registration...');
     setIsSubmitting(true);
     
     try {
       await register(username, email, password);
-      console.log('Registration call completed');
       // AuthContext will handle the flow and show appropriate messages
     } catch (error) {
-      console.error('Registration error:', error);
       setLocalError('Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);

@@ -203,10 +203,29 @@ function JournalPage() {
       return;
     }
     
+    // Optimistic UI update - add entry immediately
+    const optimisticId = `temp_${Date.now()}`;
+    const savedContent = content; // Save content before clearing
+    setEntries(prev => {
+      const nextNumber = (prev && prev.length > 0)
+        ? ((prev[0].user_entry_id || 0) + 1)
+        : 1;
+      const optimisticEntry = {
+        entry_id: optimisticId,
+        user_entry_id: nextNumber,
+        content: savedContent,
+        created_at: new Date().toISOString(),
+        __optimistic: true
+      };
+      return [optimisticEntry, ...(prev || [])];
+    });
+    
+    // Clear content immediately for snappy feel
+    setContent('');
+    setMessage('Saving...');
+    setIsLoading(true);
+    
     try {
-      setMessage('Saving...');
-      setIsLoading(true);
-      
       // Get Supabase session for auth token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -217,10 +236,6 @@ function JournalPage() {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
       const createUrl = `${backendUrl}/api/entries`;
       
-      console.log('Creating entry via backend API...');
-      console.log('Backend URL:', createUrl);
-      console.log('Content:', content);
-      
       const response = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -228,26 +243,24 @@ function JournalPage() {
           'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          content: content
+          content: savedContent
         })
       });
-
-      console.log('Create entry response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Error response body:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Entry created successfully:', data);
+      
+      // Replace optimistic entry with real entry
+      setEntries(prev => {
+        const filtered = prev.filter(entry => entry.entry_id !== optimisticId);
+        return [data, ...filtered];
+      });
       
       setMessage('Entry saved successfully!');
-      setContent('');
-      
-      // Refresh entries list
-      loadEntries();
       
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -256,6 +269,13 @@ function JournalPage() {
       
     } catch (error) {
       console.error('Error saving entry:', error);
+      
+      // Remove optimistic entry on error
+      setEntries(prev => prev.filter(entry => entry.entry_id !== optimisticId));
+      
+      // Restore content so user can try again
+      setContent(savedContent);
+      
       setMessage('Error saving entry: ' + error.message);
       
       // Clear error after 5 seconds
@@ -975,9 +995,29 @@ function JournalPage() {
                           return;
                         }
                         
+                        // Optimistic UI update - add entry immediately
+                        const optimisticId = `temp_${Date.now()}`;
+                        const savedContent = content; // Save content before clearing
+                        setEntries(prev => {
+                          const nextNumber = (prev && prev.length > 0)
+                            ? ((prev[0].user_entry_id || 0) + 1)
+                            : 1;
+                          const optimisticEntry = {
+                            entry_id: optimisticId,
+                            user_entry_id: nextNumber,
+                            content: savedContent,
+                            created_at: new Date().toISOString(),
+                            __optimistic: true
+                          };
+                          return [optimisticEntry, ...(prev || [])];
+                        });
+                        
+                        // Clear content immediately for snappy feel
+                        setContent('');
+                        setMessage('Saving...');
+                        setIsLoading(true);
+                        
                         try {
-                          setMessage('Saving...');
-                          setIsLoading(true);
                           
                           // Get Supabase session for auth token
                           const { data: { session } } = await supabase.auth.getSession();
@@ -1000,7 +1040,7 @@ function JournalPage() {
                               'Authorization': `Bearer ${accessToken}`
                             },
                             body: JSON.stringify({
-                              content: content
+                              content: savedContent
                             })
                           });
 
@@ -1013,13 +1053,14 @@ function JournalPage() {
                           }
 
                           const data = await response.json();
-                          console.log('Entry created successfully:', data);
+                          
+                          // Replace optimistic entry with real entry
+                          setEntries(prev => {
+                            const filtered = prev.filter(entry => entry.entry_id !== optimisticId);
+                            return [data, ...filtered];
+                          });
                           
                           setMessage('Entry saved successfully!');
-                          setContent('');
-                          
-                          // Refresh entries list
-                          loadEntries();
                           
                           // Clear success message after 3 seconds
                           setTimeout(() => {
@@ -1028,6 +1069,13 @@ function JournalPage() {
                           
                         } catch (error) {
                           console.error('Error saving entry:', error);
+                          
+                          // Remove optimistic entry on error
+                          setEntries(prev => prev.filter(entry => entry.entry_id !== optimisticId));
+                          
+                          // Restore content so user can try again
+                          setContent(savedContent);
+                          
                           setMessage('Error saving entry: ' + error.message);
                           
                           // Clear error after 5 seconds

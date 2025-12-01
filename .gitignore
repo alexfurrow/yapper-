@@ -42,6 +42,11 @@ Core/
 instance/
 .webassets-cache
 
+# HNSW Index files
+**/hnsw_index*
+instance/hnsw_index*
+*.bin
+
 # React
 node_modules/
 /frontend/build

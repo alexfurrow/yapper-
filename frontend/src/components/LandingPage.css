@@ -427,42 +427,6 @@
   }
 }
 
-/* Social Proof */
-.social-proof {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  padding: 3rem 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.trust-text {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.testimonial {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.quote {
-  font-size: 1.25rem;
-  color: white;
-  font-style: italic;
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.author {
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
-}
-
 /* Responsive adjustments for the artwork */
 @media (max-width: 1024px) {
   .abstract-artwork {

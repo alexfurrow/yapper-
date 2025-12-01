@@ -29,21 +29,29 @@ def search_by_text(query_text, limit=5, user_id=None, user_client=None):
         List of entry dictionaries with similarity scores
     """
     try:
+        import logging
+        search_logger = logging.getLogger(__name__)
+        search_logger.info(f"[search_by_text] Starting search for user_id={user_id}, query={query_text[:50]}")
+        
         # Generate embedding for query text
         query_embedding = generate_embedding(query_text)
         if not query_embedding:
+            search_logger.error(f"[search_by_text] ERROR: Failed to generate embedding for query: {query_text[:50]}")
             return []
+        
+        search_logger.info(f"[search_by_text] Generated embedding, length={len(query_embedding)}")
         
         # Use HNSW index for fast similarity search
         from backend.services.hnsw_index import search_similar
         results = search_similar(query_embedding, k=limit, user_id=user_id, user_client=user_client)
         
+        search_logger.info(f"[search_by_text] Search returned {len(results)} results")
+        if not results:
+            search_logger.warning(f"[search_by_text] WARNING: HNSW search returned no results for user_id={user_id}, query={query_text[:50]}")
+        
         return results
     except Exception as e:
-        print(f"Error finding similar entries: {str(e)}")
-        # Fallback to brute-force if HNSW fails
-        try:
-            return _brute_force_search(query_text, limit, user_id, user_client)
-        except Exception as e2:
-            print(f"Fallback search also failed: {str(e2)}")
-            return []
+        import logging
+        search_logger = logging.getLogger(__name__)
+        search_logger.error(f"[search_by_text] ERROR: Exception in search_by_text: {str(e)}", exc_info=True)
+        return []

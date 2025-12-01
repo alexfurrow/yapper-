@@ -23,6 +23,13 @@ import pytz
 def create_app():
     app = Flask(__name__)
     
+    # Configure logging
+    import logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
     # Load configuration from environment variables
     # Configure scheduler
     # app.config['SCHEDULER_API_ENABLED'] = True # Removed as per edit hint
