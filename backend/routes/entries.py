@@ -128,10 +128,10 @@ def create_entry():
             logger.error("Failed to create entry - no data returned", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'message': 'Failed to create entry'}), 500
         
-        # Extract entry_id safely (Supabase might return it with different key or structure)
-        entry_id = new_entry.get('entry_id') or new_entry.get('id')
+        # Extract user_and_entry_id (primary key)
+        entry_id = new_entry.get('user_and_entry_id')
         if not entry_id:
-            logger.warning("Entry created but no entry_id found in response", extra={"route": "/entries", "method": "POST", "response_keys": list(new_entry.keys()) if new_entry else None})
+            logger.warning("Entry created but no user_and_entry_id found in response", extra={"route": "/entries", "method": "POST", "response_keys": list(new_entry.keys()) if new_entry else None})
             # Still return the entry, but background processing will skip
             return jsonify(new_entry), 201
         
@@ -164,7 +164,7 @@ def create_entry():
                     # Still save processed content even if embedding fails
                     bg_supabase.table('entries').update({
                         'processed': processed_content
-                    }).eq('entry_id', entry_id_value).execute()
+                    }).eq('user_and_entry_id', entry_id_value).execute()
                     return
                 
                 # Step 3: Update entry with processed content and embedding
@@ -172,7 +172,7 @@ def create_entry():
                 bg_supabase.table('entries').update({
                     'processed': processed_content,
                     'vectors': embedding
-                }).eq('entry_id', entry_id_value).execute()
+                }).eq('user_and_entry_id', entry_id_value).execute()
                 
                 logger.info("Entry processed and embedded", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
                 

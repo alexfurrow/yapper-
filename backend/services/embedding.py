@@ -50,7 +50,10 @@ def vectorize_all_entries():
         print(f"Found {len(vectorless)} entries that need vectorization")
         
         for i, entry in enumerate(vectorless):
-            entry_id = entry.get('entry_id')
+            entry_id = entry.get('user_and_entry_id')  # Primary key is 'user_and_entry_id'
+            if not entry_id:
+                print(f"Skipping entry: missing 'user_and_entry_id' field")
+                continue
             processed_content = entry.get('processed', '').strip()
             
             if not processed_content:
@@ -66,7 +69,7 @@ def vectorize_all_entries():
                     # Store embedding in Supabase
                     supabase.table('entries').update({
                         'vectors': embedding
-                    }).eq('entry_id', entry_id).execute()
+                    }).eq('user_and_entry_id', entry_id).execute()
                     print(f"✓ Entry {entry_id} vectorized successfully")
                 else:
                     print(f"✗ Failed to generate embedding for entry {entry_id}")

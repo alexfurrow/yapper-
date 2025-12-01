@@ -112,6 +112,9 @@ def converse_stream():
     Frontend sends: { messages: [...], user_input: "..." }
     Backend handles: OpenAI calls, context, streaming response
     """
+    logger.info("=" * 50)
+    logger.info("CONVERSE_STREAM ROUTE HIT!")
+    logger.info("=" * 50)
     try:
         data = request.get_json()
         
@@ -126,13 +129,13 @@ def converse_stream():
             return jsonify({'error': 'User input cannot be empty'}), 400
         
         logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
-        print(f"[converse_stream] Starting search for user_id={g.current_user.id}, query={user_input[:50]}")
+        logger.info(f"[converse_stream] Starting search for user_id={g.current_user.id}, query={user_input[:50]}")
         
         # Use RAG pipeline to find relevant entries
         from backend.services.context_retrieval import search_by_text
-        print(f"[converse_stream] Calling search_by_text...")
+        logger.info(f"[converse_stream] Calling search_by_text...")
         relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
-        print(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
+        logger.info(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
         
         # Build context from relevant entries
         context_parts = []
@@ -142,7 +145,7 @@ def converse_stream():
         if not relevant_entries:
             # Check if user has entries WITH VECTORS (not just any entries)
             try:
-                response = g.user_supabase.table('entries').select('entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
+                response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
                 has_vectorized_entries = response.data and len(response.data) > 0
                 
                 if has_vectorized_entries:
@@ -278,7 +281,7 @@ def save_conversation():
         
         if response.data:
             new_entry = response.data[0]
-            entry_id = new_entry.get('entry_id') or new_entry.get('id')
+            entry_id = new_entry.get('user_and_entry_id')  # Primary key is 'user_and_entry_id'
             
             if entry_id:
                 # Process and embed in background (same flow as entries.py)
@@ -313,7 +316,7 @@ def save_conversation():
                             # Still save processed content even if embedding fails
                             bg_supabase.table('entries').update({
                                 'processed': processed_content
-                            }).eq('entry_id', entry_id_value).execute()
+                            }).eq('user_and_entry_id', entry_id_value).execute()
                             return
                         
                         # Step 3: Update entry with processed content and embedding
@@ -321,7 +324,7 @@ def save_conversation():
                         bg_supabase.table('entries').update({
                             'processed': processed_content,
                             'vectors': embedding
-                        }).eq('entry_id', entry_id_value).execute()
+                        }).eq('user_and_entry_id', entry_id_value).execute()
                         
                         logger.info(f"Conversation entry processed and embedded: {entry_id_value}")
                         

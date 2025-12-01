@@ -5,6 +5,10 @@ import pickle
 from flask import current_app
 # SQLAlchemy references removed - using Supabase
 from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Force reload the .env file to ensure environment variables are loaded
+load_dotenv(override=True)
 
 class HNSWIndex:
     def __init__(self, dim=1536, ef_construction=200, M=16):
@@ -24,68 +28,155 @@ class HNSWIndex:
         
     def build_index(self):
         """Build HNSW index from all vectorized entries in the database"""
-        # Initialize Supabase client
-        supabase = create_client(
-            os.environ.get("SUPABASE_URL"),
-            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-        )
-        
-        # Get all entries with vectors from Supabase
-        response = supabase.table('entries').select('*').not_.is_('vectors', 'null').execute()
-        all_entries = response.data
-        
-        if not all_entries:
-            print("No vectorized entries found in database")
+        try:
+            # Initialize Supabase client
+            supabase_url = os.environ.get("SUPABASE_URL")
+            supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+            
+            print(f"[build_index] Supabase URL: {supabase_url[:30]}..." if supabase_url else "[build_index] ERROR: SUPABASE_URL not set")
+            print(f"[build_index] Service key present: {bool(supabase_key)}")
+            
+            # Debug: Show first few characters of service key to verify it's loaded
+            if supabase_key:
+                print(f"[build_index] Service key starts with: {supabase_key[:20]}... (length: {len(supabase_key)})")
+                # Service role keys typically start with "eyJ" (JWT) and are much longer than anon keys
+                if not supabase_key.startswith("eyJ"):
+                    print("[build_index] WARNING: Service key doesn't start with 'eyJ' - might be anon key instead!")
+            
+            if not supabase_url or not supabase_key:
+                print("[build_index] ERROR: Missing Supabase credentials")
+                return False
+            
+            supabase = create_client(supabase_url, supabase_key)
+            
+            # First, test if we can query ANY entries at all (without filters)
+            print("[build_index] Testing basic query to verify Supabase connection...")
+            test_response = supabase.table('entries').select('user_and_entry_id').limit(1).execute()
+            test_entries = test_response.data if test_response.data else []
+            print(f"[build_index] Basic test query returned {len(test_entries)} entries")
+            
+            if test_entries:
+                print(f"[build_index] Sample entry ID: {test_entries[0].get('user_and_entry_id')}")
+            
+            # Get all entries with vectors from Supabase
+            print("[build_index] Querying Supabase for entries with vectors...")
+            
+            # Try multiple query approaches to find entries with vectors
+            # Approach 1: Use not_.is_('vectors', 'null')
+            try:
+                response = supabase.table('entries').select('*').not_.is_('vectors', 'null').execute()
+                all_entries = response.data if response.data else []
+                print(f"[build_index] Query 1 (not_.is_): Found {len(all_entries)} entries")
+            except Exception as e:
+                print(f"[build_index] Query 1 failed: {str(e)}")
+                all_entries = []
+            
+            # Approach 2: If first query returns nothing, try getting all entries and filter manually
+            if not all_entries:
+                print("[build_index] Query 1 returned no results, trying alternative query...")
+                try:
+                    # Get a sample of entries to check
+                    sample_response = supabase.table('entries').select('user_and_entry_id, vectors').limit(10).execute()
+                    sample_entries = sample_response.data if sample_response.data else []
+                    print(f"[build_index] Sample query returned {len(sample_entries)} entries")
+                    
+                    # Check if any have vectors
+                    entries_with_vectors = [e for e in sample_entries if e.get('vectors') is not None]
+                    print(f"[build_index] Sample entries with vectors: {len(entries_with_vectors)}")
+                    
+                    if entries_with_vectors:
+                        # If sample has vectors, try getting all with a different query
+                        print("[build_index] Sample shows vectors exist, trying full query...")
+                        full_response = supabase.table('entries').select('*').execute()
+                        all_entries = [e for e in (full_response.data if full_response.data else []) if e.get('vectors') is not None]
+                        print(f"[build_index] Full query with manual filter: Found {len(all_entries)} entries with vectors")
+                except Exception as e:
+                    print(f"[build_index] Alternative query failed: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            
+            if not all_entries:
+                print("[build_index] ERROR: No vectorized entries found in database")
+                # Check total entries to see if any exist at all
+                try:
+                    total_response = supabase.table('entries').select('user_and_entry_id', count='exact').execute()
+                    total_count = total_response.count if hasattr(total_response, 'count') else 0
+                    print(f"[build_index] Total entries in database: {total_count}")
+                    
+                    # Check entries without vectors
+                    no_vectors_response = supabase.table('entries').select('user_and_entry_id', count='exact').is_('vectors', 'null').execute()
+                    no_vectors_count = no_vectors_response.count if hasattr(no_vectors_response, 'count') else 0
+                    print(f"[build_index] Entries without vectors: {no_vectors_count}")
+                    
+                    # Try to get a few entries to inspect
+                    inspect_response = supabase.table('entries').select('user_and_entry_id, vectors').limit(5).execute()
+                    inspect_entries = inspect_response.data if inspect_response.data else []
+                    print(f"[build_index] Sample entries for inspection: {len(inspect_entries)}")
+                    for entry in inspect_entries:
+                        has_vectors = entry.get('vectors') is not None
+                        print(f"[build_index]   Entry {entry.get('user_and_entry_id')}: vectors={'present' if has_vectors else 'null'}")
+                except Exception as e:
+                    print(f"[build_index] Error checking entry counts: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                return False
+            
+            print(f"[build_index] Found {len(all_entries)} entries with vectors, building index...")
+                
+            # Create new index
+            self.index = hnswlib.Index(space='cosine', dim=self.dim)
+            
+            # Initialize with slightly more capacity than needed
+            num_elements = len(all_entries)
+            self.index.init_index(max_elements=num_elements + 100, ef_construction=self.ef_construction, M=self.M)
+            
+            # Add vectors to index
+            vectors = []
+            ids = []
+            
+            for i, entry in enumerate(all_entries):
+                entry_id = entry.get('user_and_entry_id')  # Primary key is 'user_and_entry_id'
+                if not entry_id:
+                    print(f"Warning: Entry missing 'user_and_entry_id' field, skipping")
+                    continue
+                vector = entry.get('vectors')
+                
+                # Validate vector
+                if not vector:
+                    print(f"Warning: Entry {entry_id} has null/empty vector, skipping")
+                    continue
+                
+                # Ensure vector is a list/array and has correct length
+                if not isinstance(vector, (list, np.ndarray)):
+                    print(f"Warning: Entry {entry_id} has invalid vector type {type(vector)}, skipping")
+                    continue
+                
+                vector_array = np.array(vector, dtype=np.float32)
+                if len(vector_array) != self.dim:
+                    print(f"Warning: Entry {entry_id} has vector with wrong dimension {len(vector_array)} (expected {self.dim}), skipping")
+                    continue
+                
+                vectors.append(vector_array)
+                ids.append(i)
+                self.id_to_entry_id[i] = entry_id
+                self.entry_id_to_id[entry_id] = i
+            
+            if not vectors:
+                print("No valid vectors found to add to index")
+                return False
+                
+            self.index.add_items(np.array(vectors), ids)
+            
+            # Set search parameters
+            self.index.set_ef(50)  # ef parameter controls search speed vs accuracy tradeoff
+            
+            print(f"Built HNSW index with {len(vectors)} vectors (out of {num_elements} entries)")
+            return True
+        except Exception as e:
+            print(f"[build_index] ERROR: Exception during index build: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
-        
-        print(f"Found {len(all_entries)} entries with vectors, building index...")
-            
-        # Create new index
-        self.index = hnswlib.Index(space='cosine', dim=self.dim)
-        
-        # Initialize with slightly more capacity than needed
-        num_elements = len(all_entries)
-        self.index.init_index(max_elements=num_elements + 100, ef_construction=self.ef_construction, M=self.M)
-        
-        # Add vectors to index
-        vectors = []
-        ids = []
-        
-        for i, entry in enumerate(all_entries):
-            entry_id = entry.get('entry_id')
-            vector = entry.get('vectors')
-            
-            # Validate vector
-            if not vector:
-                print(f"Warning: Entry {entry_id} has null/empty vector, skipping")
-                continue
-            
-            # Ensure vector is a list/array and has correct length
-            if not isinstance(vector, (list, np.ndarray)):
-                print(f"Warning: Entry {entry_id} has invalid vector type {type(vector)}, skipping")
-                continue
-            
-            vector_array = np.array(vector, dtype=np.float32)
-            if len(vector_array) != self.dim:
-                print(f"Warning: Entry {entry_id} has vector with wrong dimension {len(vector_array)} (expected {self.dim}), skipping")
-                continue
-            
-            vectors.append(vector_array)
-            ids.append(i)
-            self.id_to_entry_id[i] = entry_id
-            self.entry_id_to_id[entry_id] = i
-        
-        if not vectors:
-            print("No valid vectors found to add to index")
-            return False
-            
-        self.index.add_items(np.array(vectors), ids)
-        
-        # Set search parameters
-        self.index.set_ef(50)  # ef parameter controls search speed vs accuracy tradeoff
-        
-        print(f"Built HNSW index with {num_elements} vectors")
-        return True
         
     def add_entry(self, entry_id, vector):
         """Add a single entry to the index (for incremental updates)
@@ -233,18 +324,31 @@ index = HNSWIndex()
 def build_and_save_index():
     """Build and save index"""
     print("[build_and_save_index] Starting index build...")
-    success = index.build_index()
-    if success:
-        print("[build_and_save_index] Index built successfully, saving...")
-        save_success = index.save('instance/hnsw_index')
-        if save_success:
-            print("[build_and_save_index] Index saved successfully")
+    try:
+        success = index.build_index()
+        if success:
+            print("[build_and_save_index] Index built successfully, saving...")
+            try:
+                save_success = index.save('instance/hnsw_index')
+                if save_success:
+                    print("[build_and_save_index] Index saved successfully")
+                    return True
+                else:
+                    print("[build_and_save_index] WARNING: Index build succeeded but save failed")
+                    return False
+            except Exception as save_error:
+                print(f"[build_and_save_index] ERROR: Index build succeeded but save failed with exception: {str(save_error)}")
+                import traceback
+                traceback.print_exc()
+                return False
         else:
-            print("[build_and_save_index] WARNING: Index build succeeded but save failed")
-        return success
-    else:
-        print("[build_and_save_index] ERROR: Index build failed")
-    return success
+            print("[build_and_save_index] ERROR: Index build failed (returned False)")
+            return False
+    except Exception as e:
+        print(f"[build_and_save_index] ERROR: Index build failed with exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
     
 def load_index():
     """Load index from disk"""
@@ -262,28 +366,30 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
     Returns:
         List of entry dictionaries with similarity scores
     """
-    print(f"[search_similar] Starting search, user_id={user_id}, k={k}")
+    import logging
+    index_logger = logging.getLogger(__name__)
+    index_logger.info(f"[search_similar] Starting search, user_id={user_id}, k={k}")
     
     # Try to load index if not already loaded
     if index.index is None:
-        print("[search_similar] Index not loaded, attempting to load...")
+        index_logger.info("[search_similar] Index not loaded, attempting to load...")
         if not load_index():
-            print("[search_similar] Failed to load index, building new index...")
+            index_logger.info("[search_similar] Failed to load index, building new index...")
             if not build_and_save_index():
-                print("[search_similar] ERROR: Failed to build index")
+                index_logger.error("[search_similar] ERROR: Failed to build index")
                 return []
         else:
-            print("[search_similar] Index loaded successfully")
+            index_logger.info("[search_similar] Index loaded successfully")
     else:
-        print(f"[search_similar] Index already loaded, has {len(index.id_to_entry_id)} entries")
+        index_logger.info(f"[search_similar] Index already loaded, has {len(index.id_to_entry_id)} entries")
     
     # Search index
-    print(f"[search_similar] Searching index for {k * 3 if user_id else k} candidates...")
+    index_logger.info(f"[search_similar] Searching index for {k * 3 if user_id else k} candidates...")
     candidates = index.search(query_vector, k=k * 3 if user_id else k)  # Get more if filtering by user
     
-    print(f"[search_similar] Index search returned {len(candidates)} candidates")
+    index_logger.info(f"[search_similar] Index search returned {len(candidates)} candidates")
     if not candidates:
-        print("[search_similar] No candidates found from index search")
+        index_logger.warning("[search_similar] No candidates found from index search")
         return []
     
     # If no user filtering needed, fetch entries and return
@@ -295,15 +401,16 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
         )
         
         entry_ids = [c['entry_id'] for c in candidates[:k]]
-        response = supabase.table('entries').select('*').in_('entry_id', entry_ids).execute()
+        response = supabase.table('entries').select('*').in_('user_and_entry_id', entry_ids).execute()
         entries = response.data if response.data else []
         
         # Match entries with similarity scores
-        entry_map = {e['entry_id']: e for e in entries}
+        entry_map = {e.get('user_and_entry_id'): e for e in entries}
         results = []
         for candidate in candidates[:k]:
-            if candidate['entry_id'] in entry_map:
-                entry = entry_map[candidate['entry_id']]
+            candidate_id = candidate['entry_id']
+            if candidate_id in entry_map:
+                entry = entry_map[candidate_id]
                 entry['similarity'] = candidate['similarity']
                 results.append(entry)
         
@@ -316,26 +423,27 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
     )
     
     entry_ids = [c['entry_id'] for c in candidates]
-    print(f"[search_similar] Filtering {len(entry_ids)} candidates by user_id={user_id}")
-    response = client.table('entries').select('*').in_('entry_id', entry_ids).eq('user_id', user_id).execute()
+    index_logger.info(f"[search_similar] Filtering {len(entry_ids)} candidates by user_id={user_id}")
+    response = client.table('entries').select('*').in_('user_and_entry_id', entry_ids).eq('user_id', user_id).execute()
     entries = response.data if response.data else []
-    print(f"[search_similar] Database query returned {len(entries)} entries for user_id={user_id}")
+    index_logger.info(f"[search_similar] Database query returned {len(entries)} entries for user_id={user_id}")
     
     # Match entries with similarity scores and sort by similarity
-    entry_map = {e['entry_id']: e for e in entries}
+    entry_map = {e.get('user_and_entry_id'): e for e in entries}
     results = []
     for candidate in candidates:
-        if candidate['entry_id'] in entry_map:
-            entry = entry_map[candidate['entry_id']]
+        candidate_id = candidate['entry_id']
+        if candidate_id in entry_map:
+            entry = entry_map[candidate_id]
             entry['similarity'] = candidate['similarity']
             results.append(entry)
     
-    print(f"[search_similar] Matched {len(results)} entries after filtering")
+    index_logger.info(f"[search_similar] Matched {len(results)} entries after filtering")
     
     # Sort by similarity (highest first) and return top k
     results.sort(key=lambda x: x['similarity'], reverse=True)
     final_results = results[:k]
-    print(f"[search_similar] Returning {len(final_results)} final results")
+    index_logger.info(f"[search_similar] Returning {len(final_results)} final results")
     return final_results
 
 def add_entry_to_index(entry_id, vector):
