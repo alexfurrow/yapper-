@@ -1,7 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from './context/AuthContext';
 import Header from './components/Header';
-import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
 import EmailConfirmation from './components/EmailConfirmation';
@@ -108,15 +107,6 @@ function CustomRouter() {
     setCurrentPath(path);
   };
 
-  // Show landing page for unauthenticated users on home page
-  if (currentPath === '/' && !currentUser) {
-    return (
-      <NavigationContext.Provider value={{ navigate }}>
-        <LandingPage />
-      </NavigationContext.Provider>
-    );
-  }
-
   // Route matching logic
   if (currentPath === '/login') {
     return (
@@ -158,8 +148,8 @@ function CustomRouter() {
     );
   }
 
-  // For authenticated users, show the main page with header
-  if (currentUser) {
+  // Show main interface for all users (authenticated or not)
+  if (currentPath === '/') {
     return (
       <NavigationContext.Provider value={{ navigate }}>
         <div className="App has-header">

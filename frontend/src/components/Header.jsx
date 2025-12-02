@@ -15,11 +15,23 @@ function Header() {
   return (
     <header className="app-header">
       <div className="header-content">
-        <h1>Yapper</h1>
+        <div className="logo-section">
+          <h1>Yapper</h1>
+          <span className="tagline">tell your life story</span>
+        </div>
         
         <div className="user-controls">
-          <span className="username">Hello, {currentUser.username}</span>
-          <button className="logout-button" onClick={handleLogout}>Logout</button>
+          {currentUser ? (
+            <>
+              <span className="username">Hello, {currentUser.username}</span>
+              <button className="logout-button" onClick={handleLogout}>Logout</button>
+            </>
+          ) : (
+            <>
+              <button className="login-button" onClick={() => navigate('/login')}>Login</button>
+              <button className="register-button" onClick={() => navigate('/register')}>Sign Up</button>
+            </>
+          )}
         </div>
       </div>
     </header>
