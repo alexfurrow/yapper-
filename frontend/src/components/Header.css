@@ -28,11 +28,32 @@
   padding: 0 20px;
 }
 
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-header h1 {
   color: #4B286D; /* Royal ink text color */
   margin: 0;
   font-size: 1.8rem;
   padding: 0;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tagline {
+  font-size: 0.9rem;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.6px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #6B7585;
+  line-height: 1.2;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .user-controls {
@@ -48,14 +69,36 @@
 
 .logout-button {
   padding: 8px 15px;
-  background-color: #B5694E; /* Terracotta dust */
+  background-color: #4B286D; /* Royal purple */
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .logout-button:hover {
-  background-color: #A05A43; /* Darker terracotta */
+  background-color: #3A1F56; /* Darker purple */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(75, 40, 109, 0.3);
+}
+
+.login-button,
+.register-button {
+  padding: 8px 15px;
+  background-color: #4B286D; /* Royal purple */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.login-button:hover,
+.register-button:hover {
+  background-color: #3A1F56; /* Darker purple */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(75, 40, 109, 0.3);
 } 
