@@ -866,8 +866,7 @@ function JournalPage() {
             className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
-            <span className="tab-icon">💬</span>
-            History Chat
+            Yap Chat 
           </button>
         </div>
 
@@ -878,8 +877,8 @@ function JournalPage() {
               <div className="journal-form">
                 <div className="textarea-wrapper">
                   <div className="mode-toggle">
-                    <button className={`mode-option ${yapMode === 'guided' ? 'active' : ''}`} onClick={() => setYapMode('guided')}>Converse</button>
-                    <button className={`mode-option ${yapMode === 'free' ? 'active' : ''}`} onClick={() => setYapMode('free')}>Free Hand</button>
+                  <button className={`mode-option ${yapMode === 'free' ? 'active' : ''}`} onClick={() => setYapMode('free')}>Traditional</button>
+                    <button className={`mode-option ${yapMode === 'guided' ? 'active' : ''}`} onClick={() => setYapMode('guided')}>Conversation</button>
                   </div>
                   {yapMode === 'guided' ? (
                     <div className="messages-container">
@@ -1157,13 +1156,13 @@ function JournalPage() {
             <div className="chat-tab">
               <div className="chat-container">
                 <div className="chat-header">
-                  <h2>History Chat</h2>
+                  <h2>Yap Chat</h2>
                 </div>
                 
                 <div className="messages-container">
                   {(!chatMessages || chatMessages.length === 0) ? (
                     <div className="empty-chat">
-                      <h3>Ask about your journal</h3>
+                      <h3>Ask about your past Yaps</h3>
                       <p>I can help you reflect on entries, find patterns, or answer questions.</p>
                     </div>
                   ) : (
