@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useContext, useLayoutEffect } from 
 import { supabase } from '../context/supabase.js';
 import ReactMarkdown from 'react-markdown';
 import { AuthContext } from '../context/AuthContext';
+import * as d3 from 'd3';
 import './JournalPage.css';
 
 // Chat message component with typewriter effect (simplified)
@@ -104,7 +105,9 @@ function JournalPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [monthlySummaries, setMonthlySummaries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedSummary, setSelectedSummary] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -147,10 +150,47 @@ function JournalPage() {
     yapEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [yapMessages]);
 
+  const loadMonthlySummaries = async () => {
+    try {
+      console.log('Loading monthly summaries for user:', currentUser?.id);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No authentication session found');
+        return;
+      }
+
+      const accessToken = session.access_token;
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const summariesUrl = `${backendUrl}/api/monthly-summaries`;
+      
+      const response = await fetch(summariesUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Error loading monthly summaries:', response.status);
+        setMonthlySummaries([]);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Monthly summaries loaded:', data);
+      setMonthlySummaries(data || []);
+    } catch (error) {
+      console.error('Error loading monthly summaries:', error);
+      setMonthlySummaries([]);
+    }
+  };
+
   // Load entries on component mount
   useEffect(() => {
     if (currentUser) {
-    loadEntries();
+      loadEntries();
+      loadMonthlySummaries();
     }
   }, [currentUser]);
 
@@ -868,6 +908,11 @@ function JournalPage() {
           >
             Yap Chat 
           </button>
+          <button 
+            className={`tab-button ${activeTab === 'timeline' ? 'active' : ''}`} 
+            onClick={() => setActiveTab('timeline')}>
+              Timeline
+            </button>
         </div>
 
         {/* Tab Content */}
@@ -1201,6 +1246,25 @@ function JournalPage() {
               </div>
             </div>
           )}
+
+          {activeTab === 'timeline' && (
+            <div className="timeline-tab">
+              <D3Timeline 
+                summaries={monthlySummaries} 
+                onSummaryClick={setSelectedSummary}
+              />
+              {selectedSummary && (
+                <div className="summary-detail">
+                  <div className="detail-header">
+                    <h4>{selectedSummary.month_year}</h4>
+                    <span className="detail-meta">{selectedSummary.list_of_entries?.length || 0} entries</span>
+                  </div>
+                  <div className="detail-content">{selectedSummary.summary}</div>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -1268,5 +1332,128 @@ function JournalPage() {
     </div>
   );
 }
+
+// D3 Timeline Component - Now uses monthly summaries
+const D3Timeline = ({ summaries, onSummaryClick }) => {
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Parse month_year string (e.g., "April 2025") to Date
+  const parseMonthYear = (monthYearStr) => {
+    try {
+      const [month, year] = monthYearStr.split(' ');
+      const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+      return new Date(parseInt(year), monthIndex, 1);
+    } catch (e) {
+      console.error('Error parsing month_year:', monthYearStr, e);
+      return new Date();
+    }
+  };
+
+  useEffect(() => {
+    if (!summaries || summaries.length === 0) return;
+
+    // Sort summaries by date (oldest first)
+    const sortedSummaries = [...summaries].sort((a, b) => {
+      const dateA = parseMonthYear(a.month_year);
+      const dateB = parseMonthYear(b.month_year);
+      return dateA - dateB;
+    });
+
+    // Clear previous content
+    d3.select(svgRef.current).selectAll("*").remove();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 800;
+    const height = 300;
+    const margin = { top: 60, right: 40, bottom: 60, left: 40 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // Set up SVG
+    const svg = d3.select(svgRef.current)
+      .attr("width", width)
+      .attr("height", height);
+
+    const g = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Parse dates from month_year strings
+    const dates = sortedSummaries.map(summary => parseMonthYear(summary.month_year));
+    const minDate = d3.min(dates);
+    const maxDate = d3.max(dates);
+    
+    // Add padding to domain
+    const dateRange = maxDate - minDate;
+    const padding = dateRange * 0.1;
+
+    // Create scale
+    const xScale = d3.scaleTime()
+      .domain([new Date(minDate - padding), new Date(maxDate + padding)])
+      .range([0, chartWidth]);
+
+    // Draw timeline line
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", chartWidth)
+      .attr("y1", chartHeight / 2)
+      .attr("y2", chartHeight / 2)
+      .attr("stroke", "#4B286D")
+      .attr("stroke-width", 3);
+
+    // Draw markers and labels
+    sortedSummaries.forEach((summary, i) => {
+      const date = parseMonthYear(summary.month_year);
+      const x = xScale(date);
+      const y = chartHeight / 2;
+
+      // Draw circle marker
+      const circle = g.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", 10)
+        .attr("fill", "#4B286D")
+        .attr("stroke", "#F6ECD1")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer")
+        .on("click", () => onSummaryClick && onSummaryClick(summary))
+        .on("mouseover", function() {
+          d3.select(this).attr("r", 14);
+        })
+        .on("mouseout", function() {
+          d3.select(this).attr("r", 10);
+        });
+
+      // Draw month/year label above
+      g.append("text")
+        .attr("x", x)
+        .attr("y", y - 25)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#4B286D")
+        .attr("font-size", "13px")
+        .attr("font-weight", "600")
+        .text(summary.month_year);
+    });
+
+  }, [summaries, onSummaryClick]);
+
+  if (!summaries || summaries.length === 0) {
+    return (
+      <div className="empty-timeline">
+        <div className="empty-icon">📅</div>
+        <h3>No monthly summaries yet</h3>
+        <p>Monthly summaries are generated automatically at the beginning of each month</p>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="d3-timeline-container">
+      <svg ref={svgRef}></svg>
+    </div>
+  );
+};
 
 export default JournalPage;
