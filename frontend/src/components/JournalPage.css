@@ -38,7 +38,8 @@
   border-bottom: none;
   padding: 24px 0;
   box-shadow: 1px 0 3px rgba(75, 40, 109, 0.05);
-  min-width: 180px;
+  min-width: 216px;
+  width: 216px;
 }
 
 .tab-button {
@@ -105,12 +106,18 @@
   padding: 24px;
   overflow-y: auto;
   background: var(--parchment-50);
+  max-width: calc(100vw - 216px - 320px - 48px); /* tab-nav (216px) + sidebar (320px) + padding (24px each side) */
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
 }
 
 /* Journal Tab */
 .journal-tab {
   width: 100%;
-  max-width: none;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* Mirror journal entry width for chat tab */
