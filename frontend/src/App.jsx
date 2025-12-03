@@ -1,8 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { AuthContext, AuthProvider } from './context/AuthContext';
+import { AuthContext } from './context/AuthContext';
 import Header from './components/Header';
-import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
 import EmailConfirmation from './components/EmailConfirmation';
@@ -110,15 +108,6 @@ function CustomRouter() {
     setCurrentPath(path);
   };
 
-  // Show landing page for unauthenticated users on home page
-  if (currentPath === '/' && !currentUser) {
-    return (
-      <NavigationContext.Provider value={{ navigate }}>
-        <LandingPage />
-      </NavigationContext.Provider>
-    );
-  }
-
   // Route matching logic
   if (currentPath === '/login') {
     return (
@@ -160,6 +149,8 @@ function CustomRouter() {
     );
   }
 
+  // Show main interface for all users (authenticated or not)
+  if (currentPath === '/') {
   // For authenticated users, show the main page with header
   if (currentUser) {
     // Check for bulk upload route
@@ -198,16 +189,9 @@ function CustomRouter() {
 }
 
 function App() {
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    // Removed debugging console.log statements
-  }, []);
-
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <CustomRouter />
-      </AuthProvider>
+      <CustomRouter />
     </ErrorBoundary>
   );
 }

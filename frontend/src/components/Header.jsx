@@ -41,50 +41,24 @@ function Header() {
   return (
     <header className="app-header">
       <div className="header-content">
-        <h1>Yapper</h1>
+        <div className="logo-section">
+          <h1>Yapper</h1>
+          <span className="tagline">tell your life story</span>
+        </div>
         
-        {currentUser ? (
-          <div className="user-controls">
-            <div className="user-menu" ref={dropdownRef}>
-              <button 
-                className="user-menu-button"
-                onClick={() => setShowDropdown(!showDropdown)}
-              >
-                <span className="username">Hello, {currentUser.username}</span>
-                <span className="dropdown-arrow">▼</span>
-              </button>
-              
-              {showDropdown && (
-                <div className="user-dropdown">
-                  <button 
-                    className="dropdown-item"
-                    onClick={handleBackToJournal}
-                  >
-                    📝 Journal
-                  </button>
-                  <button 
-                    className="dropdown-item"
-                    onClick={handleBulkUpload}
-                  >
-                    📁 Bulk Upload
-                  </button>
-                  <div className="dropdown-divider"></div>
-                  <button 
-                    className="dropdown-item logout-item"
-                    onClick={handleLogout}
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="auth-buttons">
-            <button onClick={() => navigate('/login')}>Login</button>
-            <button onClick={() => navigate('/register')}>Register</button>
-          </div>
-        )}
+        <div className="user-controls">
+          {currentUser ? (
+            <>
+              <span className="username">Hello, {currentUser.username}</span>
+              <button className="logout-button" onClick={handleLogout}>Logout</button>
+            </>
+          ) : (
+            <>
+              <button className="login-button" onClick={() => navigate('/login')}>Login</button>
+              <button className="register-button" onClick={() => navigate('/register')}>Sign Up</button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

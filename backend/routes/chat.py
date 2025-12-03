@@ -4,13 +4,13 @@ from openai import OpenAI
 import os
 import json
 from dotenv import load_dotenv
-from backend.services.embedding import search_by_text
+from backend.services.context_retrieval import search_by_text
 from supabase import create_client, Client
 from functools import wraps
-from backend.config.logging import get_logger
+import logging
 
 # Set up logging
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [

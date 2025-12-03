@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: false
     },
+    optimizeDeps: {
+      exclude: ['axios']
+    },
     server: {
       port: parseInt(env.VITE_PORT) || 3000,
       proxy: {
@@ -21,9 +24,6 @@ export default defineConfig(({ mode }) => {
           secure: true,
         },
       },
-    },
-    define: {
-      __API_URL__: JSON.stringify(env.VITE_API_URL || 'http://127.0.0.1:5000'),
     },
   };
 });

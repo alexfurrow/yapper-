@@ -6,7 +6,7 @@ Handles all OpenAI calls, message formatting, and business logic.
 from flask import Blueprint, request, jsonify, Response, g
 import json
 import logging
-from backend.services.embedding import search_by_text
+from backend.services.context_retrieval import search_by_text
 from backend.routes.entries import supabase_auth_required
 from backend.services.initial_processing import process_text
 from backend.services.embedding import generate_embedding
@@ -60,7 +60,11 @@ def build_conversation_messages(yap_messages, user_input, context=""):
     
     # If we have context, add it to the system prompt
     if context:
-        system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
+        if context.startswith("ERROR:"):
+            # Search failed - tell AI to inform user
+            system_prompt += f"\n\n{context}\n\nYou must inform the user about this error."
+        else:
+            system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
     
     messages.append({"role": "system", "content": system_prompt})
     
@@ -111,6 +115,9 @@ def converse_stream():
     Frontend sends: { messages: [...], user_input: "..." }
     Backend handles: OpenAI calls, context, streaming response
     """
+    logger.info("=" * 50)
+    logger.info("CONVERSE_STREAM ROUTE HIT!")
+    logger.info("=" * 50)
     try:
         data = request.get_json()
         
@@ -125,30 +132,53 @@ def converse_stream():
             return jsonify({'error': 'User input cannot be empty'}), 400
         
         logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
+        logger.info(f"[converse_stream] Starting search for user_id={g.current_user.id}, query={user_input[:50]}")
         
         # Use RAG pipeline to find relevant entries
-        from backend.services.embedding import search_by_text
+        from backend.services.context_retrieval import search_by_text
+        logger.info(f"[converse_stream] Calling search_by_text...")
         relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
+        logger.info(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
         
         # Build context from relevant entries
         context_parts = []
         sources = []
-        for entry in relevant_entries:
-            content = entry.get('content', '').strip()
-            if content:
-                # Truncate very long entries
-                if len(content) > 300:
-                    content = content[:300] + "..."
-                context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
-                # Add to sources for frontend
-                sources.append({
-                    'entry_id': entry.get('entry_id'),
-                    'user_entry_id': entry.get('user_entry_id'),
-                    'content': content,
-                    'similarity': entry.get('similarity', 0)
-                })
+        search_failed = False
+        
+        if not relevant_entries:
+            # Check if user has entries WITH VECTORS (not just any entries)
+            try:
+                response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
+                has_vectorized_entries = response.data and len(response.data) > 0
+                
+                if has_vectorized_entries:
+                    # User has vectorized entries but search returned nothing - this is an error
+                    logger.warning("HNSW search returned no results but user has vectorized entries - search may have failed")
+                    search_failed = True
+            except Exception as e:
+                logger.error(f"Error checking for user vectorized entries: {e}")
+                search_failed = True
+        else:
+            for entry in relevant_entries:
+                content = entry.get('content', '').strip()
+                if content:
+                    # Truncate very long entries
+                    if len(content) > 300:
+                        content = content[:300] + "..."
+                    context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
+                    # Add to sources for frontend
+                    sources.append({
+                        'entry_id': entry.get('entry_id'),
+                        'user_entry_id': entry.get('user_entry_id'),
+                        'content': content,
+                        'similarity': entry.get('similarity', 0)
+                    })
         
         context = "\n\n".join(context_parts)
+        
+        # If search failed, add error message to context
+        if search_failed:
+            context = "ERROR: There was an error with retrieving your history. Please inform the user: 'There was an error with retrieving your history.'"
         
         # Build conversation messages for OpenAI with context
         messages = build_conversation_messages(yap_messages, user_input, context)
@@ -178,7 +208,39 @@ def converse_stream():
                 logger.exception("Error in streaming conversation")
                 yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
         
-        return Response(generate_stream(), mimetype='text/plain')
+        # Create streaming response with CORS headers
+        # Use text/event-stream for proper SSE support
+        response = Response(generate_stream(), mimetype='text/event-stream')
+        
+        # Set CORS headers explicitly for streaming response
+        # The after_request handler should handle this, but we set it here as backup
+        origin = request.headers.get('Origin')
+        if origin:
+            # Build allowed origins list (matching app.py logic)
+            allowed_origins = [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001",
+                "https://yapper-beta.vercel.app",
+                "https://yapper.vercel.app"
+            ]
+            # Also check environment variable
+            frontend_urls = os.environ.get('FRONTEND_URL', '')
+            if frontend_urls:
+                urls = [url.strip() for url in frontend_urls.replace(',', ' ').split() if url.strip()]
+                allowed_origins.extend(urls)
+            
+            # Check if origin is in allowed list
+            if origin in allowed_origins:
+                response.headers['Access-Control-Allow-Origin'] = origin
+        
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type'
+        
+        return response
         
     except Exception as e:
         logger.exception("Error in converse_stream")
@@ -203,44 +265,89 @@ def save_conversation():
         if not conversation_text:
             return jsonify({'error': 'Conversation cannot be empty'}), 400
         
-        # Process content through OpenAI
-        processed_content = process_text(conversation_text)
-        
-        # Get the next user entry ID using user context (keep as integer)
-        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
-        user_entry_count = len(user_entries_response.data)
+        # Get the next user entry ID
+        user_entries_response = g.user_supabase.table('entries').select('user_entry_id').eq('user_id', g.current_user.id).execute()
+        user_entry_count = len(user_entries_response.data) if user_entries_response.data else 0
         next_user_entry_id = user_entry_count + 1
         
-        # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
-        from backend.utils.entry_helpers import format_title_date_with_time
-        title = format_title_date_with_time()
-        
-        # Create composite primary key: user_id + user_entry_id
-        user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
-        
-        # Generate embedding
-        embedding = None
-        if processed_content:
-            embedding = generate_embedding(processed_content)
-        
-        # Prepare entry data
+        # Save to database (same structure as entries.py)
         entry_data = {
-            'user_and_entry_id': user_and_entry_id,
+            'user_id': g.current_user.id,
             'user_entry_id': next_user_entry_id,
-            'title': title,
+            'user_and_entry_id': f"{g.current_user.id}_{next_user_entry_id}",
             'content': conversation_text,
-            'processed': processed_content
+            'processed': None,  # Will be processed in background
+            'vectors': None     # Will be generated in background
         }
         
-        if embedding:
-            entry_data['vectors'] = embedding
-        
-        # Save to database
         response = g.user_supabase.table('entries').insert(entry_data).execute()
         
         if response.data:
-            user_and_entry_id = response.data[0].get('user_and_entry_id')
-            logger.info(f"Saved conversation as entry {user_and_entry_id}")
+            new_entry = response.data[0]
+            entry_id = new_entry.get('user_and_entry_id')  # Primary key is 'user_and_entry_id'
+            
+            if entry_id:
+                # Process and embed in background (same flow as entries.py)
+                def process_entry_background(entry_id_value, content_to_process):
+                    try:
+                        from supabase import create_client
+                        from backend.services.initial_processing import process_text
+                        from backend.services.embedding import generate_embedding
+                        from backend.services.hnsw_index import add_entry_to_index
+                        
+                        logger.info(f"Starting background processing for conversation entry {entry_id_value}")
+                        
+                        bg_supabase = create_client(
+                            os.environ.get('SUPABASE_URL'),
+                            os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                        )
+                        
+                        # Step 1: Process content through OpenAI
+                        logger.info(f"Step 1: Processing content for entry {entry_id_value}")
+                        processed_content = process_text(content_to_process)
+                        
+                        if not processed_content:
+                            logger.warning(f"Processing failed for entry {entry_id_value}, skipping vectorization")
+                            return
+                        
+                        # Step 2: Generate embedding from processed content
+                        logger.info(f"Step 2: Generating embedding for entry {entry_id_value}")
+                        embedding = generate_embedding(processed_content)
+                        
+                        if not embedding:
+                            logger.warning(f"Embedding generation failed for entry {entry_id_value}")
+                            # Still save processed content even if embedding fails
+                            bg_supabase.table('entries').update({
+                                'processed': processed_content
+                            }).eq('user_and_entry_id', entry_id_value).execute()
+                            return
+                        
+                        # Step 3: Update entry with processed content and embedding
+                        logger.info(f"Step 3: Updating entry {entry_id_value} with processed content and embedding")
+                        bg_supabase.table('entries').update({
+                            'processed': processed_content,
+                            'vectors': embedding
+                        }).eq('user_and_entry_id', entry_id_value).execute()
+                        
+                        logger.info(f"Conversation entry processed and embedded: {entry_id_value}")
+                        
+                        # Step 4: Add entry to HNSW index
+                        logger.info(f"Step 4: Adding entry {entry_id_value} to HNSW index")
+                        try:
+                            add_entry_to_index(entry_id_value, embedding)
+                            logger.info(f"Conversation entry added to HNSW index: {entry_id_value}")
+                        except Exception as e:
+                            logger.warning(f"Failed to add conversation entry to HNSW index: {str(e)}")
+                    except Exception as e:
+                        logger.exception(f"Error processing conversation entry in background: {entry_id_value}")
+                
+                # Start background processing
+                import threading
+                thread = threading.Thread(target=process_entry_background, args=(entry_id, conversation_text))
+                thread.daemon = True
+                thread.start()
+            
+            logger.info(f"Saved conversation as entry {entry_id}")
             return jsonify({
                 'success': True,
                 'user_and_entry_id': user_and_entry_id,
@@ -261,8 +368,8 @@ def get_conversation_intro():
     Backend handles: Context analysis, AI generation, topic extraction
     """
     try:
-        # Get user's recent entries for context
-        response = g.user_supabase.table('entries').select('content,created_at,user_entry_id').eq('user_id', g.current_user.id).order('created_at', desc=True).limit(100).execute()
+        # Get user's recent entries for context (reduced from 100 to 20 for faster response)
+        response = g.user_supabase.table('entries').select('content,created_at,user_entry_id').eq('user_id', g.current_user.id).order('created_at', desc=True).limit(20).execute()
         entries = response.data if response.data else []
         
         if not entries:
@@ -271,11 +378,14 @@ def get_conversation_intro():
                 'topics': []
             })
         
-        # Build context from recent entries
+        # Build context from recent entries (reduced from 10 to 5 for faster processing)
         context_parts = []
-        for entry in entries[:10]:
+        for entry in entries[:5]:
             content = entry.get('content', '').strip()
             if content:
+                # Truncate entries to keep context manageable
+                if len(content) > 300:
+                    content = content[:300] + "..."
                 context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
         
         context = "\n\n".join(context_parts)
@@ -292,14 +402,15 @@ def get_conversation_intro():
         
         user_prompt = f"User's recent entries (most recent first):\n\n{context}\n\nReturn JSON only."
         
-        # Generate with AI
+        # Generate with AI (use gpt-4o-mini for faster, cheaper intro generation)
         resp = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=200  # Limit response length for faster generation
         )
         
         content = resp.choices[0].message.content if resp.choices else '{}'

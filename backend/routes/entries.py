@@ -7,10 +7,10 @@ from datetime import datetime
 import os
 from supabase import create_client, Client
 from functools import wraps
-from backend.config.logging import get_logger
+import logging
 
 # Set up logging
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Required environment variables
 REQUIRED_ENV = [
@@ -26,7 +26,7 @@ def validate_env():
         # Log only the variable names, not values
         raise InternalServerError(f"Missing required environment variables: {', '.join(missing)}")
 
-entries_bp = Blueprint('entries', __name__, url_prefix='/entries')
+entries_bp = Blueprint('entries', __name__)
 
 # Validate environment variables
 validate_env()
@@ -79,7 +79,7 @@ def supabase_auth_required(f):
     return decorated
 
 # Update all your route decorators from @token_required to @supabase_auth_required
-@entries_bp.route('/entries', methods=['GET'])
+@entries_bp.route('', methods=['GET'])
 @supabase_auth_required
 def get_entries():
     """Get all entries for the current user (excluding soft-deleted entries)"""
@@ -97,7 +97,7 @@ def get_entries():
         logger.exception("Error getting entries", extra={"route": "/entries", "method": "GET"})
         return jsonify({'message': f'Error getting entries: {str(e)}'}), 500
 
-@entries_bp.route('/entries', methods=['POST'])
+@entries_bp.route('', methods=['POST'])
 @supabase_auth_required
 def create_entry():
     """Create a new entry with processed content and immediate embedding"""
@@ -110,38 +110,22 @@ def create_entry():
     try:
         logger.info("Creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "content_length": len(data['content'])})
         
-        # Process content through OpenAI
-        processed_content = process_text(data['content'])
-        
-        # Get the next user entry ID using user context (keep as integer)
+        # Get the next user entry ID using user context
         user_entries_response = g.user_supabase.table('entries').select('user_entry_id').execute()
         user_entry_count = len(user_entries_response.data)
         next_user_entry_id = user_entry_count + 1
         
-        # Format entry date with time: "Month DD, YYYY at h:MM AM/PM"
-        from backend.utils.entry_helpers import format_title_date_with_time
-        title = format_title_date_with_time()
-        
-        # Create composite primary key: user_id + user_entry_id
-        user_and_entry_id = f"{g.current_user.id}_{next_user_entry_id}"
-        
-        # Prepare entry data (don't include user_id - let RLS handle it)
+        # Save entry immediately with raw content (fast response)
         entry_data = {
-            'user_and_entry_id': user_and_entry_id,
+            'user_id': g.current_user.id,
             'user_entry_id': next_user_entry_id,
-            'title': title,
+            'user_and_entry_id': f"{g.current_user.id}_{next_user_entry_id}",
             'content': data['content'],
-            'processed': processed_content
+            'processed': None,  # Will be processed in background
+            'vectors': None     # Will be generated in background
         }
         
-        # Generate embedding immediately for real-time search
-        if processed_content:
-            embedding = generate_embedding(processed_content)
-            if embedding:
-                entry_data['vectors'] = embedding
-                logger.info("Embedding generated for entry", extra={"route": "/entries", "method": "POST", "user_entry_id": next_user_entry_id})
-        
-        # Create new entry in Supabase
+        # Create new entry in Supabase immediately
         response = g.user_supabase.table('entries').insert(entry_data).execute()
         new_entry = response.data[0] if response.data else None
         
@@ -149,20 +133,80 @@ def create_entry():
             logger.error("Failed to create entry - no data returned", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
             return jsonify({'message': 'Failed to create entry'}), 500
         
-        # Uncomment if you want to add personality or story generation
-        # personality = create_personality_and_write_to_db(new_entry['entry_id'], processed_content)        
-        # new_entry['personality'] = personality
+        # Extract user_and_entry_id (primary key)
+        entry_id = new_entry.get('user_and_entry_id')
+        if not entry_id:
+            logger.warning("Entry created but no user_and_entry_id found in response", extra={"route": "/entries", "method": "POST", "response_keys": list(new_entry.keys()) if new_entry else None})
+            # Still return the entry, but background processing will skip
+            return jsonify(new_entry), 201
         
-        # story = write_story_and_write_to_db(new_entry['entry_id'], processed_content)
-        # new_entry['story'] = story
+        # Process and embed in background (don't block response)
+        # Flow: 1. Process content → 2. Vectorize processed content → 3. Add to index
+        def process_entry_background(entry_id_value, content_to_process):
+            try:
+                logger.info(f"Starting background processing for entry {entry_id_value}")
+                
+                # Create new Supabase client for background thread (g is thread-local)
+                bg_supabase = create_client(
+                    os.environ.get('SUPABASE_URL'),
+                    os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                )
+                
+                # Step 1: Process content through OpenAI
+                logger.info(f"Step 1: Processing content for entry {entry_id_value}")
+                processed_content = process_text(content_to_process)
+                
+                if not processed_content:
+                    logger.warning(f"Processing failed for entry {entry_id_value}, skipping vectorization")
+                    return
+                
+                # Step 2: Generate embedding from processed content
+                logger.info(f"Step 2: Generating embedding for entry {entry_id_value}")
+                embedding = generate_embedding(processed_content)
+                
+                if not embedding:
+                    logger.warning(f"Embedding generation failed for entry {entry_id_value}")
+                    # Still save processed content even if embedding fails
+                    bg_supabase.table('entries').update({
+                        'processed': processed_content
+                    }).eq('user_and_entry_id', entry_id_value).execute()
+                    return
+                
+                # Step 3: Update entry with processed content and embedding
+                logger.info(f"Step 3: Updating entry {entry_id_value} with processed content and embedding")
+                bg_supabase.table('entries').update({
+                    'processed': processed_content,
+                    'vectors': embedding
+                }).eq('user_and_entry_id', entry_id_value).execute()
+                
+                logger.info("Entry processed and embedded", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                
+                # Step 4: Add entry to HNSW index for fast search
+                logger.info(f"Step 4: Adding entry {entry_id_value} to HNSW index")
+                try:
+                    from backend.services.hnsw_index import add_entry_to_index
+                    add_entry_to_index(entry_id_value, embedding)
+                    logger.info("Entry added to HNSW index", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                except Exception as e:
+                    logger.warning(f"Failed to add entry to HNSW index: {str(e)}", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
+                    # Index will be rebuilt on next search if needed
+                    
+            except Exception as e:
+                logger.exception("Error processing entry in background", extra={"route": "/entries", "method": "POST", "entry_id": entry_id_value})
         
-        logger.info("Entry created successfully", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id, "title": title})
+        # Start background processing (non-blocking)
+        import threading
+        thread = threading.Thread(target=process_entry_background, args=(entry_id, data['content']))
+        thread.daemon = True
+        thread.start()
+        
+        logger.info("Entry created successfully (processing in background)", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id, "user_entry_id": next_user_entry_id})
         return jsonify(new_entry), 201
     except Exception as e:
         logger.exception("Error creating entry", extra={"route": "/entries", "method": "POST", "user_id": g.current_user.id})
         return jsonify({'message': f'Error creating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['GET'])
+@entries_bp.route('/<int:entry_id>', methods=['GET'])
 @supabase_auth_required
 def get_entry(user_and_entry_id):
     """Get a specific entry by ID (excluding soft-deleted entries)"""
@@ -182,7 +226,7 @@ def get_entry(user_and_entry_id):
         logger.exception("Error getting entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "GET", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error getting entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['PUT'])
+@entries_bp.route('/<int:entry_id>', methods=['PUT'])
 @supabase_auth_required
 def update_entry(user_and_entry_id):
     """Update an existing entry"""
@@ -219,7 +263,7 @@ def update_entry(user_and_entry_id):
         logger.exception("Error updating entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "PUT", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error updating entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<string:user_and_entry_id>', methods=['DELETE'])
+@entries_bp.route('/<int:entry_id>', methods=['DELETE'])
 @supabase_auth_required
 def delete_entry(user_and_entry_id):
     """Soft delete an entry by setting deleted_at timestamp"""
@@ -245,36 +289,7 @@ def delete_entry(user_and_entry_id):
         logger.exception("Error deleting entry", extra={"route": "/entries/<string:user_and_entry_id>", "method": "DELETE", "user_and_entry_id": user_and_entry_id})
         return jsonify({'message': f'Error deleting entry: {str(e)}'}), 500
 
-@entries_bp.route('/entries/<string:user_and_entry_id>/restore', methods=['POST'])
-@supabase_auth_required
-def restore_entry(user_and_entry_id):
-    """Restore a soft-deleted entry by clearing deleted_at"""
-    try:
-        # Check if entry exists and is deleted (deleted_at is not null)
-        response = g.user_supabase.table('entries').select('*').eq('user_and_entry_id', user_and_entry_id).execute()
-        entry = None
-        if response.data:
-            # Find entry that has deleted_at set (is deleted)
-            entries = [e for e in response.data if e.get('deleted_at') is not None]
-            entry = entries[0] if entries else None
-        
-        if not entry:
-            return jsonify({'message': 'Entry not found or not deleted'}), 404
-        
-        # Restore: clear deleted_at
-        response = g.user_supabase.table('entries').update({'deleted_at': None}).eq('user_and_entry_id', user_and_entry_id).execute()
-        restored_entry = response.data[0] if response.data else None
-        
-        if not restored_entry:
-            return jsonify({'message': 'Failed to restore entry'}), 500
-        
-        logger.info("Entry restored successfully", extra={"route": "/entries/<string:user_and_entry_id>/restore", "method": "POST", "user_and_entry_id": user_and_entry_id, "user_id": g.current_user.id})
-        return jsonify({'message': 'Entry restored successfully', 'entry': restored_entry}), 200
-    except Exception as e:
-        logger.exception("Error restoring entry", extra={"route": "/entries/<string:user_and_entry_id>/restore", "method": "POST", "user_and_entry_id": user_and_entry_id})
-        return jsonify({'message': f'Error restoring entry: {str(e)}'}), 500
-
-@entries_bp.route('/entries/search', methods=['POST'])
+@entries_bp.route('/search', methods=['POST'])
 @supabase_auth_required
 def search_entries():
     """Search for similar entries using vector embeddings"""
@@ -284,7 +299,7 @@ def search_entries():
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        from backend.services.embedding import search_by_text
+        from backend.services.context_retrieval import search_by_text
         
         limit = data.get('limit', 5)
         # Only search the current user's entries
