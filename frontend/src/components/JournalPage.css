@@ -106,18 +106,26 @@
   padding: 24px;
   overflow-y: auto;
   background: var(--parchment-50);
-  max-width: calc(100vw - 216px - 320px - 48px); /* tab-nav (216px) + sidebar (320px) + padding (24px each side) */
   width: 100%;
   margin: 0 auto;
   display: flex;
   justify-content: center;
 }
 
+/* Adjust tab content when sidebar is open */
+.main-content.with-sidebar .tab-content {
+  max-width: calc(100vw - 216px - 320px - 48px); /* tab-nav (216px) + sidebar (320px) + padding (24px each side) */
+}
+
+/* Adjust tab content when sidebar is closed */
+.main-content:not(.with-sidebar) .tab-content {
+  max-width: calc(100vw - 216px - 48px); /* tab-nav (216px) + padding (24px each side) */
+}
+
 /* Journal Tab */
 .journal-tab {
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: none;
 }
 
 /* Mirror journal entry width for chat tab */
