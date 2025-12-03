@@ -104,12 +104,14 @@
 .tab-content {
   flex: 1;
   padding: 24px;
-  overflow-y: auto;
   background: var(--parchment-50);
   width: 100%;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  min-height: 0; /* Allows flex child to shrink below content size */
+  overflow: hidden; /* Prevent scrolling at this level, let children handle it */
 }
 
 /* Adjust tab content when sidebar is open */
@@ -126,6 +128,9 @@
 .journal-tab {
   width: 100%;
   max-width: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Mirror journal entry width for chat tab */
@@ -238,6 +243,9 @@
 }
 
 .journal-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: var(--parchment-200); /* parchment card */
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(75, 40, 109, 0.06);
@@ -257,12 +265,18 @@
 }
 
 .textarea-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 24px;
   position: relative;
+  overflow-y: auto;
+  min-height: 0; /* Allows flex child to shrink below content size */
 }
 
 .journal-textarea {
   width: 100%;
+  flex: 1;
   min-height: 300px;
   padding: 16px;
   border: 2px solid var(--parchment-border); /* Aged scroll color */
@@ -482,7 +496,7 @@
   overflow-y: auto;
   padding: 24px; /* Increased padding for more spacing */
   background: #FDF6E3; /* Parchment base background */
-  min-height: calc(100vh - 350px); /* Slightly reduced height */
+  min-height: 0; /* Allows flex child to shrink below content size */
 }
 
 /* Voice record button (Converse mode) */
