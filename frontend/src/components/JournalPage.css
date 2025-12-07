@@ -79,25 +79,59 @@
 
 /* Yap mode toggle */
 .mode-toggle {
-  display: inline-flex;
-  background: var(--parchment-50);
-  border: 1px solid var(--parchment-border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  margin: 0 auto 16px auto;
+  width: 33.33%;
+  gap: 0;
 }
 
 .mode-option {
   appearance: none;
   background: var(--parchment-300);
-  border: none;
-  padding: 8px 14px;
+  border: 2px solid var(--parchment-border);
+  padding: 12px 21px; /* Increased from 8px 14px (50% larger) */
   color: var(--ink-royal);
   cursor: pointer;
+  font-size: 18px; /* Increased font size (assuming base was ~12px, now 50% larger) */
+  font-weight: 700;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.mode-option:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  border-right: none;
+}
+
+.mode-option:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-left: none;
+}
+
+.mode-option:hover:not(.active) {
+  background: var(--parchment-200);
+  border-color: var(--parchment-border);
 }
 
 .mode-option.active {
-  background: transparent;
+  background: var(--parchment-50);
+  border: 2px solid var(--ink-royal);
+  box-shadow: 0 2px 8px rgba(75, 40, 109, 0.15);
+  z-index: 1;
+  position: relative;
+}
+
+.mode-option.active:first-child {
+  border-right: 2px solid var(--ink-royal);
+}
+
+.mode-option.active:last-child {
+  border-left: 2px solid var(--ink-royal);
 }
 
 /* Tab Content */
