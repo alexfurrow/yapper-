@@ -93,10 +93,10 @@
   background: #EFE5CC; /* Soft aged parchment */
   border: 1.5px solid #D6C8A4; /* Subtle aged border */
   padding: 9.6px 16.8px; /* 20% smaller than 12px 21px */
-  color: #6B5B7A; /* Muted royal ink */
+  color: #6B5B7A; /* Muted purple for inactive state */
   cursor: pointer;
-  font-size: 14.4px; /* 20% smaller than 18px */
-  font-weight: 400;
+  font-size: 15px; /* Slightly larger for clarity */
+  font-weight: 500; /* Medium weight for clarity without bold */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
   position: relative;
@@ -125,7 +125,8 @@
 .mode-option.active {
   background: var(--parchment-50); /* Reverted to original */
   border: 1.5px solid #4B286D;
-  color: #6B5B7A; /* Muted royal ink to match inactive */
+  color: #4B286D; /* Purple for active state */
+  font-weight: 500; /* Medium weight for clarity without bold */
   box-shadow: 0 4px 12px rgba(75, 40, 109, 0.25), 
               inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Elegant depth */
   z-index: 1;
