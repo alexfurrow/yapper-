@@ -17,7 +17,7 @@ function Header() {
       <div className="header-content">
         <div className="logo-section">
           <h1>Yapper</h1>
-          <span className="tagline">tell your life story</span>
+          <span className="tagline">your AI biographer</span>
         </div>
         
         <div className="user-controls">
