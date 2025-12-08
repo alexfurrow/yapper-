@@ -123,9 +123,9 @@
 }
 
 .mode-option.active {
-  background: linear-gradient(135deg, #4B286D, #3A1F56); /* Royal ink gradient */
+  background: var(--parchment-50); /* Reverted to original */
   border: 1.5px solid #4B286D;
-  color: #FFFFFF; /* White text for contrast */
+  color: #6B5B7A; /* Muted royal ink to match inactive */
   box-shadow: 0 4px 12px rgba(75, 40, 109, 0.25), 
               inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Elegant depth */
   z-index: 1;
