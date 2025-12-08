@@ -90,15 +90,16 @@
 
 .mode-option {
   appearance: none;
-  background: var(--parchment-300);
-  border: 2px solid var(--parchment-border);
-  padding: 12px 21px; /* Increased from 8px 14px (50% larger) */
-  color: var(--ink-royal);
+  background: #EFE5CC; /* Soft aged parchment */
+  border: 1.5px solid #D6C8A4; /* Subtle aged border */
+  padding: 9.6px 16.8px; /* 20% smaller than 12px 21px */
+  color: #6B5B7A; /* Muted royal ink */
   cursor: pointer;
-  font-size: 18px; /* Increased font size (assuming base was ~12px, now 50% larger) */
-  font-weight: 700;
-  transition: all 0.2s ease;
+  font-size: 14.4px; /* 20% smaller than 18px */
+  font-weight: 400;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
+  position: relative;
 }
 
 .mode-option:first-child {
@@ -114,24 +115,30 @@
 }
 
 .mode-option:hover:not(.active) {
-  background: var(--parchment-200);
-  border-color: var(--parchment-border);
+  background: #F7F0DD; /* Lighter parchment on hover */
+  border-color: #B5694E; /* Terracotta accent */
+  color: #4B286D; /* Deeper royal ink */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(75, 40, 109, 0.08);
 }
 
 .mode-option.active {
-  background: var(--parchment-50);
-  border: 2px solid var(--ink-royal);
-  box-shadow: 0 2px 8px rgba(75, 40, 109, 0.15);
+  background: linear-gradient(135deg, #4B286D, #3A1F56); /* Royal ink gradient */
+  border: 1.5px solid #4B286D;
+  color: #FFFFFF; /* White text for contrast */
+  box-shadow: 0 4px 12px rgba(75, 40, 109, 0.25), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Elegant depth */
   z-index: 1;
   position: relative;
+  transform: translateY(-1px);
 }
 
 .mode-option.active:first-child {
-  border-right: 2px solid var(--ink-royal);
+  border-right: 1.5px solid #4B286D;
 }
 
 .mode-option.active:last-child {
-  border-left: 2px solid var(--ink-royal);
+  border-left: 1.5px solid #4B286D;
 }
 
 /* Tab Content */
@@ -323,7 +330,7 @@
   resize: vertical;
   overflow-y: auto; /* Let textarea handle its own scrolling */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  background: var(--parchment-200); /* parchment */
+  background: #FDF6E3; /* Same as messages-container */
   box-shadow: inset 0 0 0 1px rgba(75, 40, 109, 0.05);
 }
 
@@ -331,7 +338,7 @@
   outline: none;
   border-color: #7D8456; /* Olive leaf color */
   box-shadow: 0 0 0 4px rgba(125, 132, 86, 0.15);
-  background: var(--parchment-200);
+  background: #FDF6E3; /* Same as messages-container */
 }
 
 .journal-textarea::placeholder {
