@@ -1145,7 +1145,6 @@ function JournalPage() {
                           onClick={isRecording ? stopRecording : startRecording}
                           title={isRecording ? 'Stop Recording' : 'Start Recording'}
                         >
-                          <span className="mic-icon">🎤</span>
                         </button>
                         <div className="chat-input-wrapper">
                           <textarea
@@ -1196,7 +1195,7 @@ function JournalPage() {
                               }
                             }}
                           />
-                          <button type="submit" className="send-inline" disabled={isYapLoading || !yapInput.trim()} title="Send (Enter)" onMouseDown={(e) => e.preventDefault()}>↑</button>
+                          <button type="submit" className="send-inline" disabled={isYapLoading || !yapInput.trim()} title="Send (Enter)" onMouseDown={(e) => e.preventDefault()}><span style={{ fontWeight: 'bold', fontSize: '18px' }}>↑</span></button>
                         </div>
                       </form>
                     ) : (
@@ -1206,9 +1205,6 @@ function JournalPage() {
                         className={`record-button ${isRecording ? 'recording' : ''}`}
                         disabled={isLoading}
                       >
-                        <span className="button-icon">
-                          {isRecording ? '⏹️' : '🎤'}
-                        </span>
                         {isRecording ? 'Stop Recording' : 'Start Recording'}
                       </button>
                     )}
@@ -1329,7 +1325,6 @@ function JournalPage() {
                       disabled={!content.trim() || isLoading}
                       className="save-button"
                     >
-                      <span className="button-icon">💾</span>
                       Save Entry
                     </button>
                   )}
@@ -1367,9 +1362,6 @@ function JournalPage() {
                       className={`record-button ${isRecording ? 'recording' : ''}`}
                       disabled={isLoading}
                     >
-                      <span className="button-icon">
-                        {isRecording ? '⏹️' : '🎤'}
-                      </span>
                       {isRecording ? 'Stop Recording' : 'Start Recording'}
                     </button>
                   </div>
@@ -1445,7 +1437,7 @@ function JournalPage() {
                     disabled={isChatLoading || !chatInput.trim() || !currentUser}
                     className="send-button"
                   >
-                    <span className="button-icon">📤</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '18px' }}>↑</span>
                   </button>
                 </form>
               </div>
@@ -1481,7 +1473,7 @@ function JournalPage() {
             className="sidebar-toggle"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
-            <span className="toggle-icon">📚</span>
+            <span className="toggle-icon">📖</span>
           </button>
         </div>
         
@@ -1531,7 +1523,7 @@ function JournalPage() {
           onClick={() => setIsSidebarOpen(true)}
           title="Show Journal History"
         >
-          <span className="toggle-icon">📚</span>
+          <span className="toggle-icon">📖</span>
         </button>
       )}
 

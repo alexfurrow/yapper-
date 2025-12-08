@@ -557,12 +557,17 @@
   height: 48px;
   border-radius: 50%;
   background: #B5694E;
-  border: none;
-  box-shadow: 0 10px 24px rgba(75,40,109,0.18);
+  border: 2px solid #8B4E3A;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.voice-button:hover {
+  border-color: #6B3A2A;
+  transform: translateY(-2px);
 }
 
 .voice-button.recording {
