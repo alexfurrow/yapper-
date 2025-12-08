@@ -104,7 +104,9 @@ function CustomRouter() {
 
   const navigate = (path) => {
     window.history.pushState({}, '', path);
-    setCurrentPath(path);
+    // Extract just the pathname (without query params or hash)
+    const pathname = new URL(path, window.location.origin).pathname;
+    setCurrentPath(pathname);
   };
 
   // Route matching logic

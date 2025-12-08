@@ -8,26 +8,47 @@ function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Exchange the code for a session
-        const { data, error } = await supabase.auth.exchangeCodeForSession({
-          code: new URLSearchParams(window.location.search).get('code'),
-        });
+        // Google OAuth returns tokens in hash fragment (#access_token=...)
+        // Check hash fragment first
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-        if (error) {
-          console.error('Auth callback error:', error);
-          // Redirect to login with error
-          navigate('/login?error=auth_callback_failed');
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error || !data.session) {
+            console.error('Auth callback error:', error);
+            navigate('/login?error=auth_callback_failed');
+            return;
+          }
+
+          // Clear hash fragment for security (tokens no longer in URL)
+          window.history.replaceState(null, '', '/auth/callback');
+          navigate('/');
           return;
         }
 
-        if (data.session) {
-          console.log('Auth callback successful, session created');
-          // Redirect to main app
+        // Fallback: Check for code in query string (PKCE flow)
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession({ code });
+
+          if (error || !data.session) {
+            console.error('Auth callback error:', error);
+            navigate('/login?error=auth_callback_failed');
+            return;
+          }
+
           navigate('/');
-        } else {
-          console.error('No session created');
-          navigate('/login?error=no_session');
+          return;
         }
+
+        // No tokens or code found
+        navigate('/login?error=no_session');
       } catch (err) {
         console.error('Auth callback exception:', err);
         navigate('/login?error=auth_callback_exception');
