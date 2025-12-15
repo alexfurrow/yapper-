@@ -64,6 +64,25 @@ def create_app():
     @app.before_request
     def add_request_id():
         g.request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    
+    # Handle OPTIONS preflight requests BEFORE any route matching
+    # This ensures CORS headers are set even if Flask's automatic OPTIONS handling fails
+    @app.before_request
+    def handle_options_preflight():
+        if request.method == 'OPTIONS':
+            origin = request.headers.get('Origin')
+            from flask import Response
+            response = Response()
+            response.status_code = 204  # No Content
+            
+            if origin and origin in allowed_origins:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers['Access-Control-Max-Age'] = '3600'
+            
+            return response
 
     # Add CORS headers to all responses (including OPTIONS preflight)
     @app.after_request
@@ -78,7 +97,6 @@ def create_app():
             response.headers['Access-Control-Max-Age'] = '3600'
         
         return response
-    # scheduler.init_app(app) # Removed as per edit hint
 
     # Register blueprints
     app.register_blueprint(entries_bp, url_prefix='/api/entries')
@@ -92,23 +110,6 @@ def create_app():
         # Log error but don't crash the app
         logger = logging.getLogger(__name__)
         logger.error(f"Error registering chat_bp: {str(e)}", exc_info=app.config['DEBUG'])
-    
-    # Explicit OPTIONS handler for all API routes (required for CORS preflight in production)
-    @app.route('/api/<path:path>', methods=['OPTIONS'])
-    def handle_options(path):
-        from flask import Response
-        origin = request.headers.get('Origin')
-        response = Response()
-        response.status_code = 204  # No Content
-        
-        if origin and origin in allowed_origins:
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            response.headers['Access-Control-Max-Age'] = '3600'
-        
-        return response
  
     # Register commands
     app.cli.add_command(vectorize_pages_command)
