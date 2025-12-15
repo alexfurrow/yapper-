@@ -92,6 +92,23 @@ def create_app():
         # Log error but don't crash the app
         logger = logging.getLogger(__name__)
         logger.error(f"Error registering chat_bp: {str(e)}", exc_info=app.config['DEBUG'])
+    
+    # Explicit OPTIONS handler for all API routes (required for CORS preflight in production)
+    @app.route('/api/<path:path>', methods=['OPTIONS'])
+    def handle_options(path):
+        from flask import Response
+        origin = request.headers.get('Origin')
+        response = Response()
+        response.status_code = 204  # No Content
+        
+        if origin and origin in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Max-Age'] = '3600'
+        
+        return response
  
     # Register commands
     app.cli.add_command(vectorize_pages_command)
