@@ -563,7 +563,7 @@ function JournalPage() {
           }));
           
           // Call backend endpoint
-          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002';
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
           const response = await fetch(`${backendUrl}/api/converse/stream`, {
             method: 'POST',
             headers: {
@@ -879,7 +879,7 @@ function JournalPage() {
       if (!session) return;
       
       // Use new backend endpoint
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
       const res = await fetch(`${backendUrl}/api/converse/save`, {
         method: 'POST',
         headers: {
@@ -970,7 +970,7 @@ function JournalPage() {
       const accessToken = session?.access_token;
       
       // Call new backend endpoint
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
       const headers = {
         'Content-Type': 'application/json'
       };

@@ -65,37 +65,17 @@ def create_app():
     def add_request_id():
         g.request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
-
-    # Add manual CORS headers to ensure they're set correctly
+    # Add CORS headers to all responses (including OPTIONS preflight)
     @app.after_request
     def after_request(response):
         origin = request.headers.get('Origin')
         
-        if origin in allowed_origins:
-            response.headers['Access-Control-Allow-Origin'] = origin
-        # Don't set CORS headers for unauthorized origins (browser will reject)
-            
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Max-Age'] = '3600'
-        
-        return response
-    
-    # Handle preflight OPTIONS requests
-    @app.route('/api/<path:path>', methods=['OPTIONS'])
-    def handle_preflight(path):
-        origin = request.headers.get('Origin')
-        response = app.make_default_options_response()
-        
-        # Only set CORS headers for allowed origins
         if origin and origin in allowed_origins:
             response.headers['Access-Control-Allow-Origin'] = origin
-            
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Max-Age'] = '3600'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Max-Age'] = '3600'
         
         return response
     # scheduler.init_app(app) # Removed as per edit hint
