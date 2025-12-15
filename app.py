@@ -71,6 +71,10 @@ def create_app():
     def handle_options_preflight():
         if request.method == 'OPTIONS':
             origin = request.headers.get('Origin')
+            logger.info(f"OPTIONS preflight request received: path={request.path}, origin={origin}")
+            logger.info(f"Allowed origins: {allowed_origins}")
+            logger.info(f"Origin in allowed list: {origin in allowed_origins if origin else False}")
+            
             from flask import Response
             response = Response()
             response.status_code = 204  # No Content
@@ -81,7 +85,11 @@ def create_app():
                 response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
                 response.headers['Access-Control-Max-Age'] = '3600'
+                logger.info(f"CORS headers set for origin: {origin}")
+            else:
+                logger.warning(f"Origin not allowed or missing: {origin}")
             
+            logger.info(f"Response headers: {dict(response.headers)}")
             return response
 
     # Add CORS headers to all responses (including OPTIONS preflight)
@@ -95,6 +103,10 @@ def create_app():
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             response.headers['Access-Control-Max-Age'] = '3600'
+            if request.method == 'OPTIONS':
+                logger.info(f"after_request: Added CORS headers to OPTIONS response for {request.path}, origin: {origin}")
+        elif origin:
+            logger.warning(f"after_request: Origin not allowed: {origin} (path: {request.path}, method: {request.method})")
         
         return response
 
