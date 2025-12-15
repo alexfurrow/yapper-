@@ -26,11 +26,15 @@ def create_app():
     
     # Configure logging
     import logging
+    import sys
     # Set log level based on environment (DEBUG in dev, INFO/WARNING in prod)
     log_level = logging.DEBUG if os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' else logging.INFO
     logging.basicConfig(
         level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)  # Explicitly output to stdout for Railway
+        ]
     )
     
     # Load configuration from environment variables
@@ -71,9 +75,9 @@ def create_app():
     def handle_options_preflight():
         if request.method == 'OPTIONS':
             origin = request.headers.get('Origin')
-            logger.info(f"OPTIONS preflight request received: path={request.path}, origin={origin}")
-            logger.info(f"Allowed origins: {allowed_origins}")
-            logger.info(f"Origin in allowed list: {origin in allowed_origins if origin else False}")
+            log_msg = f"OPTIONS preflight: path={request.path}, origin={origin}, allowed={origin in allowed_origins if origin else False}"
+            logger.info(log_msg)
+            print(log_msg, flush=True)  # Backup print to stdout
             
             from flask import Response
             response = Response()
@@ -86,10 +90,13 @@ def create_app():
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
                 response.headers['Access-Control-Max-Age'] = '3600'
                 logger.info(f"CORS headers set for origin: {origin}")
+                print(f"CORS headers set for origin: {origin}", flush=True)
             else:
                 logger.warning(f"Origin not allowed or missing: {origin}")
+                print(f"WARNING: Origin not allowed or missing: {origin}", flush=True)
             
             logger.info(f"Response headers: {dict(response.headers)}")
+            print(f"Response headers: {dict(response.headers)}", flush=True)
             return response
 
     # Add CORS headers to all responses (including OPTIONS preflight)
