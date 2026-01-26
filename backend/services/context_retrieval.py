@@ -10,7 +10,7 @@ from backend.services.embedding import generate_embedding
 
 # Initialize Supabase client for fallback search
 supabase_url = os.environ.get('SUPABASE_URL')
-supabase_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+supabase_key = os.environ.get('SUPABASE_SECRET_KEY')
 supabase: Client = create_client(supabase_url, supabase_key)
 
 __all__ = ['search_by_text']

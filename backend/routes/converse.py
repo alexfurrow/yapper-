@@ -296,7 +296,7 @@ def save_conversation():
                         
                         bg_supabase = create_client(
                             os.environ.get('SUPABASE_URL'),
-                            os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                            os.environ.get('SUPABASE_SECRET_KEY')
                         )
                         
                         # Step 1: Process content through OpenAI

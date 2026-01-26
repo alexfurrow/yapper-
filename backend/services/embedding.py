@@ -16,7 +16,7 @@ client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 # Initialize Supabase client
 supabase_url = os.environ.get('SUPABASE_URL')
-supabase_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+supabase_key = os.environ.get('SUPABASE_SECRET_KEY')
 supabase: Client = create_client(supabase_url, supabase_key)
 
 __all__ = ['generate_embedding', 'vectorize_all_entries']

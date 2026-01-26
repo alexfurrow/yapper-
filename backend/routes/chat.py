@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 # Required environment variables
 REQUIRED_ENV = [
     "SUPABASE_URL",
-    "SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
     "OPENAI_API_KEY"
 ]
 
@@ -40,7 +40,7 @@ client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 # Initialize Supabase client
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    os.environ.get("SUPABASE_SECRET_KEY")
 )
 
 chat_bp = Blueprint('chat', __name__)
@@ -50,7 +50,7 @@ def create_user_supabase_client(user_token: str):
     """Create a Supabase client that operates as the authenticated user"""
     client = create_client(
         os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_ANON_KEY"]
+        os.environ["SUPABASE_PUBLISHABLE_KEY"]
     )
     # v2 way: attach JWT to PostgREST
     client.postgrest.auth(user_token)

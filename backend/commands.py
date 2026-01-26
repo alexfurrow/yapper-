@@ -40,7 +40,7 @@ def generate_monthly_summary_command(user_id, month, year, year_only):
     # Create service Supabase client
     supabase = create_client(
         os.environ.get("SUPABASE_URL"),
-        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        os.environ.get("SUPABASE_SECRET_KEY")
     )
     
     # If --year-only flag is set, generate for all months

@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 # Required environment variables
 REQUIRED_ENV = [
     "SUPABASE_URL",
-    "SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
 ]
 
 def validate_env():
@@ -33,7 +33,7 @@ validate_env()
 # Initialize Supabase client for service operations
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    os.environ.get("SUPABASE_SECRET_KEY")
 )
 
 # Function to create user-specific Supabase client
@@ -41,7 +41,7 @@ def create_user_supabase_client(user_token: str):
     """Create a Supabase client that operates as the authenticated user"""
     client = create_client(
         os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_ANON_KEY"]
+        os.environ["SUPABASE_PUBLISHABLE_KEY"]
     )
     # v2 way: attach JWT to PostgREST
     client.postgrest.auth(user_token)
@@ -144,7 +144,7 @@ def create_entry():
                 # Create new Supabase client for background thread (g is thread-local)
                 bg_supabase = create_client(
                     os.environ.get('SUPABASE_URL'),
-                    os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                    os.environ.get('SUPABASE_SECRET_KEY')
                 )
                 
                 # Step 1: Process content through OpenAI

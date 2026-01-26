@@ -4,12 +4,6 @@
 .env.local
 .env.production
 .env.development
-venv/
-.venv/
-ENV/
-
-#tests
-tests/
 
 # Python
 __pycache__/
@@ -33,19 +27,13 @@ var/
 .installed.cfg
 *.egg
 
-
-#CORE
-CORE_*
-Core/ 
+# Virtual Environment
+venv/
+ENV/
 
 # Flask
 instance/
 .webassets-cache
-
-# HNSW Index files
-**/hnsw_index*
-instance/hnsw_index*
-*.bin
 
 # React
 node_modules/

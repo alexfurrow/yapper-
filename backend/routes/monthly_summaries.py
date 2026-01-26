@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 # Required environment variables
 REQUIRED_ENV = [
     "SUPABASE_URL",
-    "SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
     "OPENAI_API_KEY",
 ]
 
@@ -36,7 +36,7 @@ validate_env()
 # Initialize Supabase client for service operations
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    os.environ.get("SUPABASE_SECRET_KEY")
 )
 
 # Initialize OpenAI client
@@ -143,7 +143,7 @@ def generate_summary_for_user(user_id, month, year, user_supabase=None):
             # But we need user_id, so we'll use service client to get entries
             service_supabase = create_client(
                 os.environ.get("SUPABASE_URL"),
-                os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+                os.environ.get("SUPABASE_SECRET_KEY")
             )
             user_supabase = service_supabase
         
@@ -216,7 +216,7 @@ def generate_summaries_for_previous_month():
         # Get all users who have entries in the previous month
         service_supabase = create_client(
             os.environ.get("SUPABASE_URL"),
-            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+            os.environ.get("SUPABASE_SECRET_KEY")
         )
         
         # Get start and end of previous month
