@@ -51,6 +51,11 @@ def create_user_supabase_client(user_token: str):
 def supabase_auth_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Skip authentication for OPTIONS requests (CORS preflight)
+        # The CORS headers will be set by app.py's before_request/after_request handlers
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'message': 'Token is missing!'}), 401

@@ -104,7 +104,7 @@ def get_user_context(user_id, user_supabase, limit=15):
         logger.error(f"Error getting user context: {e}")
         return ""
 
-@converse_bp.route('/converse/stream', methods=['POST'])
+@converse_bp.route('/converse/stream', methods=['POST', 'OPTIONS'])
 @supabase_auth_required
 def converse_stream():
     """
@@ -243,7 +243,7 @@ def converse_stream():
         logger.exception("Error in converse_stream")
         return jsonify({'error': 'Internal server error'}), 500
 
-@converse_bp.route('/converse/save', methods=['POST'])
+@converse_bp.route('/converse/save', methods=['POST', 'OPTIONS'])
 @supabase_auth_required
 def save_conversation():
     """
@@ -357,7 +357,7 @@ def save_conversation():
         logger.exception("Error saving conversation")
         return jsonify({'error': 'Failed to save conversation'}), 500
 
-@converse_bp.route('/converse/intro', methods=['GET'])
+@converse_bp.route('/converse/intro', methods=['GET', 'OPTIONS'])
 @supabase_auth_required
 def get_conversation_intro():
     """

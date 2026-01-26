@@ -263,7 +263,7 @@ def generate_summaries_for_previous_month():
         logger.exception("Error in generate_summaries_for_previous_month")
         raise
 
-@monthly_summaries_bp.route('/generate', methods=['POST'])
+@monthly_summaries_bp.route('/generate', methods=['POST', 'OPTIONS'])
 @supabase_auth_required
 def generate_monthly_summary():
     """Generate or retrieve monthly summary for a specific month/year"""
@@ -326,7 +326,7 @@ def generate_monthly_summary():
         logger.exception("Error generating monthly summary", extra={"user_id": g.current_user.id})
         return jsonify({'message': f'Error generating summary: {str(e)}'}), 500
 
-@monthly_summaries_bp.route('', methods=['GET'])
+@monthly_summaries_bp.route('', methods=['GET', 'OPTIONS'])
 @supabase_auth_required
 def get_monthly_summaries():
     """Get all monthly summaries for the current user"""
@@ -343,7 +343,7 @@ def get_monthly_summaries():
         logger.exception("Error getting monthly summaries", extra={"user_id": g.current_user.id})
         return jsonify({'message': f'Error getting summaries: {str(e)}'}), 500
 
-@monthly_summaries_bp.route('/<month_year>', methods=['GET'])
+@monthly_summaries_bp.route('/<month_year>', methods=['GET', 'OPTIONS'])
 @supabase_auth_required
 def get_monthly_summary(month_year):
     """Get a specific monthly summary by month_year"""

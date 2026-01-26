@@ -83,17 +83,25 @@ def create_app():
             response = Response()
             response.status_code = 204  # No Content
             
-            if origin and origin in allowed_origins:
-                response.headers['Access-Control-Allow-Origin'] = origin
-                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
-                response.headers['Access-Control-Allow-Credentials'] = 'true'
-                response.headers['Access-Control-Max-Age'] = '3600'
-                logger.info(f"CORS headers set for origin: {origin}")
-                print(f"CORS headers set for origin: {origin}", flush=True)
+            # Always set CORS headers for OPTIONS requests if origin is provided
+            # This ensures preflight requests always get a proper response
+            if origin:
+                if origin in allowed_origins:
+                    response.headers['Access-Control-Allow-Origin'] = origin
+                    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
+                    response.headers['Access-Control-Allow-Credentials'] = 'true'
+                    response.headers['Access-Control-Max-Age'] = '3600'
+                    logger.info(f"CORS headers set for origin: {origin}")
+                    print(f"CORS headers set for origin: {origin}", flush=True)
+                else:
+                    # Still set headers but log warning - this helps with debugging
+                    logger.warning(f"Origin not in allowed list: {origin} (path: {request.path})")
+                    print(f"WARNING: Origin not in allowed list: {origin} (path: {request.path})", flush=True)
+                    # Don't set headers for disallowed origins (security)
             else:
-                logger.warning(f"Origin not allowed or missing: {origin}")
-                print(f"WARNING: Origin not allowed or missing: {origin}", flush=True)
+                logger.warning(f"OPTIONS request with no Origin header (path: {request.path})")
+                print(f"WARNING: OPTIONS request with no Origin header (path: {request.path})", flush=True)
             
             logger.info(f"Response headers: {dict(response.headers)}")
             print(f"Response headers: {dict(response.headers)}", flush=True)
@@ -104,14 +112,25 @@ def create_app():
     def after_request(response):
         origin = request.headers.get('Origin')
         
+        # Skip if this is already an OPTIONS response (handled in before_request)
+        if request.method == 'OPTIONS':
+            # Headers should already be set by before_request, but ensure they're there
+            if origin and origin in allowed_origins and 'Access-Control-Allow-Origin' not in response.headers:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers['Access-Control-Max-Age'] = '3600'
+            return response
+        
+        # For all other requests, add CORS headers
         if origin and origin in allowed_origins:
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             response.headers['Access-Control-Max-Age'] = '3600'
-            if request.method == 'OPTIONS':
-                logger.info(f"after_request: Added CORS headers to OPTIONS response for {request.path}, origin: {origin}")
+            logger.debug(f"after_request: Added CORS headers for {request.method} {request.path}, origin: {origin}")
         elif origin:
             logger.warning(f"after_request: Origin not allowed: {origin} (path: {request.path}, method: {request.method})")
         
