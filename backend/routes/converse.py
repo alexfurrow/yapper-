@@ -140,44 +140,39 @@ def converse_stream():
             try:
                 relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
                 logger.info(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
-            
-            if relevant_entries:
-                for entry in relevant_entries:
-                    content = entry.get('content', '').strip()
-                    if content:
-                        # Truncate very long entries
-                        if len(content) > 300:
-                            content = content[:300] + "..."
-                        context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
-                        # Add to sources for frontend
-                        sources.append({
-                            'entry_id': entry.get('entry_id'),
-                            'user_entry_id': entry.get('user_entry_id'),
-                            'content': content,
-                            'similarity': entry.get('similarity', 0)
-                        })
-                
-                context = "\n\n".join(context_parts)
-                logger.info(f"[converse_stream] Built context with {len(context_parts)} entries")
-            else:
-                # No results found - check if user has vectorized entries
-                try:
-                    response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
-                    has_vectorized_entries = response.data and len(response.data) > 0
-                    
-                    if has_vectorized_entries:
-                        # User has vectorized entries but search returned nothing
-                        # This could mean the index needs to be rebuilt, or the query didn't match anything
-                        logger.warning(f"[converse_stream] HNSW search returned no results but user has {len(response.data)} vectorized entries - index may need rebuilding")
-                        # Proceed without context rather than injecting error message
-                    else:
-                        logger.info(f"[converse_stream] No vectorized entries found for user - proceeding without context")
-                except Exception as e:
-                    logger.error(f"[converse_stream] Error checking for user vectorized entries: {e}", exc_info=True)
-                    # Proceed without context on error
+
+                if relevant_entries:
+                    for entry in relevant_entries:
+                        content = entry.get('content', '').strip()
+                        if content:
+                            # Truncate very long entries
+                            if len(content) > 300:
+                                content = content[:300] + "..."
+                            context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
+                            # Add to sources for frontend
+                            sources.append({
+                                'entry_id': entry.get('entry_id'),
+                                'user_entry_id': entry.get('user_entry_id'),
+                                'content': content,
+                                'similarity': entry.get('similarity', 0)
+                            })
+
+                    context = "\n\n".join(context_parts)
+                    logger.info(f"[converse_stream] Built context with {len(context_parts)} entries")
+                else:
+                    # No results found - check if user has vectorized entries
+                    try:
+                        response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
+                        has_vectorized_entries = response.data and len(response.data) > 0
+
+                        if has_vectorized_entries:
+                            logger.warning(f"[converse_stream] HNSW search returned no results but user has {len(response.data)} vectorized entries - index may need rebuilding")
+                        else:
+                            logger.info(f"[converse_stream] No vectorized entries found for user - proceeding without context")
+                    except Exception as e:
+                        logger.error(f"[converse_stream] Error checking for user vectorized entries: {e}", exc_info=True)
             except Exception as e:
                 logger.error(f"[converse_stream] Exception in RAG search: {e}", exc_info=True)
-                # Proceed without context on error - don't inject error messages into AI prompt
         else:
             logger.info(f"[converse_stream] RAG disabled (use_rag=False), proceeding without history context")
         

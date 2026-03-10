@@ -246,7 +246,7 @@ function JournalPage() {
       }
 
       const accessToken = session.access_token;
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'yapper-production-a5e0.up.railway.app';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://yapper-production-a5e0.up.railway.app';
       const summariesUrl = `${backendUrl}/api/monthly-summaries`;
       
       const response = await fetch(summariesUrl, {
