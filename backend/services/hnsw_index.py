@@ -31,8 +31,9 @@ class HNSWIndex:
         try:
             # Initialize Supabase client
             supabase_url = os.environ.get("SUPABASE_URL")
-            supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-            
+            # Use SUPABASE_SECRET_KEY (service role key) - fallback to SUPABASE_SERVICE_ROLE_KEY for backwards compatibility
+            supabase_key = os.environ.get("SUPABASE_SECRET_KEY") 
+
             print(f"[build_index] Supabase URL: {supabase_url[:30]}..." if supabase_url else "[build_index] ERROR: SUPABASE_URL not set")
             print(f"[build_index] Service key present: {bool(supabase_key)}")
             
@@ -397,7 +398,7 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
         # Fetch full entry data from Supabase
         supabase = create_client(
             os.environ.get("SUPABASE_URL"),
-            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+            os.environ.get("SUPABASE_PUBLISHABLE_KEY")
         )
         
         entry_ids = [c['entry_id'] for c in candidates[:k]]
@@ -419,7 +420,7 @@ def search_similar(query_vector, k=5, user_id=None, user_client=None):
     # Filter by user_id - fetch entries and filter
     client = user_client if user_client else create_client(
         os.environ.get("SUPABASE_URL"),
-        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        os.environ.get("SUPABASE_PUBLISHABLE_KEY")
     )
     
     entry_ids = [c['entry_id'] for c in candidates]

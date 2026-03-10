@@ -246,7 +246,7 @@ function JournalPage() {
       }
 
       const accessToken = session.access_token;
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://your-app.railway.app';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'yapper-production-a5e0.up.railway.app';
       const summariesUrl = `${backendUrl}/api/monthly-summaries`;
       
       const response = await fetch(summariesUrl, {
@@ -721,7 +721,8 @@ function JournalPage() {
         },
         body: JSON.stringify({ 
           messages: yapMessages,
-          user_input: userContent
+          user_input: userContent,
+          use_rag: true  // Chat tab uses RAG to answer questions about past entries
         })
       });
 
@@ -985,7 +986,8 @@ function JournalPage() {
         headers: headers,
         body: JSON.stringify({
           messages: yapMessages,
-          user_input: userText
+          user_input: userText,
+          use_rag: false 
         })
       });
       

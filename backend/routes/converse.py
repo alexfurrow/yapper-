@@ -57,11 +57,7 @@ def build_conversation_messages(yap_messages, user_input, context=""):
     
     # If we have context, add it to the system prompt
     if context:
-        if context.startswith("ERROR:"):
-            # Search failed - tell AI to inform user
-            system_prompt += f"\n\n{context}\n\nYou must inform the user about this error."
-        else:
-            system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
+        system_prompt += f"\n\n## User's Journal History\n{context}\n\nUse this context to provide more personalized and relevant responses. Reference specific entries when appropriate."
     
     messages.append({"role": "system", "content": system_prompt})
     
@@ -124,58 +120,66 @@ def converse_stream():
         
         yap_messages = data.get('messages', [])
         user_input = data.get('user_input', '').strip()
+        use_rag = data.get('use_rag', True)  # Default to True for backwards compatibility
         
         if not user_input:
             return jsonify({'error': 'User input cannot be empty'}), 400
         
-        logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}...")
-        logger.info(f"[converse_stream] Starting search for user_id={g.current_user.id}, query={user_input[:50]}")
+        logger.info(f"Converse request: {len(yap_messages)} previous messages, user input: {user_input[:50]}..., use_rag={use_rag}")
         
-        # Use RAG pipeline to find relevant entries
-        from backend.services.context_retrieval import search_by_text
-        logger.info(f"[converse_stream] Calling search_by_text...")
-        relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
-        logger.info(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
-        
-        # Build context from relevant entries
         context_parts = []
         sources = []
-        search_failed = False
+        context = ""
         
-        if not relevant_entries:
-            # Check if user has entries WITH VECTORS (not just any entries)
+        # Use RAG pipeline to find relevant entries (only if use_rag is True)
+        if use_rag:
+            logger.info(f"[converse_stream] Starting RAG search for user_id={g.current_user.id}, query={user_input[:50]}")
+            from backend.services.context_retrieval import search_by_text
+            logger.info(f"[converse_stream] Calling search_by_text for user_id={g.current_user.id}, query={user_input[:50]}...")
+            
             try:
-                response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
-                has_vectorized_entries = response.data and len(response.data) > 0
+                relevant_entries = search_by_text(user_input, limit=3, user_id=g.current_user.id, user_client=g.user_supabase)
+                logger.info(f"[converse_stream] search_by_text returned {len(relevant_entries)} entries")
+            
+            if relevant_entries:
+                for entry in relevant_entries:
+                    content = entry.get('content', '').strip()
+                    if content:
+                        # Truncate very long entries
+                        if len(content) > 300:
+                            content = content[:300] + "..."
+                        context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
+                        # Add to sources for frontend
+                        sources.append({
+                            'entry_id': entry.get('entry_id'),
+                            'user_entry_id': entry.get('user_entry_id'),
+                            'content': content,
+                            'similarity': entry.get('similarity', 0)
+                        })
                 
-                if has_vectorized_entries:
-                    # User has vectorized entries but search returned nothing - this is an error
-                    logger.warning("HNSW search returned no results but user has vectorized entries - search may have failed")
-                    search_failed = True
+                context = "\n\n".join(context_parts)
+                logger.info(f"[converse_stream] Built context with {len(context_parts)} entries")
+            else:
+                # No results found - check if user has vectorized entries
+                try:
+                    response = g.user_supabase.table('entries').select('user_and_entry_id').eq('user_id', g.current_user.id).not_.is_('vectors', 'null').limit(1).execute()
+                    has_vectorized_entries = response.data and len(response.data) > 0
+                    
+                    if has_vectorized_entries:
+                        # User has vectorized entries but search returned nothing
+                        # This could mean the index needs to be rebuilt, or the query didn't match anything
+                        logger.warning(f"[converse_stream] HNSW search returned no results but user has {len(response.data)} vectorized entries - index may need rebuilding")
+                        # Proceed without context rather than injecting error message
+                    else:
+                        logger.info(f"[converse_stream] No vectorized entries found for user - proceeding without context")
+                except Exception as e:
+                    logger.error(f"[converse_stream] Error checking for user vectorized entries: {e}", exc_info=True)
+                    # Proceed without context on error
             except Exception as e:
-                logger.error(f"Error checking for user vectorized entries: {e}")
-                search_failed = True
+                logger.error(f"[converse_stream] Exception in RAG search: {e}", exc_info=True)
+                # Proceed without context on error - don't inject error messages into AI prompt
         else:
-            for entry in relevant_entries:
-                content = entry.get('content', '').strip()
-                if content:
-                    # Truncate very long entries
-                    if len(content) > 300:
-                        content = content[:300] + "..."
-                    context_parts.append(f"Entry {entry.get('user_entry_id', 'N/A')}: {content}")
-                    # Add to sources for frontend
-                    sources.append({
-                        'entry_id': entry.get('entry_id'),
-                        'user_entry_id': entry.get('user_entry_id'),
-                        'content': content,
-                        'similarity': entry.get('similarity', 0)
-                    })
-        
-        context = "\n\n".join(context_parts)
-        
-        # If search failed, add error message to context
-        if search_failed:
-            context = "ERROR: There was an error with retrieving your history. Please inform the user: 'There was an error with retrieving your history.'"
+            logger.info(f"[converse_stream] RAG disabled (use_rag=False), proceeding without history context")
         
         # Build conversation messages for OpenAI with context
         messages = build_conversation_messages(yap_messages, user_input, context)
