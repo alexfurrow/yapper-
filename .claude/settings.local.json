@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/alexa/OneDrive/Desktop/Projects/yapper_claude log --oneline -20)"
+    ]
+  }
+}
